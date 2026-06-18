@@ -1,0 +1,419 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header,
+.site-footer {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: inline-flex;
+  color: var(--text-strong);
+  font-size: 1.35rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.eyebrow {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.site-nav a,
+.button-link,
+.ghost-button,
+.node-button,
+.panel-button {
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.site-nav a {
+  padding: 8px 12px;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.site-nav a.active,
+.site-nav a:hover,
+.site-nav a:focus-visible {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+main {
+  flex: 1;
+}
+
+.page {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 44px 0 56px;
+}
+
+.hero-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  gap: 28px;
+  align-items: stretch;
+}
+
+.hero-copy {
+  padding: 34px 0;
+}
+
+.hero-copy h1,
+.page-title h1 {
+  max-width: 780px;
+}
+
+.hero-copy p,
+.page-title p,
+.notice p,
+.feature-card p,
+.calculator-card p {
+  color: var(--text);
+}
+
+.hero-actions,
+.card-grid,
+.reserved-list,
+.status-list,
+.calculator-grid,
+.module-list,
+.node-list,
+.related-list {
+  display: flex;
+  gap: 12px;
+}
+
+.hero-actions {
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.hero-panel,
+.notice,
+.feature-card,
+.calculator-card,
+.guide-workspace,
+.guide-detail,
+.mock-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.hero-panel {
+  padding: 24px;
+}
+
+.hero-panel h2 {
+  margin-bottom: 16px;
+}
+
+.status-list {
+  flex-direction: column;
+}
+
+.status-list li {
+  display: grid;
+  grid-template-columns: 94px minmax(0, 1fr);
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-list li:last-child {
+  border-bottom: 0;
+}
+
+.status-label,
+.tag,
+.field-label,
+.detail-label {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 28px;
+}
+
+.feature-card,
+.calculator-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+}
+
+.feature-card h2,
+.calculator-card h2,
+.mock-panel h2,
+.guide-detail h2 {
+  margin: 0;
+}
+
+.button-link,
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 9px 13px;
+  font-weight: 750;
+}
+
+.button-link {
+  color: #fff;
+  background: var(--accent);
+}
+
+.button-link:hover,
+.button-link:focus-visible {
+  background: var(--accent-strong);
+}
+
+.ghost-button {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.notice {
+  margin-top: 28px;
+  padding: 18px;
+}
+
+.reserved-list {
+  flex-wrap: wrap;
+  padding: 0;
+  margin: 14px 0 0;
+  list-style: none;
+}
+
+.reserved-list li {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: var(--text);
+  background: var(--surface-muted);
+}
+
+.page-title {
+  margin-bottom: 26px;
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.calculator-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  text-transform: none;
+}
+
+.field-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.field-row dd {
+  margin: 0;
+}
+
+.guide-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 320px;
+  gap: 16px;
+}
+
+.guide-workspace,
+.guide-detail,
+.mock-panel {
+  padding: 18px;
+}
+
+.module-list,
+.node-list,
+.related-list {
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.node-button,
+.panel-button {
+  width: 100%;
+  border: 1px solid var(--border);
+  color: var(--text-strong);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.node-button {
+  padding: 10px;
+}
+
+.node-button.active,
+.node-button:hover,
+.panel-button.active,
+.panel-button:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.node-title {
+  display: block;
+  font-weight: 750;
+}
+
+.node-path {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.mock-interface {
+  display: grid;
+  gap: 16px;
+}
+
+.mock-panel {
+  background: var(--surface-muted);
+}
+
+.panel-button {
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.guide-detail {
+  position: sticky;
+  top: 16px;
+  align-self: start;
+}
+
+.detail-section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-section:last-child {
+  border-bottom: 0;
+}
+
+.detail-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.todo-text {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 0 28px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 960px) {
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-nav {
+    justify-content: flex-start;
+  }
+
+  .hero-section,
+  .guide-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-detail {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: min(100% - 24px, 1120px);
+    padding: 28px 0 40px;
+  }
+
+  .site-header,
+  .site-footer {
+    width: min(100% - 24px, 1120px);
+  }
+
+  .card-grid,
+  .calculator-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-copy {
+    padding: 18px 0 6px;
+  }
+
+  .field-row,
+  .status-list li {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "todo.module.item",
+  "module": "TODO: module name",
+  "englishName": "TODO: English name",
+  "chineseName": "TODO: Chinese name",
+  "menuPath": ["TODO: top level", "TODO: item"],
+  "oneLineSummary": "TODO: 一句话说明。不得复制官方文档原文。",
+  "principle": "TODO: 功能原理。需要内容审核。",
+  "useCases": "TODO: 使用场景。需要内容审核。",
+  "majorOptions": [
+    {
+      "name": "TODO: option name",
+      "description": "TODO: option description"
+    }
+  ],
+  "optionDifferences": "TODO: 不同选项的区别。",
+  "impactOnAccuracyStabilityCost": "TODO: 对精度、稳定性和计算成本的影响。",
+  "prerequisites": "TODO: 前置条件。",
+  "commonErrors": "TODO: 常见错误。",
+  "checkSuggestions": "TODO: 检查建议。",
+  "relatedFeatures": ["TODO: related feature id"],
+  "relatedCalculators": ["TODO: related calculator id"],
+  "applicableFluentVersions": ["TODO: version range"],
+  "contentVersion": "0.1.0-todo",
+  "updatedAt": "2026-06-18",
+  "searchKeywords": ["TODO"],
+  "contentStatus": "todo"
+}
