@@ -3,9 +3,10 @@ import type { CalculatorDefinition } from '../../models/calculator'
 export const calculatorDefinitionTemplate: CalculatorDefinition = {
   id: 'todo-calculator-id',
   name: 'TODO: 计算器名称',
-  category: 'TODO: 分类',
+  shortName: 'TODO: 短名称',
+  categoryId: 'TODO: 分类 ID',
   summary: 'TODO: 用一句话说明用途。不得写入未经审核的工程结论。',
-  status: 'todo',
+  availability: 'planned',
   inputs: [
     {
       id: 'todo-input-id',
@@ -23,6 +24,5 @@ export const calculatorDefinitionTemplate: CalculatorDefinition = {
       defaultUnit: 'TODO: 默认单位',
     },
   ],
-  validationStatus: 'TODO: 填写验证状态和验证数据来源。',
-  formulaTodo: 'TODO: 填写公式、适用范围、限制条件和需要确认的问题。',
+  resultPreview: ['TODO: 结果展示项'],
 }

@@ -3,11 +3,21 @@ import {
   groupKnowledgeByModule,
   loadFluentKnowledge,
 } from '../knowledge/knowledgeRepository'
+import Breadcrumbs from '../components/Breadcrumbs'
+import PageHeader from '../components/PageHeader'
 import type { FluentKnowledgeEntry } from '../models/knowledge'
 
-function renderText(value: string) {
-  if (value.startsWith('TODO')) {
-    return <span className="todo-text">{value}</span>
+const contentFallbacks = {
+  summary: '这部分说明正在整理中。',
+  principle: '后续会补充核心概念、设置含义与使用边界。',
+  useCases: '后续会补充典型使用场景。',
+  commonErrors: '后续会补充常见误区。',
+  checkSuggestions: '后续会补充检查建议。',
+}
+
+function displayContent(value: string, fallback: string) {
+  if (!value || value.trim().startsWith('TODO')) {
+    return fallback
   }
 
   return value
@@ -30,12 +40,12 @@ function FluentGuidePage() {
         setEntries(knowledgeFile.entries)
         setSelectedId(knowledgeFile.entries[0]?.id ?? null)
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (cancelled) {
           return
         }
 
-        setLoadError(error instanceof Error ? error.message : '知识库读取失败')
+        setLoadError('知识内容暂时无法加载，请稍后重试。')
       })
 
     return () => {
@@ -49,27 +59,31 @@ function FluentGuidePage() {
 
   return (
     <div className="page">
-      <section className="page-title">
-        <p className="eyebrow">Fluent guide</p>
-        <h1>Fluent 功能导览</h1>
-        <p>
-          这里是自主设计的教学界面，不连接 Fluent，也不复制官方界面。点击功能节点后从本地 JSON 知识库读取解释。
-        </p>
-      </section>
+      <Breadcrumbs
+        items={[{ label: '首页', to: '/' }, { label: 'Fluent 功能导览' }]}
+      />
+      <PageHeader
+        eyebrow="Fluent guide"
+        title="Fluent 功能导览"
+        description="通过教学化功能树浏览常见设置项，并在侧边面板查看对应说明。"
+      />
 
       {loadError ? (
         <section className="notice" role="alert">
-          <h2>知识库加载失败</h2>
+          <h2>内容加载失败</h2>
           <p>{loadError}</p>
         </section>
       ) : (
         <section className="guide-layout">
           <nav className="guide-workspace" aria-label="Fluent guide modules">
-            <h2>功能目录</h2>
+            <div className="panel-heading">
+              <p className="eyebrow">Workflow</p>
+              <h2>功能目录</h2>
+            </div>
             <ul className="module-list">
               {Object.entries(groupedEntries).map(([moduleName, moduleEntries]) => (
                 <li key={moduleName}>
-                  <p className="field-label">{moduleName}</p>
+                  <p className="module-heading">{moduleName}</p>
                   <ul className="node-list">
                     {moduleEntries.map((entry) => (
                       <li key={entry.id}>
@@ -95,56 +109,77 @@ function FluentGuidePage() {
 
           <section className="mock-interface" aria-label="Teaching interface">
             <div className="mock-panel">
-              <p className="eyebrow">Teaching panel</p>
-              <h2>{selectedEntry?.module ?? '加载中'}</h2>
-              <p>
-                当前模拟区域只展示教学导航逻辑。后续会根据知识库 ID
-                扩展为更接近工作流的设置面板。
-              </p>
-              {selectedEntry ? (
-                <button className="panel-button active" type="button">
-                  {selectedEntry.menuPath.join(' / ')}
-                </button>
-              ) : null}
+              <div className="panel-heading">
+                <p className="eyebrow">Teaching panel</p>
+                <h2>{selectedEntry?.module ?? '加载中'}</h2>
+              </div>
+              <div className="teaching-surface">
+                <span className="surface-line wide" />
+                <span className="surface-line" />
+                <span className="surface-control active">
+                  {selectedEntry ? selectedEntry.menuPath.join(' / ') : 'Loading'}
+                </span>
+                <span className="surface-control" />
+                <span className="surface-control short" />
+              </div>
             </div>
           </section>
 
           <aside className="guide-detail" aria-label="Knowledge detail">
             {selectedEntry ? (
               <>
-                <p className="eyebrow">{selectedEntry.id}</p>
+                <p className="eyebrow">{selectedEntry.module}</p>
                 <h2>
                   {selectedEntry.englishName} · {selectedEntry.chineseName}
                 </h2>
                 <div className="detail-section">
-                  <span className="detail-label">一句话说明</span>
-                  <p>{renderText(selectedEntry.oneLineSummary)}</p>
+                  <span className="detail-label">简介</span>
+                  <p>
+                    {displayContent(
+                      selectedEntry.oneLineSummary,
+                      contentFallbacks.summary,
+                    )}
+                  </p>
                 </div>
                 <div className="detail-section">
-                  <span className="detail-label">功能原理</span>
-                  <p>{renderText(selectedEntry.principle)}</p>
+                  <span className="detail-label">功能理解</span>
+                  <p>
+                    {displayContent(
+                      selectedEntry.principle,
+                      contentFallbacks.principle,
+                    )}
+                  </p>
                 </div>
                 <div className="detail-section">
                   <span className="detail-label">使用场景</span>
-                  <p>{renderText(selectedEntry.useCases)}</p>
+                  <p>
+                    {displayContent(
+                      selectedEntry.useCases,
+                      contentFallbacks.useCases,
+                    )}
+                  </p>
                 </div>
                 <div className="detail-section">
-                  <span className="detail-label">常见错误</span>
-                  <p>{renderText(selectedEntry.commonErrors)}</p>
+                  <span className="detail-label">常见问题</span>
+                  <p>
+                    {displayContent(
+                      selectedEntry.commonErrors,
+                      contentFallbacks.commonErrors,
+                    )}
+                  </p>
                 </div>
                 <div className="detail-section">
                   <span className="detail-label">检查建议</span>
-                  <p>{renderText(selectedEntry.checkSuggestions)}</p>
-                </div>
-                <div className="detail-section">
-                  <span className="detail-label">内容版本</span>
                   <p>
-                    {selectedEntry.contentVersion} · {selectedEntry.updatedAt}
+                    {displayContent(
+                      selectedEntry.checkSuggestions,
+                      contentFallbacks.checkSuggestions,
+                    )}
                   </p>
                 </div>
               </>
             ) : (
-              <p>正在加载知识库...</p>
+              <p>正在加载知识内容...</p>
             )}
           </aside>
         </section>

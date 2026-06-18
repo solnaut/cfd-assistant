@@ -1,4 +1,6 @@
 import { NavLink, Route, Routes } from 'react-router-dom'
+import CalculatorCategoryPage from './pages/CalculatorCategoryPage'
+import CalculatorDetailPage from './pages/CalculatorDetailPage'
 import CalculatorsPage from './pages/CalculatorsPage'
 import FluentGuidePage from './pages/FluentGuidePage'
 import HomePage from './pages/HomePage'
@@ -8,11 +10,11 @@ function App() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <div>
-          <p className="eyebrow">Independent CFD learning tool</p>
+        <div className="brand-block">
           <NavLink to="/" className="brand">
             CFD Assistant
           </NavLink>
+          <span>工程计算与学习辅助</span>
         </div>
         <nav className="site-nav" aria-label="Primary navigation">
           <NavLink to="/calculators">参数计算</NavLink>
@@ -24,13 +26,21 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/calculators" element={<CalculatorsPage />} />
+          <Route
+            path="/calculators/:categoryId"
+            element={<CalculatorCategoryPage />}
+          />
+          <Route
+            path="/calculators/:categoryId/:calculatorId"
+            element={<CalculatorDetailPage />}
+          />
           <Route path="/fluent-guide" element={<FluentGuidePage />} />
         </Routes>
       </main>
 
       <footer className="site-footer">
-        <span>第三方独立学习辅助工具，非 Ansys 官方产品。</span>
-        <span>App v0.1.0 · Content TODO</span>
+        <span>CFD Assistant</span>
+        <span>Responsive web app · v0.1.0</span>
       </footer>
     </div>
   )

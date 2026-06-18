@@ -1,4 +1,12 @@
-export type CalculatorStatus = 'todo' | 'draft' | 'reviewed'
+export type CalculatorAvailability = 'ready-for-structure' | 'planned'
+
+export interface CalculatorCategory {
+  id: string
+  name: string
+  eyebrow: string
+  description: string
+  icon: 'mesh' | 'time' | 'dimensionless' | 'pipe' | 'heat'
+}
 
 export interface CalculatorInputDefinition {
   id: string
@@ -18,11 +26,11 @@ export interface CalculatorOutputDefinition {
 export interface CalculatorDefinition {
   id: string
   name: string
-  category: string
+  shortName: string
+  categoryId: string
   summary: string
-  status: CalculatorStatus
+  availability: CalculatorAvailability
   inputs: CalculatorInputDefinition[]
   outputs: CalculatorOutputDefinition[]
-  validationStatus: string
-  formulaTodo: string
+  resultPreview: string[]
 }
