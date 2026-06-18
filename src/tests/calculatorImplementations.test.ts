@@ -45,6 +45,14 @@ describe('calculator implementations', () => {
     ).toBeCloseTo(0.5)
 
     expect(
+      outputValue('ideal-gas-speed-of-sound', {
+        'heat-capacity-ratio': { value: 1.4, unitId: '1' },
+        'gas-constant': { value: 287.05, unitId: 'J/(kg*K)' },
+        temperature: { value: 288.15, unitId: 'K' },
+      }),
+    ).toBeCloseTo(340.2922869)
+
+    expect(
       outputValue('prandtl-number', {
         'dynamic-viscosity': { value: 1.8e-5, unitId: 'Pa*s' },
         'specific-heat': { value: 1005, unitId: 'J/(kg*K)' },
@@ -107,6 +115,16 @@ describe('calculator implementations', () => {
     ).toBeCloseTo(0.1333333333)
 
     expect(
+      outputValue('pipe-pressure-drop', {
+        'darcy-friction-factor': { value: 0.02, unitId: '1' },
+        'pipe-length': { value: 1000, unitId: 'cm' },
+        'hydraulic-diameter': { value: 100, unitId: 'mm' },
+        density: { value: 1, unitId: 'g/cm^3' },
+        velocity: { value: 200, unitId: 'cm/s' },
+      }),
+    ).toBeCloseTo(4000)
+
+    expect(
       outputValue('cfl-time-step', {
         'target-cfl': { value: 1, unitId: '1' },
         'cell-size': { value: 10, unitId: 'mm' },
@@ -137,6 +155,24 @@ describe('calculator implementations', () => {
         'wetted-perimeter': { value: 0, unitId: 'm' },
       }),
     ).toThrow(/湿周必须大于 0/)
+
+    expect(() =>
+      outputValue('ideal-gas-speed-of-sound', {
+        'heat-capacity-ratio': { value: 1.4, unitId: '1' },
+        'gas-constant': { value: 287.05, unitId: 'J/(kg*K)' },
+        temperature: { value: -300, unitId: 'K' },
+      }),
+    ).toThrow(/绝对温度/)
+
+    expect(() =>
+      outputValue('pipe-pressure-drop', {
+        'darcy-friction-factor': { value: 0.02, unitId: '1' },
+        'pipe-length': { value: 10, unitId: 'm' },
+        'hydraulic-diameter': { value: 0, unitId: 'm' },
+        density: { value: 1000, unitId: 'kg/m^3' },
+        velocity: { value: 2, unitId: 'm/s' },
+      }),
+    ).toThrow(/水力直径必须大于 0/)
 
     expect(() =>
       outputValue('boundary-layer-mesh', {

@@ -8,6 +8,7 @@ export type UnitCategory =
   | 'inverseTemperature'
   | 'kinematicViscosity'
   | 'length'
+  | 'pressure'
   | 'specificHeat'
   | 'temperature'
   | 'temperatureDifference'
@@ -82,6 +83,11 @@ export const unitCatalog: Record<UnitCategory, UnitDefinition[]> = {
     { id: 'cm', symbol: 'cm', label: 'centimeter', toBaseFactor: 0.01 },
     { id: 'mm', symbol: 'mm', label: 'millimeter', toBaseFactor: 0.001 },
     { id: 'um', symbol: 'um', label: 'micrometer', toBaseFactor: 0.000001 },
+  ],
+  pressure: [
+    { id: 'Pa', symbol: 'Pa', label: 'pascal', toBaseFactor: 1 },
+    { id: 'kPa', symbol: 'kPa', label: 'kilopascal', toBaseFactor: 1000 },
+    { id: 'MPa', symbol: 'MPa', label: 'megapascal', toBaseFactor: 1000000 },
   ],
   specificHeat: [
     {

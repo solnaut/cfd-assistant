@@ -15,6 +15,8 @@ describe('unit conversions', () => {
     expect(convertValue(200, 'cm^2', 'm^2', 'area')).toBeCloseTo(0.02)
     expect(convertValue(0.018, 'mPa*s', 'Pa*s', 'dynamicViscosity')).toBeCloseTo(0.000018)
     expect(convertValue(15, 'mm^2/s', 'm^2/s', 'kinematicViscosity')).toBeCloseTo(0.000015)
+    expect(convertValue(4, 'kPa', 'Pa', 'pressure')).toBeCloseTo(4000)
+    expect(convertValue(0.28705, 'kJ/(kg*K)', 'J/(kg*K)', 'specificHeat')).toBeCloseTo(287.05)
   })
 
   it('converts temperature and temperature-difference units correctly', () => {

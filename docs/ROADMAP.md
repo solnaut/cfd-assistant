@@ -11,20 +11,31 @@
 
 ## Phase 1 - Calculator Framework
 
+- 状态：v0.2 已完成首批计算器，v0.3 继续扩展正式分支并审计公式一致性。
 - 完成 v0.2 UI 与参数计算三级信息架构。
 - 建立 `docs/research/calculators` 和 `docs/research/fluent` 研究记录模板。
 - 优先确认 Reynolds、Mach、Prandtl、Peclet、Grashof、Rayleigh、Fourier、Biot、水力直径、CFL 与边界层网格等比增长的公式、输入、输出、单位和验证案例。
 - 建立通用计算器表单组件。
 - 建立输入校验、单位选择、结果复制和示例数据机制。
 - 为正式发布的每个计算器编写正常案例、单位换算案例、边界案例、非法输入案例和来源验证案例。
+- v0.3 新增候选：理想气体声速、Darcy-Weisbach 基础管道压降、更多水力直径快捷几何。
 
 ## Phase 2 - Fluent Guide MVP
 
+- 状态：v0.2 已完成 MVP，v0.3 继续升级模拟窗口和窗口内部控件解释。
 - 确认知识条目字段是否足够。
 - 建立由知识库 ID 驱动的高保真教学模拟界面，不使用官方 Logo、截图或图标。
 - 第一阶段覆盖 General、Models、Materials、Cell Zone Conditions、Boundary Conditions、Solution Methods、Initialization、Monitors、Run Calculation 和 Results 中的常用单相流动与传热功能。
 - 增加搜索、关联功能跳转、关联计算器跳转和内容版本展示。
 - 优化手机端详情阅读体验。
+
+## Phase 2.5 - v0.3 Publish-Ready Local Iteration
+
+- 重做首页主视觉，使其表达 CFD 计算、公式结果和 Fluent 教学导览。
+- 审计已公开计算器的公式、LaTeX、实现函数、测试和研究记录一致性。
+- 扩展一批来源明确的新计算器或正式分支。
+- 升级 Fluent 导览为更接近真实操作逻辑的高保真教学模拟界面。
+- 保持本地 Git 提交，不推送 GitHub，不部署 Cloudflare。
 
 ## Phase 3 - Static Deployment
 

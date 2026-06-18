@@ -48,10 +48,11 @@
 | `fourier-number` | Fourier 数 | available | 已有 | 已实现瞬态导热无量纲时间 |
 | `biot-number` | Biot 数 | available | 已有 | 已实现 `hL/k_s` |
 | `hydraulic-diameter` | 水力直径 | available | 已有 | 已实现通用 `4A/P_w` |
+| `ideal-gas-speed-of-sound` | 理想气体声速 | available | 已有 | v0.3 新增，适用于理想气体 |
 | `cfl-time-step` | CFL 与时间步长 | available | 已有 | 当前为一维估算 |
 | `boundary-layer-mesh` | 边界层网格等比增长 | available | 已有 | 已实现等比层高序列 |
 | `y-plus-first-layer-height` | y+ 与第一层网格高度 | research-only | 已有 | 不公开自动计算 |
-| `pipe-pressure-drop` | 管道压降 | planned | 暂无正式记录 | v0.3 可优先研究 Darcy-Weisbach 基础形式 |
+| `pipe-pressure-drop` | 管道压降 | available | 已有 | v0.3 新增，仅使用已知 Darcy 摩阻因子 |
 
 ### 2.3 已知待办
 
@@ -59,7 +60,7 @@
 - Mach 数可增加理想气体声速辅助输入分支，但必须保证分支条件清晰。
 - Peclet 数可增加质量扩散形式，但需单独说明当前热扩散形式与质量扩散形式差异。
 - 水力直径可增加矩形通道、环形通道等快捷几何输入。
-- 管道压降可研究并实现以 Darcy 摩阻因子为输入的 Darcy-Weisbach 基础计算；摩阻因子经验关联式需另行双源验证。
+- 管道压降已实现以 Darcy 摩阻因子为输入的 Darcy-Weisbach 基础计算；摩阻因子经验关联式仍需另行双源验证。
 - y+ 继续保持保守策略，未完成分支研究前不公开自动结果。
 
 ## 3. Fluent 导览状态
@@ -147,6 +148,6 @@ docs/research/fluent/fluent-guide-mvp.md
 1. 提交 `docs/GOAL_V03.md` 和本文，完成 Stage 0。
 2. 重做首页主视觉，完成 Stage 1。
 3. 执行计算器公式一致性审计，修正文档中过时描述，完成 Stage 2。
-4. 研究并实现新的安全计算器分支，例如理想气体声速、管道压降基础形式或水力直径快捷几何。
+4. 继续研究并实现新的安全计算器分支，例如水力直径快捷几何或 Peclet 质量扩散形式。
 5. 扩展 Fluent 知识库结构和模拟窗口内控件交互。
 6. 全站质量收口并运行 lint、test、build 和浏览器冒烟测试。

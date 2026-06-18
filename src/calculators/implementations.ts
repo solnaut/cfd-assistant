@@ -43,8 +43,10 @@ const implementations: Record<CalculatorImplementationId, CalculatorImplementati
   'fourier-number': calculateFourier,
   'grashof-number': calculateGrashof,
   'hydraulic-diameter': calculateHydraulicDiameter,
+  'ideal-gas-speed-of-sound': calculateIdealGasSpeedOfSound,
   'mach-number': calculateMach,
   'peclet-number': calculatePeclet,
+  'pipe-pressure-drop': calculatePipePressureDrop,
   'prandtl-number': calculatePrandtl,
   'rayleigh-number': calculateRayleigh,
   'reynolds-number': calculateReynolds,
@@ -143,6 +145,18 @@ function calculateMach(inputs: BaseInputs, definition: CalculatorDefinition) {
   return result(definition, value)
 }
 
+function calculateIdealGasSpeedOfSound(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const gamma = positive(inputs['heat-capacity-ratio'], '比热比')
+  const gasConstant = positive(inputs['gas-constant'], '气体常数')
+  const temperature = positive(inputs.temperature, '绝对温度')
+  const value = Math.sqrt(gamma * gasConstant * temperature)
+
+  return result(definition, value)
+}
+
 function calculatePrandtl(inputs: BaseInputs, definition: CalculatorDefinition) {
   const viscosity = positive(inputs['dynamic-viscosity'], '动力黏度')
   const specificHeat = positive(inputs['specific-heat'], '定压比热')
@@ -221,6 +235,28 @@ function calculateHydraulicDiameter(
   const value = (4 * area) / wettedPerimeter
 
   return result(definition, value)
+}
+
+function calculatePipePressureDrop(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const darcyFrictionFactor = nonNegative(
+    inputs['darcy-friction-factor'],
+    'Darcy 摩阻因子',
+  )
+  const pipeLength = nonNegative(inputs['pipe-length'], '管长')
+  const hydraulicDiameter = positive(inputs['hydraulic-diameter'], '水力直径')
+  const density = positive(inputs.density, '密度')
+  const velocity = nonNegative(inputs.velocity, '平均速度')
+  const dynamicPressure = (density * velocity ** 2) / 2
+  const lengthDiameterRatio = pipeLength / hydraulicDiameter
+  const value = darcyFrictionFactor * lengthDiameterRatio * dynamicPressure
+
+  return result(definition, value, [
+    item('dynamic-pressure', '动压', dynamicPressure, 'pressure', 'Pa'),
+    item('length-diameter-ratio', '长度直径比', lengthDiameterRatio),
+  ])
 }
 
 function calculateCflTimeStep(inputs: BaseInputs, definition: CalculatorDefinition) {

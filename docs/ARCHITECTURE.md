@@ -33,13 +33,21 @@ docs/              项目文档
 
 用户输入页面 -> 表单校验 -> 单位换算模块 -> 计算器纯函数 -> 结果展示。
 
-页面不得直接包含公式。未来每个计算器应有独立的公式实现文件和验证测试。
+页面不得直接包含公式计算逻辑。当前计算器元数据集中在 `src/calculators/registry.ts`，纯函数实现集中在 `src/calculators/implementations.ts`，单位换算集中在 `src/units/conversions.ts`。公式展示使用计算器元数据中的 LaTeX，并由 KaTeX 渲染。
+
+正式计算器必须保持以下内容一致：
+
+- 研究记录中的公式。
+- 纯函数实现。
+- 页面展示公式。
+- 原始 LaTeX 字符串。
+- 验证测试案例。
 
 ### Fluent 导览
 
 页面启动 -> `src/knowledge/knowledgeRepository.ts` 读取 `public/knowledge/fluent-demo.json` -> 根据条目 ID 展示内容。
 
-页面不得硬编码知识正文。修改单个解释时，只更新知识库条目。
+页面不得硬编码知识正文。修改单个解释时，只更新知识库条目。v0.3 要继续扩展知识库结构，使其可描述 Task Page、控件、模拟窗口和窗口内部控件。
 
 ## 静态部署
 
