@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import FeatureCard from '../components/FeatureCard'
+import HeroWorkbenchVisual from '../components/HeroWorkbenchVisual'
 
 function HomePage() {
   return (
@@ -21,22 +22,7 @@ function HomePage() {
           </div>
         </div>
 
-        <aside className="hero-visual" aria-label="Product preview">
-          <div className="preview-window">
-            <div className="preview-toolbar">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="preview-grid">
-              <span className="preview-line wide" />
-              <span className="preview-line" />
-              <span className="preview-card strong" />
-              <span className="preview-card" />
-              <span className="preview-card" />
-            </div>
-          </div>
-        </aside>
+        <HeroWorkbenchVisual />
       </section>
 
       <section className="feature-grid" aria-label="Main entries">
