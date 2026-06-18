@@ -64,6 +64,7 @@ export interface CalculatorFormulaDefinition {
   latex: string
   plainText: string
   description?: string
+  variables?: CalculatorVariableDefinition[]
 }
 
 export interface CalculatorVariableDefinition {
@@ -94,6 +95,7 @@ export interface CalculatorDefinition {
   outputs: CalculatorOutputDefinition[]
   resultPreview: string[]
   formula?: CalculatorFormulaDefinition
+  formulas?: CalculatorFormulaDefinition[]
   variables?: CalculatorVariableDefinition[]
   scope?: string[]
   notes?: string[]

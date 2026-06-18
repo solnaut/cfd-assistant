@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import {
+  getCalculatorFormulaEntries,
+  getFormulaVariables,
+} from '../calculators/formulas'
 import { calculatorCatalog } from '../calculators/registry'
 import { formatVariableSymbol } from '../utils/engineeringDisplay'
 
@@ -26,13 +30,57 @@ describe('calculator metadata display', () => {
 
   it('keeps formula definitions available for every published calculator with formulas', () => {
     const calculatorsWithFormula = calculatorCatalog.filter(
-      (calculator) => calculator.availability === 'available' && calculator.formula,
+      (calculator) =>
+        calculator.availability === 'available' &&
+        getCalculatorFormulaEntries(calculator).length > 0,
     )
 
     expect(calculatorsWithFormula.length).toBeGreaterThan(10)
     expect(
-      calculatorsWithFormula.every((calculator) => calculator.formula?.latex.trim()),
+      calculatorsWithFormula.every((calculator) =>
+        getCalculatorFormulaEntries(calculator).every((formula) =>
+          formula.latex.trim(),
+        ),
+      ),
     ).toBe(true)
+  })
+
+  it('splits y+ formulas into focused formula library relations', () => {
+    const yPlusCalculator = calculatorCatalog.find(
+      (calculator) => calculator.id === 'y-plus-first-layer-height',
+    )
+
+    if (!yPlusCalculator) {
+      throw new Error('Missing y+ calculator')
+    }
+
+    const formulaIds = getCalculatorFormulaEntries(yPlusCalculator).map(
+      (formula) => formula.id,
+    )
+
+    expect(formulaIds).toEqual([
+      'y-plus-definition',
+      'friction-velocity',
+      'kinematic-viscosity',
+      'wall-shear-from-skin-friction',
+      'first-cell-center-distance',
+      'first-layer-full-thickness',
+    ])
+  })
+
+  it('keeps formula variable display symbols free of raw LaTeX commands', () => {
+    const renderedSymbols = calculatorCatalog.flatMap((calculator) =>
+      getCalculatorFormulaEntries(calculator).flatMap((formula) =>
+        getFormulaVariables(calculator, formula).map((variable) =>
+          formatVariableSymbol(variable),
+        ),
+      ),
+    )
+
+    expect(renderedSymbols).toContain('τw')
+    expect(renderedSymbols).toContain('uτ')
+    expect(renderedSymbols).toContain('Cf')
+    expect(renderedSymbols.every((symbol) => !symbol.includes('\\'))).toBe(true)
   })
 
   it('keeps internal research records for every published calculator', () => {

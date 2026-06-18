@@ -6,6 +6,10 @@ import {
   type CalculationResult,
   formatCalculationValue,
 } from '../calculators/implementations'
+import {
+  getCalculatorFormulaEntries,
+  getCalculatorLatexSummary,
+} from '../calculators/formulas'
 import { getCalculator, getCalculatorCategory } from '../calculators/registry'
 import Breadcrumbs from '../components/Breadcrumbs'
 import MathFormula from '../components/MathFormula'
@@ -59,8 +63,10 @@ function CalculatorDetailContent({
   const [formState, setFormState] = useState<FormState>(initialState)
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const isAvailable = calculator.availability === 'available'
+  const formulaEntries = getCalculatorFormulaEntries(calculator)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -88,8 +94,15 @@ function CalculatorDetailContent({
     setError(null)
   }
 
-  function copyText(text: string) {
-    void copyToClipboard(text)
+  async function copyText(text: string, key?: string) {
+    const copied = await copyToClipboard(text)
+
+    if (copied && key) {
+      setCopiedKey(key)
+      window.setTimeout(() => {
+        setCopiedKey((current) => (current === key ? null : current))
+      }, 1800)
+    }
   }
 
   return (
@@ -250,18 +263,28 @@ function CalculatorDetailContent({
         </div>
 
         <div className="formula-content">
-          {calculator.formula ? (
+          {formulaEntries.length ? (
             <>
-              <h3>{calculator.formula.title}</h3>
-              <MathFormula latex={calculator.formula.latex} />
-              <div className="copy-row">
-                <button
-                  className="ghost-button button-link-small"
-                  onClick={() => copyText(calculator.formula?.latex ?? '')}
-                  type="button"
-                >
-                  复制 LaTeX
-                </button>
+              <div className="calculator-formula-list">
+                {formulaEntries.map((formula) => {
+                  const formulaKey = `calculator-${calculator.id}-${formula.id ?? formula.title}`
+
+                  return (
+                    <article className="calculator-formula-item" key={formulaKey}>
+                      <div className="formula-card-heading compact">
+                        <h3>{formula.title}</h3>
+                        <button
+                          className="ghost-button button-link-small"
+                          onClick={() => void copyText(formula.latex, formulaKey)}
+                          type="button"
+                        >
+                          {copiedKey === formulaKey ? '已复制' : '复制 LaTeX'}
+                        </button>
+                      </div>
+                      <MathFormula latex={formula.latex} />
+                    </article>
+                  )
+                })}
               </div>
             </>
           ) : (
@@ -271,18 +294,7 @@ function CalculatorDetailContent({
           {calculator.variables?.length ? (
             <div className="reference-section">
               <h3>变量说明</h3>
-              <div className="variable-grid">
-                {calculator.variables.map((variable) => (
-                  <div className="variable-card" key={variable.symbol}>
-                    <strong className="math-symbol">
-                      {formatVariableSymbol(variable)}
-                    </strong>
-                    <span>{variable.name}</span>
-                    <small>{formatVariableUnit(variable.unit)}</small>
-                    <p>{variable.description}</p>
-                  </div>
-                ))}
-              </div>
+              <VariableDefinitionTable variables={calculator.variables} />
             </div>
           ) : null}
 
@@ -339,7 +351,7 @@ function ResultView({ calculator, copyText, result }: ResultViewProps) {
       <div className="copy-row">
         <button
           className="ghost-button button-link-small"
-          onClick={() => copyText(resultText)}
+          onClick={() => void copyText(resultText)}
           type="button"
         >
           复制结果
@@ -347,13 +359,48 @@ function ResultView({ calculator, copyText, result }: ResultViewProps) {
         <button
           className="ghost-button button-link-small"
           onClick={() => {
-            copyText(`${resultText}\n\n公式：${calculator.formula?.plainText ?? ''}`)
+            void copyText(`${resultText}\n\n公式：${getCalculatorLatexSummary(calculator)}`)
           }}
           type="button"
         >
           复制完整摘要
         </button>
       </div>
+    </div>
+  )
+}
+
+function VariableDefinitionTable({
+  variables,
+}: {
+  variables: NonNullable<CalculatorDefinition['variables']>
+}) {
+  return (
+    <div className="variable-table-wrap">
+      <table className="variable-definition-table">
+        <thead>
+          <tr>
+            <th>符号</th>
+            <th>名称</th>
+            <th>单位</th>
+            <th>含义</th>
+          </tr>
+        </thead>
+        <tbody>
+          {variables.map((variable) => (
+            <tr key={variable.symbol}>
+              <td>
+                <strong className="math-symbol">
+                  {formatVariableSymbol(variable)}
+                </strong>
+              </td>
+              <td>{variable.name}</td>
+              <td>{formatVariableUnit(variable.unit)}</td>
+              <td>{variable.description}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

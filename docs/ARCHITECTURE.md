@@ -35,7 +35,7 @@ docs/              项目文档
 
 页面不得直接包含公式计算逻辑。当前计算器元数据集中在 `src/calculators/registry.ts`，纯函数实现集中在 `src/calculators/implementations.ts`，单位换算集中在 `src/units/conversions.ts`。公式展示使用计算器元数据中的 LaTeX，并由 KaTeX 渲染。
 
-`/formulas` 公式库读取同一份 `calculatorCatalog` 公式定义，不维护第二份公式文本。这样计算器详情页和公式库页面共享公式标题、原始 LaTeX、变量说明、适用范围和更新时间。
+`/formulas` 公式库通过 `src/calculators/formulas.ts` 读取 `calculatorCatalog` 中的公式定义，不维护第二份公式文本。计算器可以只有一个 `formula`，也可以用 `formulas` 提供多个细分公式条目。计算器详情页和公式库页面共享公式标题、原始 LaTeX 和变量说明；公式库只显示公式总览，不展示适用范围、注意事项或来源链接。
 
 变量符号和单位显示分为两层：
 
@@ -53,6 +53,8 @@ docs/              项目文档
 - `docs/research/calculators/<calculator-id>.md` 内部研究记录。
 
 公开页面不展示外部来源链接。来源、访问日期、适用范围、验证案例和审核状态保存在 `docs/research/calculators` 以及计算器元数据中，用于维护者审查。
+
+公式库页面的变量说明使用简化格式“符号 / 含义”；计算器详情页变量说明使用完整格式“符号 / 名称 / 单位 / 含义”。普通变量符号通过 `formatVariableSymbol` 转换为用户可读文本，复制 LaTeX 时仍使用原始 LaTeX 字符串。
 
 ### Fluent 导览
 

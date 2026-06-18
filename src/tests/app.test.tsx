@@ -70,7 +70,11 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: 'CFD 公式库' })).toBeInTheDocument()
     expect(screen.getAllByText('Reynolds 数').length).toBeGreaterThan(0)
+    expect(screen.getByText('壁面剪切应力与摩擦系数')).toBeInTheDocument()
+    expect(screen.getByText('第一层完整厚度近似')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: '复制 LaTeX' }).length).toBeGreaterThan(0)
     expect(screen.queryByText('来源')).not.toBeInTheDocument()
+    expect(screen.queryByText('适用范围')).not.toBeInTheDocument()
+    expect(screen.queryByText('注意事项')).not.toBeInTheDocument()
   })
 })
