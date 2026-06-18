@@ -402,7 +402,35 @@
           "controlType": "button",
           "value": "Edit...",
           "description": "打开源项设置对话框。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "cell-zone-source-terms-dialog",
+            "title": "Source Terms",
+            "description": "用于说明区域源项输入方式的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "momentum-source",
+                "label": "Momentum Source",
+                "controlType": "field",
+                "value": "0 N/m^3",
+                "description": "动量源项用于表示体积力或等效阻力。启用前应确认方向、单位和作用区域。"
+              },
+              {
+                "id": "energy-source",
+                "label": "Energy Source",
+                "controlType": "field",
+                "value": "0 W/m^3",
+                "description": "能量源项用于体积热源。只在传热问题中有直接意义，数值量级需要与几何体积和热功率交叉检查。"
+              },
+              {
+                "id": "source-profile",
+                "label": "Profile",
+                "controlType": "select",
+                "value": "Constant",
+                "description": "源项可以是常数或由文件、表达式等方式给定。教学界面只展示结构，不执行真实数据读取。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["materials.fluid", "models.energy"],
@@ -470,7 +498,42 @@
           "controlType": "button",
           "value": "Edit...",
           "description": "打开入口湍流参数设置区域。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "velocity-inlet-turbulence-dialog",
+            "title": "Velocity Inlet Turbulence",
+            "description": "用于整理入口湍流量的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "turbulence-method",
+                "label": "Specification Method",
+                "controlType": "select",
+                "value": "Intensity and Hydraulic Diameter",
+                "description": "选择入口湍流量的输入方式。不同方式需要不同的边界数据，应与已知实验数据或工程估计相匹配。"
+              },
+              {
+                "id": "turbulence-intensity",
+                "label": "Turbulent Intensity",
+                "controlType": "field",
+                "value": "5 %",
+                "description": "入口湍流强度表示速度脉动相对平均速度的量级。该值会影响入口发展段和湍流模型初始量。"
+              },
+              {
+                "id": "hydraulic-diameter",
+                "label": "Hydraulic Diameter",
+                "controlType": "field",
+                "value": "0.1 m",
+                "description": "水力直径用于估算入口湍流长度尺度。非圆通道应先确认截面积和湿周定义。"
+              },
+              {
+                "id": "apply-turbulence",
+                "label": "Apply",
+                "controlType": "button",
+                "value": "Store settings",
+                "description": "教学按钮只表示保存当前模拟设置，不会连接 Fluent 或执行真实求解。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["models.viscous", "materials.fluid"],
@@ -531,7 +594,35 @@
           "controlType": "button",
           "value": "Edit...",
           "description": "设置回流湍流、温度或组分等备用条件。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "pressure-outlet-backflow-dialog",
+            "title": "Backflow Conditions",
+            "description": "用于说明压力出口发生回流时采用哪些备用入口量的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "backflow-temperature",
+                "label": "Backflow Temperature",
+                "controlType": "field",
+                "value": "300 K",
+                "description": "启用能量方程时，回流温度会作为回流进入域内的热边界信息。"
+              },
+              {
+                "id": "backflow-turbulence",
+                "label": "Backflow Turbulence",
+                "controlType": "select",
+                "value": "Intensity and Hydraulic Diameter",
+                "description": "回流湍流设置用于出口局部反向流入时的湍流量估计，应结合出口位置和流动稳定性判断。"
+              },
+              {
+                "id": "backflow-warning",
+                "label": "Backflow Check",
+                "controlType": "button",
+                "value": "Review",
+                "description": "如果压力出口长期大面积回流，应优先检查边界位置、流向和计算域长度，而不是只调整回流参数。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["boundary.velocity-inlet", "monitors.residuals"],
@@ -604,7 +695,35 @@
           "controlType": "button",
           "value": "Edit...",
           "description": "设置壁面粗糙度参数。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "wall-roughness-dialog",
+            "title": "Wall Roughness",
+            "description": "用于说明壁面粗糙度输入项的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "roughness-height",
+                "label": "Roughness Height",
+                "controlType": "field",
+                "value": "0 m",
+                "description": "粗糙度高度用于描述壁面微观凸起的尺度。启用前应确认湍流模型、近壁处理和网格分辨率是否适配。"
+              },
+              {
+                "id": "roughness-constant",
+                "label": "Roughness Constant",
+                "controlType": "field",
+                "value": "0.5",
+                "description": "粗糙度常数影响壁面粗糙度对速度分布的修正，不能当作任意调参量使用。"
+              },
+              {
+                "id": "roughness-apply",
+                "label": "Apply",
+                "controlType": "button",
+                "value": "Store settings",
+                "description": "教学按钮只表示确认模拟窗口中的壁面粗糙度设置。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["models.viscous", "models.energy"],
@@ -660,7 +779,42 @@
           "controlType": "button",
           "value": "Edit...",
           "description": "调整松弛因子以改善收敛稳定性。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "simple-under-relaxation-dialog",
+            "title": "Under-Relaxation Factors",
+            "description": "用于观察压力、动量和其他方程松弛设置的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "pressure-relaxation",
+                "label": "Pressure",
+                "controlType": "field",
+                "value": "0.3",
+                "description": "压力松弛因子影响压力修正进入下一次迭代的幅度。较小值通常更保守，但可能增加迭代次数。"
+              },
+              {
+                "id": "momentum-relaxation",
+                "label": "Momentum",
+                "controlType": "field",
+                "value": "0.7",
+                "description": "动量松弛因子影响速度场更新幅度。收敛振荡时可结合残差和守恒量谨慎调整。"
+              },
+              {
+                "id": "energy-relaxation",
+                "label": "Energy",
+                "controlType": "field",
+                "value": "1.0",
+                "description": "能量方程松弛设置只在启用能量方程时有直接意义，应与传热问题的收敛表现一起检查。"
+              },
+              {
+                "id": "relaxation-restore",
+                "label": "Restore Defaults",
+                "controlType": "button",
+                "value": "Reset",
+                "description": "教学按钮表示恢复示例默认值，提醒用户不要把松弛因子当作替代物理设置检查的手段。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["solution-methods.coupled", "monitors.residuals"],
@@ -769,7 +923,42 @@
           "controlType": "button",
           "value": "Hybrid",
           "description": "执行混合初始化。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "hybrid-initialization-dialog",
+            "title": "Hybrid Initialization",
+            "description": "用于说明初始化前检查项和执行按钮的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "compute-from",
+                "label": "Compute From",
+                "controlType": "select",
+                "value": "All Zones",
+                "description": "选择初始化参考区域或默认策略。复杂算例中应确认边界和区域设置已经完成。"
+              },
+              {
+                "id": "initial-pressure",
+                "label": "Initial Pressure",
+                "controlType": "field",
+                "value": "0 Pa gauge",
+                "description": "初始压力是迭代起点的一部分。它不代表最终收敛结果，但异常初值可能影响早期收敛。"
+              },
+              {
+                "id": "initial-temperature",
+                "label": "Initial Temperature",
+                "controlType": "field",
+                "value": "300 K",
+                "description": "启用能量方程时应检查初始温度是否与材料物性、边界温度和热源设置一致。"
+              },
+              {
+                "id": "initialize-now",
+                "label": "Initialize",
+                "controlType": "button",
+                "value": "Start",
+                "description": "教学按钮表示执行初始化动作。当前网页不会运行 Fluent，也不会生成真实流场。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["run-calculation.iterations"],
@@ -890,7 +1079,42 @@
           "controlType": "button",
           "value": "Run",
           "description": "启动计算。教学界面不会执行真实仿真。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "run-calculation-dialog",
+            "title": "Run Calculation",
+            "description": "用于说明正式运行前关键检查项的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "time-step-size",
+                "label": "Time Step Size",
+                "controlType": "field",
+                "value": "0.005 s",
+                "description": "瞬态计算中，时间步长控制每步推进的物理时间，应与目标时间分辨率和 CFL 检查一起考虑。"
+              },
+              {
+                "id": "max-iterations",
+                "label": "Max Iterations per Step",
+                "controlType": "field",
+                "value": "20",
+                "description": "每个时间步内的迭代上限影响单步收敛程度和计算成本。应结合残差和监控量判断是否足够。"
+              },
+              {
+                "id": "autosave",
+                "label": "Auto Save",
+                "controlType": "checkbox",
+                "value": "On",
+                "description": "长时间计算前应设置合理保存策略，避免中断后丢失关键结果。"
+              },
+              {
+                "id": "run-now",
+                "label": "Calculate",
+                "controlType": "button",
+                "value": "Start",
+                "description": "教学按钮只表示启动动作的含义，当前网页不会执行真实求解。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["general.time", "monitors.residuals"],
@@ -951,7 +1175,35 @@
           "controlType": "button",
           "value": "Select...",
           "description": "选择显示云图的位置。",
-          "opensDialog": true
+          "opensDialog": true,
+          "dialog": {
+            "id": "contour-surfaces-dialog",
+            "title": "Contour Surfaces",
+            "description": "用于说明云图显示位置选择的教学模拟窗口。",
+            "controls": [
+              {
+                "id": "available-surfaces",
+                "label": "Available Surfaces",
+                "controlType": "select",
+                "value": "inlet, outlet, wall",
+                "description": "可选面决定云图显示在哪些边界、截面或派生面上。读图前应确认观察位置是否符合分析目的。"
+              },
+              {
+                "id": "clip-to-range",
+                "label": "Clip to Range",
+                "controlType": "checkbox",
+                "value": "Off",
+                "description": "显示范围裁剪会影响颜色分布的视觉判断。对比多个结果时应保持色标范围一致。"
+              },
+              {
+                "id": "display-contour",
+                "label": "Display",
+                "controlType": "button",
+                "value": "Preview",
+                "description": "教学按钮表示更新模拟显示，不会读取或渲染真实 CFD 结果文件。"
+              }
+            ]
+          }
         }
       ],
       "relatedFeatures": ["results.vectors", "monitors.residuals"],

@@ -22,7 +22,7 @@
 
 ## Phase 2 - Fluent Guide MVP
 
-- 状态：v0.2 已完成 MVP，v0.3 继续升级模拟窗口和窗口内部控件解释。
+- 状态：v0.2 已完成 MVP，v0.3 已建立模拟窗口和窗口内部控件解释的数据结构，后续继续扩展内容深度。
 - 确认知识条目字段是否足够。
 - 建立由知识库 ID 驱动的高保真教学模拟界面，不使用官方 Logo、截图或图标。
 - 第一阶段覆盖 General、Models、Materials、Cell Zone Conditions、Boundary Conditions、Solution Methods、Initialization、Monitors、Run Calculation 和 Results 中的常用单相流动与传热功能。

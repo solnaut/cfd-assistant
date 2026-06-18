@@ -37,6 +37,9 @@ function FluentGuidePage() {
   const [entries, setEntries] = useState<FluentKnowledgeEntry[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null)
+  const [selectedDialogControlId, setSelectedDialogControlId] = useState<
+    string | null
+  >(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -79,10 +82,20 @@ function FluentGuidePage() {
     selectedEntry?.controls?.find((control) => control.id === selectedControlId) ??
     selectedEntry?.controls?.[0] ??
     null
+  const selectedDialogControl =
+    selectedControl?.dialog?.controls.find(
+      (control) => control.id === selectedDialogControlId,
+    ) ?? null
 
   function selectEntry(entryId: string) {
     setSelectedId(entryId)
     setSelectedControlId(null)
+    setSelectedDialogControlId(null)
+  }
+
+  function selectControl(controlId: string) {
+    setSelectedControlId(controlId)
+    setSelectedDialogControlId(null)
   }
 
   return (
@@ -156,12 +169,15 @@ function FluentGuidePage() {
 
           <TeachingPanel
             entry={selectedEntry}
+            selectedDialogControl={selectedDialogControl}
             selectedControl={selectedControl}
-            onSelectControl={setSelectedControlId}
+            onSelectControl={selectControl}
+            onSelectDialogControl={setSelectedDialogControlId}
           />
 
           <KnowledgeDetail
-            control={selectedControl}
+            control={selectedDialogControl ?? selectedControl}
+            controlContext={selectedDialogControl ? 'dialog' : 'panel'}
             entries={entries}
             entry={selectedEntry}
             onSelectEntry={selectEntry}
@@ -174,14 +190,18 @@ function FluentGuidePage() {
 
 interface TeachingPanelProps {
   entry: FluentKnowledgeEntry | null
+  selectedDialogControl: FluentKnowledgeControl | null
   selectedControl: FluentKnowledgeControl | null
   onSelectControl: (controlId: string) => void
+  onSelectDialogControl: (controlId: string) => void
 }
 
 function TeachingPanel({
   entry,
+  selectedDialogControl,
   selectedControl,
   onSelectControl,
+  onSelectDialogControl,
 }: TeachingPanelProps) {
   return (
     <section className="mock-interface" aria-label="Teaching interface">
@@ -218,15 +238,34 @@ function TeachingPanel({
               </div>
             </div>
 
-            {selectedControl?.opensDialog ? (
+            {selectedControl?.dialog ? (
               <div className="mock-dialog" role="presentation">
                 <div className="mock-dialog-title">
-                  {selectedControl.label} 设置
+                  <strong>{selectedControl.dialog.title}</strong>
+                  <span>{selectedControl.label}</span>
                 </div>
-                <div className="surface-control active">
-                  {selectedControl.description}
+                {selectedControl.dialog.description ? (
+                  <p className="mock-dialog-description">
+                    {selectedControl.dialog.description}
+                  </p>
+                ) : null}
+                <div className="mock-control-grid dialog-control-grid">
+                  {selectedControl.dialog.controls.map((control) => (
+                    <button
+                      className={
+                        control.id === selectedDialogControl?.id
+                          ? `mock-control mock-control-${control.controlType} active`
+                          : `mock-control mock-control-${control.controlType}`
+                      }
+                      key={control.id}
+                      onClick={() => onSelectDialogControl(control.id)}
+                      type="button"
+                    >
+                      <span>{control.label}</span>
+                      {control.value ? <small>{control.value}</small> : null}
+                    </button>
+                  ))}
                 </div>
-                <div className="surface-control short">Apply</div>
               </div>
             ) : null}
           </div>
@@ -244,12 +283,14 @@ function TeachingPanel({
 interface KnowledgeDetailProps {
   entry: FluentKnowledgeEntry | null
   control: FluentKnowledgeControl | null
+  controlContext: 'dialog' | 'panel'
   entries: FluentKnowledgeEntry[]
   onSelectEntry: (entryId: string) => void
 }
 
 function KnowledgeDetail({
   control,
+  controlContext,
   entries,
   entry,
   onSelectEntry,
@@ -271,7 +312,9 @@ function KnowledgeDetail({
 
       {control ? (
         <div className="detail-section active-control-detail">
-          <span className="detail-label">当前控件</span>
+          <span className="detail-label">
+            {controlContext === 'dialog' ? '当前窗口控件' : '当前控件'}
+          </span>
           <strong>{control.label}</strong>
           <p>{control.description}</p>
         </div>

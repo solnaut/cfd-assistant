@@ -26,6 +26,23 @@
 
 本阶段不覆盖多相流、燃烧、辐射、动网格、复杂化学反应和高级 UDF 工作流。
 
+## v0.3 交互结构更新
+
+v0.3 将 Fluent 导览从只显示主面板控件扩展为数据驱动的模拟窗口结构。知识库控件可通过 `dialog.controls` 描述窗口标题、窗口说明和窗口内部控件。页面组件只负责读取数据、渲染按钮并在右侧说明面板切换当前控件解释。
+
+当前已补充模拟窗口的教学路径包括：
+
+- Cell Zone Conditions -> Fluid Zone -> Source Terms。
+- Boundary Conditions -> Velocity Inlet -> Turbulence。
+- Boundary Conditions -> Pressure Outlet -> Backflow Conditions。
+- Boundary Conditions -> Wall -> Roughness。
+- Solution Methods -> SIMPLE -> Under-Relaxation Factors。
+- Initialization -> Hybrid Initialization -> Initialize。
+- Run Calculation -> Calculate。
+- Results -> Contours -> Surfaces。
+
+其中 Velocity Inlet -> Turbulence 已满足完整路径：功能树 -> 设置页 -> 点击控件 -> 右侧解释 -> 打开模拟窗口 -> 点击窗口控件 -> 显示窗口控件解释。
+
 ## 来源清单
 
 | 来源 ID | 来源类型 | 标题 | 机构 | 章节或范围 | 链接 | 访问日期 | 用途 |
@@ -57,3 +74,4 @@
 - 为每个控件补充更精确的版本、章节和截图替代草图说明。
 - 增加多相流、辐射、燃烧、动网格等后续模块。
 - 将知识库字段升级为更适合大规模维护的分文件结构。
+- 继续补充公开可访问来源的章节级定位，逐步从 draft 内容推进到 reviewed 内容。

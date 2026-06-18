@@ -67,4 +67,48 @@ describe('knowledge repository helpers', () => {
     expect(fetchMock).toHaveBeenCalledWith('/knowledge/test.json')
     expect(file.entries[0].id).toBe('general.solver')
   })
+
+  it('preserves dialog controls loaded from a knowledge file', async () => {
+    const entryWithDialog: FluentKnowledgeEntry = {
+      ...sampleEntry,
+      controls: [
+        {
+          id: 'turbulence-edit',
+          label: 'Turbulence',
+          controlType: 'button',
+          description: 'Open turbulence settings.',
+          opensDialog: true,
+          dialog: {
+            id: 'velocity-inlet-turbulence-dialog',
+            title: 'Velocity Inlet Turbulence',
+            controls: [
+              {
+                id: 'turbulence-intensity',
+                label: 'Turbulent Intensity',
+                controlType: 'field',
+                value: '5 %',
+                description: 'Explains inlet turbulence intensity.',
+              },
+            ],
+          },
+        },
+      ],
+    }
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          contentVersion: '0.3.0-draft',
+          updatedAt: '2026-06-18',
+          entries: [entryWithDialog],
+        }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const file = await loadFluentKnowledge('/knowledge/test.json')
+    const control = file.entries[0].controls?.[0]
+
+    expect(control?.dialog?.title).toBe('Velocity Inlet Turbulence')
+    expect(control?.dialog?.controls[0].id).toBe('turbulence-intensity')
+  })
 })

@@ -23,7 +23,15 @@ export interface FluentKnowledgeControl {
   value?: string
   description: string
   opensDialog?: boolean
+  dialog?: FluentKnowledgeDialog
   relatedEntryId?: string
+}
+
+export interface FluentKnowledgeDialog {
+  id: string
+  title: string
+  description?: string
+  controls: FluentKnowledgeControl[]
 }
 
 export interface FluentKnowledgeSource {
