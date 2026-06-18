@@ -55,4 +55,22 @@ describe('App', () => {
     expect(screen.getByText('结果展示')).toBeInTheDocument()
     expect(screen.getByText('公式与说明')).toBeInTheDocument()
   })
+
+  it('renders calculator variable symbols and units as user-facing text', () => {
+    renderApp('/calculators/dimensionless-numbers/reynolds-number')
+
+    expect(screen.getAllByText('μ').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('ρ').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('kg/m³').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Pa·s').length).toBeGreaterThan(0)
+  })
+
+  it('renders the formula library without exposing source links', () => {
+    renderApp('/formulas')
+
+    expect(screen.getByRole('heading', { name: 'CFD 公式库' })).toBeInTheDocument()
+    expect(screen.getAllByText('Reynolds 数').length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: '复制 LaTeX' }).length).toBeGreaterThan(0)
+    expect(screen.queryByText('来源')).not.toBeInTheDocument()
+  })
 })

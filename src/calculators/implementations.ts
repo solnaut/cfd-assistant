@@ -4,7 +4,7 @@ import type {
   CalculatorInputDefinition,
 } from '../models/calculator'
 import type { UnitCategory } from '../units/conversions'
-import { fromBaseValue, toBaseValue } from '../units/conversions'
+import { fromBaseValue, getUnitDisplaySymbol, toBaseValue } from '../units/conversions'
 
 export interface CalculatorInputValue {
   value: number
@@ -40,16 +40,28 @@ const implementations: Record<CalculatorImplementationId, CalculatorImplementati
   'biot-number': calculateBiot,
   'boundary-layer-mesh': calculateBoundaryLayerMesh,
   'cfl-time-step': calculateCflTimeStep,
+  'conduction-heat-transfer': calculateConductionHeatTransfer,
+  'convective-heat-transfer': calculateConvectiveHeatTransfer,
   'fourier-number': calculateFourier,
   'grashof-number': calculateGrashof,
+  'heat-flux': calculateHeatFlux,
   'hydraulic-diameter': calculateHydraulicDiameter,
   'ideal-gas-speed-of-sound': calculateIdealGasSpeedOfSound,
+  'laminar-pipe-pressure-drop': calculateLaminarPipePressureDrop,
+  'mass-flow-rate': calculateMassFlowRate,
+  'mean-velocity': calculateMeanVelocity,
+  'nusselt-number': calculateNusselt,
   'mach-number': calculateMach,
   'peclet-number': calculatePeclet,
   'pipe-pressure-drop': calculatePipePressureDrop,
   'prandtl-number': calculatePrandtl,
   'rayleigh-number': calculateRayleigh,
   'reynolds-number': calculateReynolds,
+  'rotating-time-step': calculateRotatingTimeStep,
+  'temperature-rise': calculateTemperatureRise,
+  'thermal-resistance': calculateThermalResistance,
+  'total-time-steps': calculateTotalTimeSteps,
+  'y-plus-first-layer-height': calculateYPlusFirstLayerHeight,
 }
 
 export function calculate(
@@ -82,8 +94,8 @@ export function formatCalculationValue(item: CalculationItem) {
   const precision = item.precision ?? 6
   const formatted = formatNumber(displayValue, precision)
 
-  return item.unitId && item.unitId !== '1'
-    ? `${formatted} ${item.unitId}`
+  return item.unitId && item.unitId !== '1' && item.unitCategory
+    ? `${formatted} ${getUnitDisplaySymbol(item.unitCategory, item.unitId)}`
     : formatted
 }
 
@@ -259,6 +271,27 @@ function calculatePipePressureDrop(
   ])
 }
 
+function calculateLaminarPipePressureDrop(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const pipeLength = nonNegative(inputs['pipe-length'], '管长')
+  const diameter = positive(inputs['pipe-diameter'], '管径')
+  const density = positive(inputs.density, '密度')
+  const velocity = nonNegative(inputs.velocity, '平均速度')
+  const viscosity = positive(inputs['dynamic-viscosity'], '动力黏度')
+  const reynolds = (density * velocity * diameter) / viscosity
+  const darcyFrictionFactor = reynolds === 0 ? 0 : 64 / reynolds
+  const dynamicPressure = (density * velocity ** 2) / 2
+  const value = darcyFrictionFactor * (pipeLength / diameter) * dynamicPressure
+
+  return result(definition, value, [
+    item('reynolds-number', 'Reynolds 数', reynolds),
+    item('darcy-friction-factor', 'Darcy 摩阻因子', darcyFrictionFactor),
+    item('dynamic-pressure', '动压', dynamicPressure, 'pressure', 'Pa'),
+  ])
+}
+
 function calculateCflTimeStep(inputs: BaseInputs, definition: CalculatorDefinition) {
   const targetCfl = nonNegative(inputs['target-cfl'], '目标 CFL')
   const cellSize = positive(inputs['cell-size'], '特征网格尺寸')
@@ -267,6 +300,36 @@ function calculateCflTimeStep(inputs: BaseInputs, definition: CalculatorDefiniti
 
   return result(definition, value, [
     item('input-cfl', '目标 CFL', targetCfl),
+  ])
+}
+
+function calculateTotalTimeSteps(inputs: BaseInputs, definition: CalculatorDefinition) {
+  const totalTime = nonNegative(inputs['total-time'], '总物理时间')
+  const timeStep = positive(inputs['time-step'], '时间步长')
+  const exactSteps = totalTime / timeStep
+  const value = Math.ceil(exactSteps)
+
+  return result(definition, value, [
+    item('exact-step-count', '理论步数', exactSteps),
+    item('covered-time', '覆盖物理时间', value * timeStep, 'time', 's'),
+  ])
+}
+
+function calculateRotatingTimeStep(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const rpm = positive(inputs['rotational-speed'], '转速')
+  const stepsPerRevolution = positiveInteger(
+    inputs['steps-per-revolution'],
+    '每转步数',
+  )
+  const period = 60 / rpm
+  const value = period / stepsPerRevolution
+
+  return result(definition, value, [
+    item('period', '单转周期', period, 'time', 's'),
+    item('revolutions-per-second', '每秒转数', rpm / 60),
   ])
 }
 
@@ -314,13 +377,157 @@ function calculateBoundaryLayerMesh(
           .slice(0, 20)
           .map((height, index) => {
             const value = fromBaseValue(height, output.defaultUnit ?? 'm', 'length')
-            return `h${index + 1}=${formatNumber(value, 6)} ${output.defaultUnit ?? 'm'}`
+            return `h${index + 1}=${formatNumber(value, 6)} ${getUnitDisplaySymbol('length', output.defaultUnit ?? 'm')}`
           })
           .join(', '),
       },
     ],
     summary: ['按等比层高序列计算总厚度，不包含 y+ 或真实边界层厚度判断。'],
   }
+}
+
+function calculateYPlusFirstLayerHeight(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const targetYPlus = positive(inputs['target-y-plus'], '目标 y+')
+  const density = positive(inputs.density, '密度')
+  const viscosity = positive(inputs['dynamic-viscosity'], '动力黏度')
+  const wallShearStress = positive(inputs['wall-shear-stress'], '壁面剪切应力')
+  const velocity = positive(inputs['reference-velocity'], '参考速度')
+  const length = positive(inputs['characteristic-length'], '特征长度')
+  const kinematicViscosity = viscosity / density
+  const frictionVelocity = Math.sqrt(wallShearStress / density)
+  const centerDistance = targetYPlus * kinematicViscosity / frictionVelocity
+  const fullThickness = 2 * centerDistance
+  const reynolds = density * velocity * length / viscosity
+  const skinFrictionCoefficient =
+    (2 * wallShearStress) / (density * velocity ** 2)
+
+  const outputs = definition.outputs
+
+  return {
+    outputs: [
+      item(
+        outputs[0].id,
+        outputs[0].label,
+        centerDistance,
+        outputs[0].unitCategory,
+        outputs[0].defaultUnit,
+      ),
+      item(
+        outputs[1].id,
+        outputs[1].label,
+        fullThickness,
+        outputs[1].unitCategory,
+        outputs[1].defaultUnit,
+      ),
+    ],
+    intermediates: [
+      item('reynolds-number', 'Reynolds 数', reynolds),
+      item('skin-friction-coefficient', '皮肤摩擦系数', skinFrictionCoefficient),
+      item('wall-shear-stress', '壁面剪切应力', wallShearStress, 'pressure', 'Pa'),
+      item('friction-velocity', '摩擦速度', frictionVelocity, 'velocity', 'm/s'),
+      item('kinematic-viscosity', '运动黏度', kinematicViscosity, 'kinematicViscosity', 'm^2/s'),
+    ],
+    summary: definition.notes?.slice(0, 3) ?? [],
+  }
+}
+
+function calculateNusselt(inputs: BaseInputs, definition: CalculatorDefinition) {
+  const heatTransferCoefficient = nonNegative(
+    inputs['heat-transfer-coefficient'],
+    '对流换热系数',
+  )
+  const length = nonNegative(inputs['characteristic-length'], '特征长度')
+  const thermalConductivity = positive(inputs['thermal-conductivity'], '导热系数')
+  const value = (heatTransferCoefficient * length) / thermalConductivity
+
+  return result(definition, value)
+}
+
+function calculateMeanVelocity(inputs: BaseInputs, definition: CalculatorDefinition) {
+  const volumeFlowRate = nonNegative(inputs['volume-flow-rate'], '体积流量')
+  const area = positive(inputs.area, '截面积')
+  const value = volumeFlowRate / area
+
+  return result(definition, value)
+}
+
+function calculateMassFlowRate(inputs: BaseInputs, definition: CalculatorDefinition) {
+  const density = positive(inputs.density, '密度')
+  const volumeFlowRate = nonNegative(inputs['volume-flow-rate'], '体积流量')
+  const value = density * volumeFlowRate
+
+  return result(definition, value)
+}
+
+function calculateHeatFlux(inputs: BaseInputs, definition: CalculatorDefinition) {
+  const heatRate = nonNegative(inputs['heat-rate'], '传热率')
+  const area = positive(inputs.area, '面积')
+  const value = heatRate / area
+
+  return result(definition, value)
+}
+
+function calculateThermalResistance(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const deltaT = nonNegative(inputs['temperature-difference'], '温差')
+  const heatRate = positive(inputs['heat-rate'], '传热率')
+  const value = deltaT / heatRate
+
+  return result(definition, value)
+}
+
+function calculateConvectiveHeatTransfer(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const heatTransferCoefficient = nonNegative(
+    inputs['heat-transfer-coefficient'],
+    '对流换热系数',
+  )
+  const area = nonNegative(inputs.area, '面积')
+  const deltaT = nonNegative(inputs['temperature-difference'], '温差')
+  const value = heatTransferCoefficient * area * deltaT
+
+  return result(definition, value)
+}
+
+function calculateConductionHeatTransfer(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const thermalConductivity = positive(
+    inputs['thermal-conductivity'],
+    '导热系数',
+  )
+  const area = positive(inputs.area, '面积')
+  const deltaT = nonNegative(inputs['temperature-difference'], '温差')
+  const thickness = positive(inputs.thickness, '厚度')
+  const value = thermalConductivity * area * deltaT / thickness
+
+  return result(definition, value, [
+    item('thermal-resistance', '导热热阻', thickness / (thermalConductivity * area), 'thermalResistance', 'K/W'),
+  ])
+}
+
+function calculateTemperatureRise(
+  inputs: BaseInputs,
+  definition: CalculatorDefinition,
+) {
+  const power = nonNegative(inputs.power, '功率')
+  const time = nonNegative(inputs.time, '时间')
+  const mass = positive(inputs.mass, '质量')
+  const specificHeat = positive(inputs['specific-heat'], '比热')
+  const heatInput = power * time
+  const value = heatInput / (mass * specificHeat)
+
+  return result(definition, value, [
+    item('heat-input', '输入热量', heatInput, 'energy', 'J'),
+  ])
 }
 
 function result(

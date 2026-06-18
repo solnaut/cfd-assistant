@@ -28,10 +28,17 @@ function HomePage() {
       <section className="feature-grid" aria-label="Main entries">
         <FeatureCard
           title="参数计算"
-          description="按网格、瞬态、无量纲数等主题组织计算器，后续逐步补充输入校验、单位换算和结果展示。"
+          description="按网格、瞬态、无量纲数等主题组织计算器，提供输入校验、单位换算和结果展示。"
           eyebrow="Calculators"
           actionLabel="进入计算器"
           to="/calculators"
+        />
+        <FeatureCard
+          title="CFD 公式库"
+          description="集中查看当前计算器使用的公式、变量说明和可复制 LaTeX，便于快速核对。"
+          eyebrow="Formulas"
+          actionLabel="查看公式"
+          to="/formulas"
         />
         <FeatureCard
           title="Fluent 功能导览"

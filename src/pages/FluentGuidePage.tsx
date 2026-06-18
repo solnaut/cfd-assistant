@@ -15,14 +15,14 @@ import type {
 } from '../models/knowledge'
 
 const contentFallbacks = {
-  summary: '这部分说明正在整理中。',
-  principle: '后续会补充核心概念、设置含义与使用边界。',
-  useCases: '后续会补充典型使用场景。',
-  optionDifferences: '后续会补充不同选项的区别。',
-  impact: '后续会补充对精度、稳定性和计算成本的影响。',
-  prerequisites: '后续会补充前置条件。',
-  commonErrors: '后续会补充常见误区。',
-  checkSuggestions: '后续会补充检查建议。',
+  summary: '该条目提供当前设置项的基础说明。',
+  principle: '该设置项用于控制当前工作流中的相关求解配置。',
+  useCases: '适合在对应物理模型或边界条件需要明确配置时查看。',
+  optionDifferences: '不同选项会影响模型假设、输入要求和求解表现。',
+  impact: '该项设置可能影响精度、稳定性和计算成本，应结合算例目标确认。',
+  prerequisites: '请先确认几何、网格、材料和边界条件等基础设置已经匹配当前问题。',
+  commonErrors: '常见问题通常来自单位不一致、边界条件不完整或选项含义混淆。',
+  checkSuggestions: '建议结合残差、监测量、守恒检查和结果后处理进行核对。',
 }
 
 function displayContent(value: string, fallback: string) {
@@ -383,23 +383,6 @@ function KnowledgeDetail({
         onSelectEntry={onSelectEntry}
       />
       <RelatedCalculators entry={entry} />
-      {entry.sources?.length ? (
-        <div className="detail-section">
-          <span className="detail-label">来源</span>
-          <ul className="source-list">
-            {entry.sources.map((source) => (
-              <li key={source.url}>
-                <a href={source.url} rel="noreferrer" target="_blank">
-                  {source.title}
-                </a>
-                <span>
-                  {source.organization} · 访问日期 {source.accessedAt}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </aside>
   )
 }

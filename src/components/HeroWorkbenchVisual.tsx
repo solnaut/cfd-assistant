@@ -53,7 +53,7 @@ function HeroWorkbenchVisual() {
 
       <div className="workbench-footer">
         <span>单位换算</span>
-        <span>公式来源</span>
+        <span>公式库</span>
         <span>复制摘要</span>
       </div>
     </aside>

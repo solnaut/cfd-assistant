@@ -12,6 +12,11 @@ import MathFormula from '../components/MathFormula'
 import PageHeader from '../components/PageHeader'
 import type { CalculatorCategory, CalculatorDefinition } from '../models/calculator'
 import { getUnits } from '../units/conversions'
+import {
+  formatVariableSymbol,
+  formatVariableUnit,
+} from '../utils/engineeringDisplay'
+import { copyToClipboard } from '../utils/clipboard'
 
 interface FieldState {
   value: string
@@ -84,9 +89,7 @@ function CalculatorDetailContent({
   }
 
   function copyText(text: string) {
-    if (navigator.clipboard) {
-      void navigator.clipboard.writeText(text)
-    }
+    void copyToClipboard(text)
   }
 
   return (
@@ -165,7 +168,7 @@ function CalculatorDetailContent({
                         >
                           {getUnits(input.unitCategory).map((unit) => (
                             <option key={unit.id} value={unit.id}>
-                              {unit.symbol}
+                              {unit.displaySymbol ?? unit.symbol}
                             </option>
                           ))}
                         </select>
@@ -222,7 +225,7 @@ function CalculatorDetailContent({
               <p>
                 {isAvailable
                   ? '结果区会展示主要输出、中间量和可复制的计算摘要。'
-                  : '当前保留页面结构和研究记录，待公式分支确认后再开放结果。'}
+                  : '该工具会在完整计算逻辑就绪后开放结果展示。'}
               </p>
             </div>
           )}
@@ -262,7 +265,7 @@ function CalculatorDetailContent({
               </div>
             </>
           ) : (
-            <p>完整公式会在来源和验证案例确认后展示。</p>
+            <p>该工具正式开放计算时会同步显示公式与变量说明。</p>
           )}
 
           {calculator.variables?.length ? (
@@ -271,9 +274,11 @@ function CalculatorDetailContent({
               <div className="variable-grid">
                 {calculator.variables.map((variable) => (
                   <div className="variable-card" key={variable.symbol}>
-                    <strong>{variable.symbol}</strong>
+                    <strong className="math-symbol">
+                      {formatVariableSymbol(variable)}
+                    </strong>
                     <span>{variable.name}</span>
-                    <small>{variable.unit}</small>
+                    <small>{formatVariableUnit(variable.unit)}</small>
                     <p>{variable.description}</p>
                   </div>
                 ))}
@@ -286,24 +291,6 @@ function CalculatorDetailContent({
           ) : null}
           {calculator.notes?.length ? (
             <ReferenceList title="注意事项" items={calculator.notes} />
-          ) : null}
-
-          {calculator.sources?.length ? (
-            <div className="reference-section">
-              <h3>来源</h3>
-              <ul className="source-list">
-                {calculator.sources.map((source) => (
-                  <li key={source.url}>
-                    <a href={source.url} rel="noreferrer" target="_blank">
-                      {source.label}: {source.title}
-                    </a>
-                    <span>
-                      {source.organization} · 访问日期 {source.accessedAt}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           ) : null}
         </div>
       </section>

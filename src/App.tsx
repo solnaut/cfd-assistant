@@ -3,6 +3,7 @@ import CalculatorCategoryPage from './pages/CalculatorCategoryPage'
 import CalculatorDetailPage from './pages/CalculatorDetailPage'
 import CalculatorsPage from './pages/CalculatorsPage'
 import FluentGuidePage from './pages/FluentGuidePage'
+import FormulaLibraryPage from './pages/FormulaLibraryPage'
 import HomePage from './pages/HomePage'
 import './App.css'
 
@@ -18,6 +19,7 @@ function App() {
         </div>
         <nav className="site-nav" aria-label="Primary navigation">
           <NavLink to="/calculators">参数计算</NavLink>
+          <NavLink to="/formulas">CFD 公式库</NavLink>
           <NavLink to="/fluent-guide">Fluent 功能导览</NavLink>
         </nav>
       </header>
@@ -34,6 +36,7 @@ function App() {
             path="/calculators/:categoryId/:calculatorId"
             element={<CalculatorDetailPage />}
           />
+          <Route path="/formulas" element={<FormulaLibraryPage />} />
           <Route path="/fluent-guide" element={<FluentGuidePage />} />
         </Routes>
       </main>

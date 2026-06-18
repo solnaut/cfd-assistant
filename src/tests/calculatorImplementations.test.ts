@@ -141,6 +141,114 @@ describe('calculator implementations', () => {
     expect(meshResult.outputs[1].value).toBeCloseTo(0.0020736)
   })
 
+  it('calculates y+ first-layer height from wall shear stress', () => {
+    const result = calculate(calculator('y-plus-first-layer-height'), {
+      'target-y-plus': { value: 1, unitId: '1' },
+      'wall-shear-stress': { value: 0.5, unitId: 'Pa' },
+      density: { value: 1.225, unitId: 'kg/m^3' },
+      'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+      'reference-velocity': { value: 10, unitId: 'm/s' },
+      'characteristic-length': { value: 1, unitId: 'm' },
+    })
+
+    expect(result.outputs[0].value).toBeCloseTo(0.000022862)
+    expect(result.outputs[1].value).toBeCloseTo(0.000045724)
+    expect(result.intermediates[0].value).toBeCloseTo(684587.0124)
+    expect(result.intermediates[1].value).toBeCloseTo(0.0081632653)
+  })
+
+  it('calculates time-step helper calculators', () => {
+    expect(
+      outputValue('total-time-steps', {
+        'total-time': { value: 1, unitId: 's' },
+        'time-step': { value: 1, unitId: 'ms' },
+      }),
+    ).toBeCloseTo(1000)
+
+    expect(
+      outputValue('rotating-time-step', {
+        'rotational-speed': { value: 3000, unitId: 'rpm' },
+        'steps-per-revolution': { value: 360 },
+      }),
+    ).toBeCloseTo(0.0000555556)
+  })
+
+  it('calculates additional flow and piping calculators', () => {
+    expect(
+      outputValue('mean-velocity', {
+        'volume-flow-rate': { value: 60, unitId: 'L/min' },
+        area: { value: 0.01, unitId: 'm^2' },
+      }),
+    ).toBeCloseTo(0.1)
+
+    expect(
+      outputValue('mass-flow-rate', {
+        density: { value: 1000, unitId: 'kg/m^3' },
+        'volume-flow-rate': { value: 60, unitId: 'L/min' },
+      }),
+    ).toBeCloseTo(1)
+
+    expect(
+      outputValue('laminar-pipe-pressure-drop', {
+        'pipe-length': { value: 10, unitId: 'm' },
+        'pipe-diameter': { value: 50, unitId: 'mm' },
+        density: { value: 1000, unitId: 'kg/m^3' },
+        velocity: { value: 0.02, unitId: 'm/s' },
+        'dynamic-viscosity': { value: 0.001, unitId: 'Pa*s' },
+      }),
+    ).toBeCloseTo(2.56)
+  })
+
+  it('calculates heat-transfer helper calculators', () => {
+    expect(
+      outputValue('nusselt-number', {
+        'heat-transfer-coefficient': { value: 100, unitId: 'W/(m^2*K)' },
+        'characteristic-length': { value: 0.1, unitId: 'm' },
+        'thermal-conductivity': { value: 0.026, unitId: 'W/(m*K)' },
+      }),
+    ).toBeCloseTo(384.6153846)
+
+    expect(
+      outputValue('heat-flux', {
+        'heat-rate': { value: 100, unitId: 'W' },
+        area: { value: 0.5, unitId: 'm^2' },
+      }),
+    ).toBeCloseTo(200)
+
+    expect(
+      outputValue('thermal-resistance', {
+        'temperature-difference': { value: 20, unitId: 'K' },
+        'heat-rate': { value: 100, unitId: 'W' },
+      }),
+    ).toBeCloseTo(0.2)
+
+    expect(
+      outputValue('convective-heat-transfer', {
+        'heat-transfer-coefficient': { value: 100, unitId: 'W/(m^2*K)' },
+        area: { value: 1, unitId: 'm^2' },
+        'temperature-difference': { value: 10, unitId: 'K' },
+      }),
+    ).toBeCloseTo(1000)
+
+    expect(
+      outputValue('conduction-heat-transfer', {
+        'thermal-conductivity': { value: 10, unitId: 'W/(m*K)' },
+        area: { value: 1, unitId: 'm^2' },
+        'temperature-difference': { value: 10, unitId: 'K' },
+        thickness: { value: 10, unitId: 'mm' },
+      }),
+    ).toBeCloseTo(10000)
+
+    expect(
+      outputValue('temperature-rise', {
+        power: { value: 100, unitId: 'W' },
+        time: { value: 60, unitId: 's' },
+        mass: { value: 1, unitId: 'kg' },
+        'specific-heat': { value: 4180, unitId: 'J/(kg*K)' },
+      }),
+    ).toBeCloseTo(1.4354067)
+  })
+
   it('rejects invalid inputs before producing non-finite results', () => {
     expect(() =>
       outputValue('mach-number', {
@@ -181,6 +289,13 @@ describe('calculator implementations', () => {
         'layer-count': { value: 2.5 },
       }),
     ).toThrow(/层数必须是整数/)
+
+    expect(() =>
+      outputValue('heat-flux', {
+        'heat-rate': { value: 100, unitId: 'W' },
+        area: { value: 0, unitId: 'm^2' },
+      }),
+    ).toThrow(/面积必须大于 0/)
   })
 
   it('formats result values with units for display', () => {
@@ -191,5 +306,14 @@ describe('calculator implementations', () => {
     })
 
     expect(formatCalculationValue(result.outputs[0])).toBe('0.005 s')
+
+    const viscosityResult = calculate(calculator('reynolds-number'), {
+      density: { value: 1, unitId: 'kg/m^3' },
+      velocity: { value: 1, unitId: 'm/s' },
+      'characteristic-length': { value: 1, unitId: 'm' },
+      'dynamic-viscosity': { value: 1, unitId: 'Pa*s' },
+    })
+
+    expect(formatCalculationValue(viscosityResult.intermediates[0])).toBe('1 m²/s')
   })
 })

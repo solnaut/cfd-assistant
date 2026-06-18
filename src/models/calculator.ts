@@ -6,16 +6,28 @@ export type CalculatorImplementationId =
   | 'biot-number'
   | 'boundary-layer-mesh'
   | 'cfl-time-step'
+  | 'conduction-heat-transfer'
+  | 'convective-heat-transfer'
   | 'fourier-number'
   | 'grashof-number'
+  | 'heat-flux'
   | 'hydraulic-diameter'
   | 'ideal-gas-speed-of-sound'
+  | 'laminar-pipe-pressure-drop'
+  | 'mass-flow-rate'
+  | 'mean-velocity'
+  | 'nusselt-number'
   | 'mach-number'
   | 'peclet-number'
   | 'pipe-pressure-drop'
   | 'prandtl-number'
   | 'rayleigh-number'
   | 'reynolds-number'
+  | 'rotating-time-step'
+  | 'temperature-rise'
+  | 'thermal-resistance'
+  | 'total-time-steps'
+  | 'y-plus-first-layer-height'
 
 export interface CalculatorCategory {
   id: string
@@ -47,13 +59,16 @@ export interface CalculatorOutputDefinition {
 }
 
 export interface CalculatorFormulaDefinition {
+  id?: string
   title: string
   latex: string
   plainText: string
+  description?: string
 }
 
 export interface CalculatorVariableDefinition {
   symbol: string
+  displaySymbol?: string
   name: string
   unit: string
   description: string

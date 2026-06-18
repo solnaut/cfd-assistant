@@ -925,6 +925,11 @@ main {
   font-size: 1.02rem;
 }
 
+.math-symbol {
+  font-family: "Times New Roman", "Cambria Math", "STIX Two Math", serif;
+  letter-spacing: 0;
+}
+
 .variable-card span {
   margin-top: 4px;
   color: var(--text-strong);
@@ -975,6 +980,87 @@ main {
   margin-top: 3px;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.formula-library {
+  display: grid;
+  gap: 24px;
+}
+
+.formula-category-section {
+  display: grid;
+  gap: 16px;
+}
+
+.formula-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.formula-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-subtle);
+}
+
+.formula-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.formula-card-heading h3 {
+  margin: 3px 0 0;
+  color: var(--text-strong);
+  font-size: 1.15rem;
+}
+
+.formula-variable-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.formula-variable-list div {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--surface-muted);
+}
+
+.formula-variable-list strong,
+.formula-variable-list span,
+.formula-variable-list small {
+  display: block;
+}
+
+.formula-variable-list strong {
+  color: var(--accent-strong);
+  font-size: 1rem;
+}
+
+.formula-variable-list span {
+  margin-top: 3px;
+  color: var(--text-strong);
+  font-weight: 750;
+}
+
+.formula-variable-list small {
+  color: var(--text-muted);
+  font-weight: 650;
+}
+
+.formula-scope {
+  margin: 14px 0 0;
+  color: var(--text-muted);
 }
 
 .guide-layout {
@@ -1363,6 +1449,8 @@ main {
   .calculator-list,
   .page-header,
   .formula-panel,
+  .formula-card-grid,
+  .formula-variable-list,
   .result-card-grid,
   .variable-grid {
     grid-template-columns: 1fr;
