@@ -12,6 +12,8 @@
 - 新增 KaTeX 公式渲染。
 - 实现首批来源明确的计算器：Reynolds、Mach、Prandtl、Peclet、Grashof、Rayleigh、Fourier、Biot、水力直径、CFL 时间步长、边界层网格等比增长。
 - 为首批计算器增加单位换算、输入校验、结果展示、中间结果、来源、复制结果和计算测试。
+- 将 Fluent 导览升级为知识库 ID 驱动的教学界面，增加搜索、可点击控件、模拟对话框、关联功能和关联计算器跳转。
+- 扩展 Fluent demo 知识库到 General、Models、Materials、Cell Zone Conditions、Boundary Conditions、Solution Methods、Initialization、Monitors、Run Calculation 和 Results。
 
 ## 0.1.0 - 2026-06-18
 

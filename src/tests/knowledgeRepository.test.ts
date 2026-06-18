@@ -3,6 +3,7 @@ import {
   findKnowledgeEntry,
   groupKnowledgeByModule,
   loadFluentKnowledge,
+  searchKnowledgeEntries,
 } from '../knowledge/knowledgeRepository'
 import type { FluentKnowledgeEntry } from '../models/knowledge'
 
@@ -41,6 +42,12 @@ describe('knowledge repository helpers', () => {
   it('finds a knowledge entry by id', () => {
     expect(findKnowledgeEntry([sampleEntry], 'general.solver')).toBe(sampleEntry)
     expect(findKnowledgeEntry([sampleEntry], 'missing')).toBeNull()
+  })
+
+  it('searches knowledge entries by names and keywords', () => {
+    expect(searchKnowledgeEntries([sampleEntry], 'solver')).toHaveLength(1)
+    expect(searchKnowledgeEntries([sampleEntry], '求解器')).toHaveLength(1)
+    expect(searchKnowledgeEntries([sampleEntry], 'missing')).toHaveLength(0)
   })
 
   it('loads a knowledge file through fetch', async () => {

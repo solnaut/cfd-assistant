@@ -1,259 +1,1034 @@
 {
-  "contentVersion": "0.1.0-todo",
+  "contentVersion": "0.2.0-draft",
   "updatedAt": "2026-06-18",
   "entries": [
     {
       "id": "general.solver",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "General",
       "englishName": "Solver",
       "chineseName": "求解器",
       "menuPath": ["General", "Solver"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
-      "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "oneLineSummary": "选择求解框架，用来决定方程组织方式和主要数值求解路径。",
+      "principle": "求解器设置影响压力、速度、密度和能量等变量的耦合方式。初学者通常先按流动速度、可压缩性和是否瞬态来选择。",
+      "useCases": "常用于新建算例后的第一步检查，尤其是在不可压缩低速流、可压缩高速流或强耦合瞬态问题之间做区分。",
+      "majorOptions": [
+        {
+          "id": "pressure-based",
+          "name": "Pressure-Based",
+          "description": "常用于低速或中等速度流动，以压力速度耦合作为主要组织方式。"
+        },
+        {
+          "id": "density-based",
+          "name": "Density-Based",
+          "description": "常用于高速可压缩流动，密度变化与波传播更突出。"
+        }
+      ],
+      "optionDifferences": "压力基和密度基求解器面向的流动特征不同。实际选择需要结合速度范围、密度变化、物理模型和收敛表现判断。",
+      "impactOnAccuracyStabilityCost": "求解器选择会影响收敛稳定性、内存占用和单步计算成本。错误选择可能导致收敛困难或需要更保守的离散设置。",
+      "prerequisites": "需要先明确流动是否可压缩、是否瞬态、是否包含强传热或激波等现象。",
+      "commonErrors": "只按默认值继续设置，而没有检查流动是否满足当前求解器假设。",
+      "checkSuggestions": "在开始设置模型前，先确认速度尺度、Mach 数、密度变化和时间依赖性。",
+      "controls": [
+        {
+          "id": "solver-type",
+          "label": "Solver Type",
+          "controlType": "select",
+          "value": "Pressure-Based",
+          "description": "用于选择压力基或密度基求解框架。"
+        },
+        {
+          "id": "velocity-formulation",
+          "label": "Velocity Formulation",
+          "controlType": "radio",
+          "value": "Absolute",
+          "description": "用于设置速度变量的参考形式，旋转或相对运动问题需要特别检查。"
+        }
+      ],
+      "relatedFeatures": ["general.time", "models.viscous"],
+      "relatedCalculators": ["mach-number", "reynolds-number"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent User's Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv252%2Fen%2Fflu_ug%2Fflu_ug.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["solver", "求解器"],
-      "contentStatus": "todo"
+      "searchKeywords": ["solver", "pressure-based", "density-based", "求解器", "压力基", "密度基"],
+      "contentStatus": "draft"
     },
     {
       "id": "general.time",
+      "parentId": "general.solver",
+      "controlType": "tree-node",
       "module": "General",
       "englishName": "Time",
       "chineseName": "时间设置",
       "menuPath": ["General", "Time"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
+      "oneLineSummary": "设置算例是稳态还是瞬态，并决定后续是否需要时间步长相关输入。",
+      "principle": "稳态计算寻找时间不变的平衡解；瞬态计算推进每个时间步，时间步长会影响时间分辨率和数值稳定性。",
+      "useCases": "泵阀启动、涡脱落、旋转机械非定常相互作用和热惯性问题通常需要瞬态；稳定运行点的平均流场常从稳态开始。",
+      "majorOptions": [
+        {
+          "id": "steady",
+          "name": "Steady",
+          "description": "用于时间平均或最终稳定状态。"
+        },
+        {
+          "id": "transient",
+          "name": "Transient",
+          "description": "用于随时间变化的流动和传热过程。"
+        }
+      ],
+      "optionDifferences": "瞬态计算需要时间步长和步数，结果还依赖采样时间；稳态计算不直接解析时间过程。",
+      "impactOnAccuracyStabilityCost": "瞬态通常计算成本更高。时间步长过大会损失时间细节，也可能带来稳定性问题。",
+      "prerequisites": "需要明确关注的是稳定工作点、周期平均值还是完整时间历程。",
+      "commonErrors": "把本质非定常问题强行设为稳态，或瞬态时间步长只凭经验设置而不做尺度检查。",
+      "checkSuggestions": "用速度、网格尺寸和目标 CFL 初步估算时间步长，再结合物理周期和监控量检查。",
+      "controls": [
+        {
+          "id": "time-mode",
+          "label": "Steady / Transient",
+          "controlType": "radio",
+          "value": "Transient",
+          "description": "切换时间模型，瞬态会打开时间步长和步数相关设置。"
+        },
+        {
+          "id": "time-step-size",
+          "label": "Time Step Size",
+          "controlType": "field",
+          "value": "0.005 s",
+          "description": "瞬态计算每一步推进的物理时间。"
+        }
+      ],
+      "relatedFeatures": ["run-calculation.iterations"],
       "relatedCalculators": ["cfl-time-step"],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Performing Time-Dependent Calculations",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv242%2Fen%2Fflu_ug%2Fflu_ug_sec_solve_calc_time.html%3Futm_source",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["time", "时间", "transient"],
-      "contentStatus": "todo"
+      "searchKeywords": ["time", "steady", "transient", "时间", "稳态", "瞬态", "CFL"],
+      "contentStatus": "draft"
     },
     {
       "id": "general.gravity",
+      "parentId": "general.solver",
+      "controlType": "tree-node",
       "module": "General",
       "englishName": "Gravity",
       "chineseName": "重力",
       "menuPath": ["General", "Gravity"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
-      "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "oneLineSummary": "为浮力、自然对流、自由液面或颗粒受力等问题提供重力方向和大小。",
+      "principle": "重力作为体力进入动量方程。方向、坐标系和单位设置错误会直接改变浮力方向和压力分布。",
+      "useCases": "自然对流、热羽流、沉降、自由液面、多相流和含密度差的流动通常需要检查重力。",
+      "majorOptions": [
+        {
+          "id": "enable-gravity",
+          "name": "Enable Gravity",
+          "description": "启用重力体力项。"
+        },
+        {
+          "id": "gravity-vector",
+          "name": "Gravity Vector",
+          "description": "指定坐标方向上的重力分量。"
+        }
+      ],
+      "optionDifferences": "只启用开关还不够，方向向量必须与几何坐标一致。",
+      "impactOnAccuracyStabilityCost": "重力本身增加的成本很低，但会改变自然对流和压力场，可能影响收敛。",
+      "prerequisites": "需要先确认几何坐标方向和密度模型。",
+      "commonErrors": "把重力方向设反，或在自然对流问题中忘记启用重力。",
+      "checkSuggestions": "查看坐标轴方向，确认重力分量符号，并检查温差和密度模型是否匹配。",
+      "controls": [
+        {
+          "id": "gravity-enabled",
+          "label": "Gravity",
+          "controlType": "checkbox",
+          "value": "On",
+          "description": "启用或关闭重力体力项。"
+        },
+        {
+          "id": "gravity-y",
+          "label": "Y Direction",
+          "controlType": "field",
+          "value": "-9.80665",
+          "description": "示例中重力沿负 Y 方向。"
+        }
+      ],
+      "relatedFeatures": ["models.energy"],
+      "relatedCalculators": ["grashof-number", "rayleigh-number"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent User's Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv252%2Fen%2Fflu_ug%2Fflu_ug.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["gravity", "重力"],
-      "contentStatus": "todo"
+      "searchKeywords": ["gravity", "buoyancy", "自然对流", "重力", "浮力"],
+      "contentStatus": "draft"
     },
     {
       "id": "models.energy",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Models",
       "englishName": "Energy",
       "chineseName": "能量方程",
       "menuPath": ["Models", "Energy"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
-      "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "oneLineSummary": "控制是否求解温度和热量传递相关方程。",
+      "principle": "启用能量方程后，温度、导热、对流换热和热边界条件会进入求解流程。",
+      "useCases": "换热器、电子散热、自然对流、热混合和温度相关物性问题通常需要启用。",
+      "majorOptions": [
+        {
+          "id": "energy-equation",
+          "name": "Energy Equation",
+          "description": "打开温度和能量输运求解。"
+        }
+      ],
+      "optionDifferences": "关闭能量方程时，热边界和温度场不会按传热问题求解。",
+      "impactOnAccuracyStabilityCost": "启用后会增加一个主要输运方程，计算成本上升；强耦合传热可能需要更谨慎的松弛和初始化。",
+      "prerequisites": "需要材料热物性、热边界条件和必要的热源定义。",
+      "commonErrors": "设置了温度边界但忘记启用能量方程，或材料缺少导热系数和比热。",
+      "checkSuggestions": "检查材料热物性、边界热条件、热源和监控温度范围。",
+      "controls": [
+        {
+          "id": "energy-toggle",
+          "label": "Energy Equation",
+          "controlType": "checkbox",
+          "value": "On",
+          "description": "启用能量方程后才能求解温度场。"
+        }
+      ],
+      "relatedFeatures": ["materials.fluid", "boundary.wall"],
+      "relatedCalculators": ["prandtl-number", "peclet-number", "fourier-number", "biot-number"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent Theory Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/pdf/Ansys_Fluent_Theory_Guide.pdf",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["energy", "能量"],
-      "contentStatus": "todo"
+      "searchKeywords": ["energy", "temperature", "heat transfer", "能量", "温度", "传热"],
+      "contentStatus": "draft"
     },
     {
       "id": "models.viscous",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Models",
       "englishName": "Viscous",
       "chineseName": "黏性模型",
       "menuPath": ["Models", "Viscous"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
-      "relatedCalculators": ["y-plus-first-layer-height"],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "oneLineSummary": "选择层流或湍流模型，并设置近壁面处理相关选项。",
+      "principle": "黏性模型决定如何表示动量扩散和湍流闭合。不同模型对网格、y+ 和收敛特性有不同要求。",
+      "useCases": "低 Reynolds 数流动可能使用层流；多数工程湍流需要选择合适的 RANS 模型或更高阶模型。",
+      "majorOptions": [
+        {
+          "id": "laminar",
+          "name": "Laminar",
+          "description": "不引入湍流闭合模型。"
+        },
+        {
+          "id": "kepsilon",
+          "name": "k-epsilon",
+          "description": "常见工程湍流模型，近壁处理需要配合网格策略。"
+        },
+        {
+          "id": "kw-sst",
+          "name": "k-omega SST",
+          "description": "常用于分离和近壁敏感问题，但对近壁网格更敏感。"
+        }
+      ],
+      "optionDifferences": "模型差异体现在近壁处理、分离预测、自由流敏感性和计算成本等方面。",
+      "impactOnAccuracyStabilityCost": "更复杂或更近壁解析的模型通常需要更细网格和更谨慎的收敛检查。",
+      "prerequisites": "需要估计 Reynolds 数、近壁 y+ 目标和网格分辨率。",
+      "commonErrors": "选择模型后不检查 y+，或把壁面函数网格和近壁解析网格要求混用。",
+      "checkSuggestions": "计算后检查壁面 y+ 分布、残差、力系数和关键截面速度剖面。",
+      "controls": [
+        {
+          "id": "viscous-model",
+          "label": "Model",
+          "controlType": "select",
+          "value": "k-omega SST",
+          "description": "选择层流或湍流模型。"
+        },
+        {
+          "id": "near-wall-treatment",
+          "label": "Near-Wall Treatment",
+          "controlType": "select",
+          "value": "Model dependent",
+          "description": "近壁处理方式会影响网格和 y+ 要求。"
+        }
+      ],
+      "relatedFeatures": ["boundary.wall"],
+      "relatedCalculators": ["reynolds-number", "y-plus-first-layer-height", "boundary-layer-mesh"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent Theory Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/pdf/Ansys_Fluent_Theory_Guide.pdf",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["viscous", "黏性", "turbulence"],
-      "contentStatus": "todo"
+      "searchKeywords": ["viscous", "turbulence", "laminar", "SST", "黏性", "湍流", "y+"],
+      "contentStatus": "draft"
+    },
+    {
+      "id": "materials.fluid",
+      "parentId": null,
+      "controlType": "tree-node",
+      "module": "Materials",
+      "englishName": "Fluid Material",
+      "chineseName": "流体材料",
+      "menuPath": ["Materials", "Fluid"],
+      "oneLineSummary": "定义密度、黏度、导热系数和比热等流体物性。",
+      "principle": "材料属性直接进入动量、能量和无量纲数计算。物性温度和单位必须保持一致。",
+      "useCases": "所有流体计算都需要材料；传热、可压缩或自然对流问题尤其依赖物性设置。",
+      "majorOptions": [
+        {
+          "id": "density",
+          "name": "Density",
+          "description": "密度可为常数或随温度、压力变化。"
+        },
+        {
+          "id": "viscosity",
+          "name": "Viscosity",
+          "description": "动力黏度影响 Reynolds 数和壁面剪切。"
+        },
+        {
+          "id": "thermal-properties",
+          "name": "Thermal Properties",
+          "description": "导热系数和比热用于传热计算。"
+        }
+      ],
+      "optionDifferences": "常数物性更简单；温度相关物性更贴近强温差问题，但需要可靠数据。",
+      "impactOnAccuracyStabilityCost": "复杂物性会增加非线性，可能影响收敛；错误单位会导致结果完全失真。",
+      "prerequisites": "需要明确流体种类、参考温度、压力范围和是否可压缩。",
+      "commonErrors": "把工程单位直接填入 SI 字段，或在强温差问题中使用不合适的常数物性。",
+      "checkSuggestions": "核对单位、数量级和参考温度；必要时与手算 Reynolds、Prandtl 等数值交叉检查。",
+      "controls": [
+        {
+          "id": "density-field",
+          "label": "Density",
+          "controlType": "field",
+          "value": "1.225 kg/m^3",
+          "description": "流体密度，需与物性温度匹配。"
+        },
+        {
+          "id": "viscosity-field",
+          "label": "Viscosity",
+          "controlType": "field",
+          "value": "1.7894e-5 Pa*s",
+          "description": "动力黏度，直接影响 Reynolds 数。"
+        }
+      ],
+      "relatedFeatures": ["models.energy", "models.viscous"],
+      "relatedCalculators": ["reynolds-number", "prandtl-number"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent User's Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv252%2Fen%2Fflu_ug%2Fflu_ug.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
+      "updatedAt": "2026-06-18",
+      "searchKeywords": ["materials", "density", "viscosity", "specific heat", "材料", "密度", "黏度"],
+      "contentStatus": "draft"
+    },
+    {
+      "id": "cell-zone.fluid",
+      "parentId": null,
+      "controlType": "tree-node",
+      "module": "Cell Zone Conditions",
+      "englishName": "Fluid Zone",
+      "chineseName": "流体区域",
+      "menuPath": ["Cell Zone Conditions", "Fluid Zone"],
+      "oneLineSummary": "为网格区域指定材料、运动状态、源项和多孔介质等区域属性。",
+      "principle": "Cell zone 设置决定某一体积区域如何参与方程求解，常用于材料分配、旋转区域和体积源项。",
+      "useCases": "多区域换热、旋转机械、风扇区域、体热源和多孔介质建模都需要检查 cell zone。",
+      "majorOptions": [
+        {
+          "id": "material-name",
+          "name": "Material Name",
+          "description": "指定该区域使用的材料。"
+        },
+        {
+          "id": "source-terms",
+          "name": "Source Terms",
+          "description": "设置体积力、热源或其他方程源项。"
+        }
+      ],
+      "optionDifferences": "普通流体区域只需材料；带旋转、热源或多孔介质的区域需要额外物理设置。",
+      "impactOnAccuracyStabilityCost": "强源项或复杂区域模型会增加非线性，可能需要更稳健的初始化和松弛。",
+      "prerequisites": "需要先确认网格区域命名、材料和物理模型。",
+      "commonErrors": "材料分配到错误区域，或导入网格后没有检查区域类型。",
+      "checkSuggestions": "逐个检查 zone 名称、类型、材料和源项数量级。",
+      "controls": [
+        {
+          "id": "zone-material",
+          "label": "Material Name",
+          "controlType": "select",
+          "value": "air",
+          "description": "指定当前流体区域的材料。"
+        },
+        {
+          "id": "source-terms",
+          "label": "Source Terms",
+          "controlType": "button",
+          "value": "Edit...",
+          "description": "打开源项设置对话框。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["materials.fluid", "models.energy"],
+      "relatedCalculators": [],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Cell Zone and Boundary Conditions",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv261%2Fen%2Fflu_ug%2Fflu_ug_chp_bcs.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
+      "updatedAt": "2026-06-18",
+      "searchKeywords": ["cell zone", "fluid zone", "source terms", "区域", "源项", "材料分配"],
+      "contentStatus": "draft"
     },
     {
       "id": "boundary.velocity-inlet",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Boundary Conditions",
       "englishName": "Velocity Inlet",
       "chineseName": "速度入口",
       "menuPath": ["Boundary Conditions", "Velocity Inlet"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
-      "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "oneLineSummary": "在入口边界给定速度尺度、方向和必要的湍流或热条件。",
+      "principle": "速度入口把入口流动条件作为边界约束，通常用于已知来流速度或体积流量可换算为速度的入口。",
+      "useCases": "风洞入口、管道入口、通风入口和已知速度的外流边界常使用速度入口。",
+      "majorOptions": [
+        {
+          "id": "velocity-magnitude",
+          "name": "Velocity Magnitude",
+          "description": "入口速度大小。"
+        },
+        {
+          "id": "turbulence",
+          "name": "Turbulence Specification",
+          "description": "湍流入口量，需要与所选湍流模型匹配。"
+        }
+      ],
+      "optionDifferences": "速度大小、方向、分量或法向入口等不同方式适合不同边界几何。",
+      "impactOnAccuracyStabilityCost": "入口速度和湍流量会影响发展段、压降和近壁湍流结构。",
+      "prerequisites": "需要已知入口速度、方向和入口湍流估计方法。",
+      "commonErrors": "入口方向与实际流向不一致，或湍流强度、长度尺度数量级不合理。",
+      "checkSuggestions": "检查入口法向、速度矢量、质量流量和入口截面平均值。",
+      "controls": [
+        {
+          "id": "velocity-method",
+          "label": "Velocity Specification Method",
+          "controlType": "select",
+          "value": "Magnitude, Normal to Boundary",
+          "description": "选择速度给定方式。"
+        },
+        {
+          "id": "velocity-value",
+          "label": "Velocity Magnitude",
+          "controlType": "field",
+          "value": "10 m/s",
+          "description": "入口速度大小。"
+        },
+        {
+          "id": "turbulence-edit",
+          "label": "Turbulence",
+          "controlType": "button",
+          "value": "Edit...",
+          "description": "打开入口湍流参数设置区域。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["models.viscous", "materials.fluid"],
+      "relatedCalculators": ["reynolds-number", "mach-number"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Boundary Conditions",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv242%2Fen%2Fflu_ug%2Fflu_ug_bcs_sec_bound_cond.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["velocity inlet", "速度入口"],
-      "contentStatus": "todo"
+      "searchKeywords": ["velocity inlet", "inlet", "入口", "速度入口", "turbulence"],
+      "contentStatus": "draft"
     },
     {
       "id": "boundary.pressure-outlet",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Boundary Conditions",
       "englishName": "Pressure Outlet",
       "chineseName": "压力出口",
       "menuPath": ["Boundary Conditions", "Pressure Outlet"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
+      "oneLineSummary": "在出口给定静压参考，并提供回流时需要的流动和热条件。",
+      "principle": "压力出口常用于出口静压已知或希望让流量由内部解决定的情况。回流条件只在局部回流时参与。",
+      "useCases": "管道出口、外流远场出口、风道排出口和压力已知的开口边界。",
+      "majorOptions": [
+        {
+          "id": "gauge-pressure",
+          "name": "Gauge Pressure",
+          "description": "出口表压。"
+        },
+        {
+          "id": "backflow",
+          "name": "Backflow Conditions",
+          "description": "当出口局部出现回流时使用。"
+        }
+      ],
+      "optionDifferences": "出口压力约束整体压力水平；回流条件不是正常出流条件，而是回流发生时的备用边界数据。",
+      "impactOnAccuracyStabilityCost": "不合理出口位置或回流条件可能影响收敛和下游压力场。",
+      "prerequisites": "需要出口离关键流动结构足够远，或能够接受出口边界对内部流场的影响。",
+      "commonErrors": "出口太靠近分离区，导致大量回流；或忽略回流温度和湍流条件。",
+      "checkSuggestions": "监控出口回流比例、压力分布和质量守恒。",
+      "controls": [
+        {
+          "id": "gauge-pressure",
+          "label": "Gauge Pressure",
+          "controlType": "field",
+          "value": "0 Pa",
+          "description": "出口表压参考值。"
+        },
+        {
+          "id": "backflow-settings",
+          "label": "Backflow Conditions",
+          "controlType": "button",
+          "value": "Edit...",
+          "description": "设置回流湍流、温度或组分等备用条件。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["boundary.velocity-inlet", "monitors.residuals"],
       "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Boundary Conditions",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv242%2Fen%2Fflu_ug%2Fflu_ug_bcs_sec_bound_cond.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["pressure outlet", "压力出口"],
-      "contentStatus": "todo"
+      "searchKeywords": ["pressure outlet", "outlet", "出口", "压力出口", "backflow"],
+      "contentStatus": "draft"
     },
     {
       "id": "boundary.wall",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Boundary Conditions",
       "englishName": "Wall",
       "chineseName": "壁面",
       "menuPath": ["Boundary Conditions", "Wall"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
-      "relatedCalculators": ["y-plus-first-layer-height"],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "oneLineSummary": "设置固体壁面的速度、粗糙度和热边界条件。",
+      "principle": "壁面边界直接影响剪切应力、热通量和近壁面湍流处理。网格第一层与模型要求必须配合。",
+      "useCases": "固壁、管壁、设备外壳、热壁面、绝热壁面和有粗糙度的工程表面。",
+      "majorOptions": [
+        {
+          "id": "shear-condition",
+          "name": "Shear Condition",
+          "description": "常见为 no-slip，也可根据问题选择其他条件。"
+        },
+        {
+          "id": "thermal-condition",
+          "name": "Thermal Condition",
+          "description": "温度、热通量、对流或绝热等热边界。"
+        },
+        {
+          "id": "roughness",
+          "name": "Roughness",
+          "description": "壁面粗糙度会影响壁面摩擦和近壁湍流。"
+        }
+      ],
+      "optionDifferences": "速度条件影响壁面剪切；热条件影响温度场；粗糙度只应在有依据时设置。",
+      "impactOnAccuracyStabilityCost": "壁面设置与近壁网格共同决定壁面力、压降和换热结果可信度。",
+      "prerequisites": "需要已选黏性模型、能量方程状态和近壁面网格策略。",
+      "commonErrors": "粗糙度单位或数量级错误，或未检查 y+ 就解读壁面换热和阻力。",
+      "checkSuggestions": "检查 y+ 分布、壁面热通量、壁面剪切和边界条件单位。",
+      "controls": [
+        {
+          "id": "wall-motion",
+          "label": "Wall Motion",
+          "controlType": "select",
+          "value": "Stationary Wall",
+          "description": "设置壁面是否运动或旋转。"
+        },
+        {
+          "id": "thermal-condition",
+          "label": "Thermal",
+          "controlType": "select",
+          "value": "Heat Flux",
+          "description": "选择壁面热边界类型。"
+        },
+        {
+          "id": "roughness",
+          "label": "Roughness",
+          "controlType": "button",
+          "value": "Edit...",
+          "description": "设置壁面粗糙度参数。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["models.viscous", "models.energy"],
+      "relatedCalculators": ["y-plus-first-layer-height", "boundary-layer-mesh", "biot-number"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Boundary Conditions",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv242%2Fen%2Fflu_ug%2Fflu_ug_bcs_sec_bound_cond.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["wall", "壁面"],
-      "contentStatus": "todo"
+      "searchKeywords": ["wall", "roughness", "heat flux", "壁面", "粗糙度", "热通量", "y+"],
+      "contentStatus": "draft"
     },
     {
       "id": "solution-methods.simple",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Solution Methods",
       "englishName": "SIMPLE",
       "chineseName": "SIMPLE 算法",
-      "menuPath": ["Solution Methods", "SIMPLE"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
+      "menuPath": ["Solution Methods", "Pressure-Velocity Coupling", "SIMPLE"],
+      "oneLineSummary": "一种常用压力速度耦合方法，常作为稳态压力基求解的起点。",
+      "principle": "SIMPLE 通过压力修正思想协调连续性和动量方程，通常配合松弛因子控制收敛。",
+      "useCases": "许多不可压缩或低速稳态工程流动可以从 SIMPLE 开始尝试。",
+      "majorOptions": [
+        {
+          "id": "pressure-velocity-coupling",
+          "name": "Pressure-Velocity Coupling",
+          "description": "选择 SIMPLE、Coupled 等算法。"
+        }
+      ],
+      "optionDifferences": "SIMPLE 通常更稳健但可能需要更多迭代；Coupled 往往单次成本更高但耦合更强。",
+      "impactOnAccuracyStabilityCost": "耦合算法主要影响收敛过程，不应替代网格和物理模型质量检查。",
+      "prerequisites": "需要已完成模型、材料、边界和初始化设置。",
+      "commonErrors": "只看残差下降，不检查质量守恒和关键物理量。",
+      "checkSuggestions": "结合残差、质量流量、力、压降或温度监控判断收敛。",
+      "controls": [
+        {
+          "id": "scheme",
+          "label": "Scheme",
+          "controlType": "select",
+          "value": "SIMPLE",
+          "description": "选择压力速度耦合方法。"
+        },
+        {
+          "id": "under-relaxation",
+          "label": "Under-Relaxation Factors",
+          "controlType": "button",
+          "value": "Edit...",
+          "description": "调整松弛因子以改善收敛稳定性。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["solution-methods.coupled", "monitors.residuals"],
       "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent Theory Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/pdf/Ansys_Fluent_Theory_Guide.pdf",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["SIMPLE", "solution methods"],
-      "contentStatus": "todo"
+      "searchKeywords": ["SIMPLE", "pressure velocity coupling", "压力速度耦合", "松弛"],
+      "contentStatus": "draft"
     },
     {
       "id": "solution-methods.coupled",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Solution Methods",
       "englishName": "Coupled",
       "chineseName": "耦合求解",
-      "menuPath": ["Solution Methods", "Coupled"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
+      "menuPath": ["Solution Methods", "Pressure-Velocity Coupling", "Coupled"],
+      "oneLineSummary": "更强地同时处理压力和速度耦合，常用于耦合较强或收敛困难的场景。",
+      "principle": "Coupled 方法加强压力和速度变量之间的同步求解，通常需要更多内存和单步成本。",
+      "useCases": "强耦合流动、较难收敛的稳态问题或需要改善耦合收敛表现的算例。",
+      "majorOptions": [
+        {
+          "id": "pseudo-time",
+          "name": "Pseudo Transient",
+          "description": "部分稳态问题可使用伪瞬态策略增强收敛。"
+        }
+      ],
+      "optionDifferences": "Coupled 与 SIMPLE 的主要差异在耦合强度、内存需求和收敛行为。",
+      "impactOnAccuracyStabilityCost": "单次迭代成本较高，但可能减少总迭代数。最终可信度仍取决于物理模型和网格。",
+      "prerequisites": "需要先确认边界、模型和初始化没有明显错误。",
+      "commonErrors": "把算法切换当成修复物理设置错误的手段。",
+      "checkSuggestions": "切换算法前后比较残差、守恒量和关键工程量，而不是只比较迭代数。",
+      "controls": [
+        {
+          "id": "scheme",
+          "label": "Scheme",
+          "controlType": "select",
+          "value": "Coupled",
+          "description": "选择耦合压力速度求解策略。"
+        },
+        {
+          "id": "pseudo-transient",
+          "label": "Pseudo Transient",
+          "controlType": "checkbox",
+          "value": "On",
+          "description": "为稳态收敛过程引入伪时间推进。"
+        }
+      ],
+      "relatedFeatures": ["solution-methods.simple", "monitors.residuals"],
       "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent Theory Guide",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/pdf/Ansys_Fluent_Theory_Guide.pdf",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["coupled", "耦合求解"],
-      "contentStatus": "todo"
+      "searchKeywords": ["Coupled", "pseudo transient", "耦合", "伪瞬态"],
+      "contentStatus": "draft"
     },
     {
       "id": "initialization.hybrid",
+      "parentId": null,
+      "controlType": "tree-node",
       "module": "Initialization",
       "englishName": "Hybrid Initialization",
       "chineseName": "混合初始化",
       "menuPath": ["Initialization", "Hybrid Initialization"],
-      "oneLineSummary": "TODO: 由内容维护者补充一句话说明。",
-      "principle": "TODO: 由内容维护者补充功能原理。",
-      "useCases": "TODO: 由内容维护者补充使用场景。",
-      "majorOptions": [],
-      "optionDifferences": "TODO: 由内容维护者补充不同选项的区别。",
-      "impactOnAccuracyStabilityCost": "TODO: 由内容维护者补充对精度、稳定性和计算成本的影响。",
-      "prerequisites": "TODO: 由内容维护者补充前置条件。",
-      "commonErrors": "TODO: 由内容维护者补充常见错误。",
-      "checkSuggestions": "TODO: 由内容维护者补充检查建议。",
-      "relatedFeatures": [],
+      "oneLineSummary": "为流场生成初始速度、压力、温度等变量，帮助后续迭代开始。",
+      "principle": "初始化不是最终解，而是求解迭代的起点。更合理的初始场通常有助于减少早期发散风险。",
+      "useCases": "大多数新算例可以先尝试混合初始化；复杂流动可结合区域初始化或从已有结果开始。",
+      "majorOptions": [
+        {
+          "id": "initialize",
+          "name": "Initialize",
+          "description": "执行初始化。"
+        },
+        {
+          "id": "compute-from",
+          "name": "Compute From",
+          "description": "选择初始场参考区域或默认策略。"
+        }
+      ],
+      "optionDifferences": "混合初始化更自动；标准初始化和区域初始化给用户更多控制。",
+      "impactOnAccuracyStabilityCost": "初始化主要影响收敛过程，不应改变收敛后的物理解读，但差初始化可能导致发散。",
+      "prerequisites": "需要先设置材料、模型、边界和 cell zone。",
+      "commonErrors": "修改边界或模型后忘记重新初始化，或把未收敛早期场当结果分析。",
+      "checkSuggestions": "初始化后查看速度、压力和温度范围，确认没有明显异常值。",
+      "controls": [
+        {
+          "id": "hybrid-button",
+          "label": "Initialize",
+          "controlType": "button",
+          "value": "Hybrid",
+          "description": "执行混合初始化。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["run-calculation.iterations"],
       "relatedCalculators": [],
-      "applicableFluentVersions": ["TODO: 确认适用版本"],
-      "contentVersion": "0.1.0-todo",
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Fluent solve/initialize commands",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_tcl/x1-1000010.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
       "updatedAt": "2026-06-18",
-      "searchKeywords": ["hybrid initialization", "混合初始化"],
-      "contentStatus": "todo"
+      "searchKeywords": ["initialization", "hybrid initialization", "初始化", "混合初始化"],
+      "contentStatus": "draft"
+    },
+    {
+      "id": "monitors.residuals",
+      "parentId": null,
+      "controlType": "tree-node",
+      "module": "Monitors",
+      "englishName": "Residual Monitors",
+      "chineseName": "残差监控",
+      "menuPath": ["Monitors", "Residuals"],
+      "oneLineSummary": "查看方程残差变化，用于判断迭代过程是否趋于稳定。",
+      "principle": "残差反映离散方程在当前迭代下的不平衡程度。残差下降是必要检查，但不是唯一收敛标准。",
+      "useCases": "所有稳态和瞬态计算都应监控残差，同时配合工程量、质量守恒和物理场检查。",
+      "majorOptions": [
+        {
+          "id": "plot",
+          "name": "Plot",
+          "description": "显示残差曲线。"
+        },
+        {
+          "id": "criteria",
+          "name": "Convergence Criteria",
+          "description": "设置残差判断阈值。"
+        }
+      ],
+      "optionDifferences": "显示残差曲线用于观察趋势；收敛阈值只是停止条件之一。",
+      "impactOnAccuracyStabilityCost": "监控本身成本很低，但过早停止会影响结果可信度。",
+      "prerequisites": "需要已完成求解方法和初始化设置。",
+      "commonErrors": "只看残差，不看质量流量、力、压降、温度或其他关键物理量。",
+      "checkSuggestions": "同时设置关键工程量监控，检查残差、守恒和目标量是否都稳定。",
+      "controls": [
+        {
+          "id": "plot-residuals",
+          "label": "Plot",
+          "controlType": "checkbox",
+          "value": "On",
+          "description": "显示残差随迭代变化的曲线。"
+        },
+        {
+          "id": "criteria",
+          "label": "Criteria",
+          "controlType": "field",
+          "value": "1e-3",
+          "description": "残差停止阈值示例。"
+        }
+      ],
+      "relatedFeatures": ["run-calculation.iterations", "solution-methods.simple"],
+      "relatedCalculators": [],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Remote Visualization and Accessing Fluent Remotely",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_ug_workspaces/flu_ug_chp_remote_client.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
+      "updatedAt": "2026-06-18",
+      "searchKeywords": ["residual", "monitor", "convergence", "残差", "监控", "收敛"],
+      "contentStatus": "draft"
+    },
+    {
+      "id": "run-calculation.iterations",
+      "parentId": null,
+      "controlType": "tree-node",
+      "module": "Run Calculation",
+      "englishName": "Run Calculation",
+      "chineseName": "运行计算",
+      "menuPath": ["Run Calculation"],
+      "oneLineSummary": "设置迭代步数、时间步长和计算启动控制。",
+      "principle": "运行计算会推进迭代或时间步。每次运行前应确认初始化、监控和保存策略。",
+      "useCases": "稳态计算设置迭代次数；瞬态计算设置时间步长、时间步数和每步迭代数。",
+      "majorOptions": [
+        {
+          "id": "iterations",
+          "name": "Number of Iterations",
+          "description": "稳态或每步内部迭代数量。"
+        },
+        {
+          "id": "time-step",
+          "name": "Time Step Size",
+          "description": "瞬态每个时间步的物理时间。"
+        }
+      ],
+      "optionDifferences": "稳态关注迭代收敛；瞬态还要关注时间分辨率和统计采样。",
+      "impactOnAccuracyStabilityCost": "迭代数和时间步数直接决定计算成本；时间步长过大可能损失瞬态细节。",
+      "prerequisites": "需要完成初始化并设置监控量。",
+      "commonErrors": "没有监控关键量就开始长时间计算，或瞬态保存频率不足。",
+      "checkSuggestions": "先短跑检查残差、质量守恒和关键监控量，再进行长时间计算。",
+      "controls": [
+        {
+          "id": "iterations",
+          "label": "Number of Iterations",
+          "controlType": "field",
+          "value": "200",
+          "description": "设置一次运行的迭代数量。"
+        },
+        {
+          "id": "calculate",
+          "label": "Calculate",
+          "controlType": "button",
+          "value": "Run",
+          "description": "启动计算。教学界面不会执行真实仿真。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["general.time", "monitors.residuals"],
+      "relatedCalculators": ["cfl-time-step"],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Performing Time-Dependent Calculations",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/account/secured?returnurl=%2FViews%2FSecured%2Fcorp%2Fv242%2Fen%2Fflu_ug%2Fflu_ug_sec_solve_calc_time.html%3Futm_source",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
+      "updatedAt": "2026-06-18",
+      "searchKeywords": ["run calculation", "iterations", "time step", "运行", "迭代", "时间步"],
+      "contentStatus": "draft"
+    },
+    {
+      "id": "results.contours",
+      "parentId": null,
+      "controlType": "tree-node",
+      "module": "Results",
+      "englishName": "Contours",
+      "chineseName": "云图",
+      "menuPath": ["Results", "Contours"],
+      "oneLineSummary": "以颜色分布查看压力、速度、温度等场变量。",
+      "principle": "云图把场变量映射到几何表面或截面上，适合快速发现高低值区域和异常分布。",
+      "useCases": "查看压力损失、速度分离、温度热点、边界层发展和结果异常。",
+      "majorOptions": [
+        {
+          "id": "field-variable",
+          "name": "Field Variable",
+          "description": "选择要显示的变量。"
+        },
+        {
+          "id": "surfaces",
+          "name": "Surfaces",
+          "description": "选择显示云图的几何面或截面。"
+        }
+      ],
+      "optionDifferences": "变量选择决定物理含义；表面选择决定观察位置。",
+      "impactOnAccuracyStabilityCost": "后处理本身不改变结果，但错误色标或截面选择会误导判断。",
+      "prerequisites": "需要已有计算结果或初始化场。",
+      "commonErrors": "只看默认色标，忽略单位、局部极值和截面位置。",
+      "checkSuggestions": "固定色标范围，对比多个截面，并结合数值监控量判断。",
+      "controls": [
+        {
+          "id": "field-variable",
+          "label": "Field Variable",
+          "controlType": "select",
+          "value": "Velocity Magnitude",
+          "description": "选择云图变量。"
+        },
+        {
+          "id": "surfaces",
+          "label": "Surfaces",
+          "controlType": "button",
+          "value": "Select...",
+          "description": "选择显示云图的位置。",
+          "opensDialog": true
+        }
+      ],
+      "relatedFeatures": ["results.vectors", "monitors.residuals"],
+      "relatedCalculators": [],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Remote Visualization and Accessing Fluent Remotely",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_ug_workspaces/flu_ug_chp_remote_client.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
+      "updatedAt": "2026-06-18",
+      "searchKeywords": ["contours", "results", "post processing", "云图", "结果", "后处理"],
+      "contentStatus": "draft"
+    },
+    {
+      "id": "results.vectors",
+      "parentId": "results.contours",
+      "controlType": "tree-node",
+      "module": "Results",
+      "englishName": "Vectors",
+      "chineseName": "矢量图",
+      "menuPath": ["Results", "Vectors"],
+      "oneLineSummary": "用箭头查看速度或其他矢量场的方向和相对大小。",
+      "principle": "矢量图强调方向信息，适合观察回流、旋涡、入口方向和截面流动组织。",
+      "useCases": "检查速度入口方向、回流区、旋转流动和截面二次流。",
+      "majorOptions": [
+        {
+          "id": "vector-variable",
+          "name": "Vector Variable",
+          "description": "选择要显示的矢量变量。"
+        },
+        {
+          "id": "scale",
+          "name": "Scale",
+          "description": "调整箭头长度显示比例。"
+        }
+      ],
+      "optionDifferences": "变量决定箭头含义；缩放只改变显示，不改变计算结果。",
+      "impactOnAccuracyStabilityCost": "后处理显示不改变结果，但箭头过密或比例不当会影响读图。",
+      "prerequisites": "需要已有速度场或对应矢量变量。",
+      "commonErrors": "把显示缩放误解为速度大小变化，或在过密网格上不做采样。",
+      "checkSuggestions": "调整采样密度和箭头比例，并与云图和数值监控交叉检查。",
+      "controls": [
+        {
+          "id": "vector-variable",
+          "label": "Vectors Of",
+          "controlType": "select",
+          "value": "Velocity",
+          "description": "选择矢量变量。"
+        },
+        {
+          "id": "scale",
+          "label": "Scale",
+          "controlType": "field",
+          "value": "1.0",
+          "description": "调整箭头显示比例。"
+        }
+      ],
+      "relatedFeatures": ["results.contours"],
+      "relatedCalculators": [],
+      "applicableFluentVersions": ["2024 R2", "2025 R2", "2026 R1"],
+      "sources": [
+        {
+          "title": "Remote Visualization and Accessing Fluent Remotely",
+          "organization": "Ansys",
+          "url": "https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_ug_workspaces/flu_ug_chp_remote_client.html",
+          "accessedAt": "2026-06-18"
+        }
+      ],
+      "contentVersion": "0.2.0-draft",
+      "updatedAt": "2026-06-18",
+      "searchKeywords": ["vectors", "velocity", "results", "矢量", "速度", "后处理"],
+      "contentStatus": "draft"
     }
   ]
 }

@@ -37,3 +37,30 @@ export function findKnowledgeEntry(
 ) {
   return entries.find((entry) => entry.id === id) ?? null
 }
+
+export function searchKnowledgeEntries(
+  entries: FluentKnowledgeEntry[],
+  query: string,
+) {
+  const normalizedQuery = query.trim().toLowerCase()
+
+  if (!normalizedQuery) {
+    return entries
+  }
+
+  return entries.filter((entry) => {
+    const searchableText = [
+      entry.id,
+      entry.module,
+      entry.englishName,
+      entry.chineseName,
+      entry.menuPath.join(' '),
+      entry.oneLineSummary,
+      ...entry.searchKeywords,
+    ]
+      .join(' ')
+      .toLowerCase()
+
+    return searchableText.includes(normalizedQuery)
+  })
+}
