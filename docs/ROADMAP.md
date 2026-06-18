@@ -11,16 +11,19 @@
 
 ## Phase 1 - Calculator Framework
 
-- 确认第一个计算器的公式、输入、输出、单位和验证案例。
+- 完成 v0.2 UI 与参数计算三级信息架构。
+- 建立 `docs/research/calculators` 和 `docs/research/fluent` 研究记录模板。
+- 优先确认 Reynolds、Mach、Prandtl、Peclet、Grashof、Rayleigh、Fourier、Biot、水力直径、CFL 与边界层网格等比增长的公式、输入、输出、单位和验证案例。
 - 建立通用计算器表单组件。
 - 建立输入校验、单位选择、结果复制和示例数据机制。
-- 为第一个计算器编写单元测试和验证测试。
+- 为正式发布的每个计算器编写正常案例、单位换算案例、边界案例、非法输入案例和来源验证案例。
 
 ## Phase 2 - Fluent Guide MVP
 
 - 确认知识条目字段是否足够。
-- 完善 3 到 5 个高质量演示条目。
-- 增加搜索、关联条目和内容版本展示。
+- 建立由知识库 ID 驱动的高保真教学模拟界面，不使用官方 Logo、截图或图标。
+- 第一阶段覆盖 General、Models、Materials、Cell Zone Conditions、Boundary Conditions、Solution Methods、Initialization、Monitors、Run Calculation 和 Results 中的常用单相流动与传热功能。
+- 增加搜索、关联功能跳转、关联计算器跳转和内容版本展示。
 - 优化手机端详情阅读体验。
 
 ## Phase 3 - Static Deployment
@@ -32,5 +35,12 @@
 ## Phase 4 - Growth
 
 - 增加更多计算器和验证数据。
-- 扩充 Fluent 导览知识库。
+- 扩充 Fluent 导览知识库，逐步覆盖大部分常用界面选项、按钮、下拉项、复选框和模拟对话框选项。
 - 评估 Capacitor 封装 Android 的改造成本。
+
+## Cross-Phase Quality Gates
+
+- 公开页面不得显示 TODO、内部审核状态或开发过程说明。
+- 中文、英文、公式符号和单位不得乱码。
+- 每个稳定阶段运行 `npm.cmd run lint`、`npm.cmd run test`、`npm.cmd run build`。
+- 通过浏览器检查首页、参数计算分类页、分类详情页、计算器详情页和 Fluent 导览页。
