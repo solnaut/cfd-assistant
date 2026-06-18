@@ -42,7 +42,7 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: '近壁面与网格' })).toBeInTheDocument()
     expect(screen.getByText('y+ 与第一层网格高度')).toBeInTheDocument()
-    expect(screen.getByText('边界层网格计算')).toBeInTheDocument()
+    expect(screen.getByText('边界层网格等比增长')).toBeInTheDocument()
   })
 
   it('renders a calculator detail page shell', () => {
