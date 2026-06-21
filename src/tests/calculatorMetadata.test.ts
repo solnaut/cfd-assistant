@@ -62,10 +62,33 @@ describe('calculator metadata display', () => {
       'y-plus-definition',
       'friction-velocity',
       'kinematic-viscosity',
-      'wall-shear-from-skin-friction',
+      'reynolds-number-from-properties',
+      'flat-plate-wall-friction-coefficient',
+      'wall-shear-from-wall-friction-coefficient',
       'first-cell-center-distance',
       'first-layer-full-thickness',
     ])
+  })
+
+  it('defines the three y+ calculation modes and defaults to initial estimate', () => {
+    const yPlusCalculator = calculatorCatalog.find(
+      (calculator) => calculator.id === 'y-plus-first-layer-height',
+    )
+
+    if (!yPlusCalculator) {
+      throw new Error('Missing y+ calculator')
+    }
+
+    expect(yPlusCalculator.defaultModeId).toBe('initial-estimate')
+    expect(yPlusCalculator.modes?.map((mode) => mode.id)).toEqual([
+      'initial-estimate',
+      'known-wall-shear-stress',
+      'known-friction-coefficient',
+    ])
+    expect(
+      yPlusCalculator.inputs.find((input) => input.id === 'flow-scenario')
+        ?.options?.find((option) => option.id === 'internal-pipe')?.disabled,
+    ).toBe(true)
   })
 
   it('keeps formula variable display symbols free of raw LaTeX commands', () => {
@@ -81,6 +104,27 @@ describe('calculator metadata display', () => {
     expect(renderedSymbols).toContain('uτ')
     expect(renderedSymbols).toContain('Cf')
     expect(renderedSymbols.every((symbol) => !symbol.includes('\\'))).toBe(true)
+  })
+
+  it('uses wall friction coefficient wording in y+ user-facing metadata', () => {
+    const yPlusCalculator = calculatorCatalog.find(
+      (calculator) => calculator.id === 'y-plus-first-layer-height',
+    )
+
+    if (!yPlusCalculator) {
+      throw new Error('Missing y+ calculator')
+    }
+
+    const metadataText = JSON.stringify({
+      inputs: yPlusCalculator.inputs,
+      formulas: yPlusCalculator.formulas,
+      variables: yPlusCalculator.variables,
+      scope: yPlusCalculator.scope,
+      notes: yPlusCalculator.notes,
+    })
+
+    expect(metadataText).toContain('壁面摩擦系数')
+    expect(metadataText).not.toContain('皮肤摩擦系数')
   })
 
   it('keeps internal research records for every published calculator', () => {

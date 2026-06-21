@@ -5,6 +5,7 @@ import type {
 } from '../models/calculator'
 
 const accessedAt = '2026-06-18'
+const accessedAtLatest = '2026-06-21'
 
 const nasaReynolds: CalculatorSourceDefinition = {
   label: 'NASA Glenn',
@@ -86,6 +87,22 @@ const nasaWallModel: CalculatorSourceDefinition = {
   accessedAt,
 }
 
+const nasaLaminarFlatPlate: CalculatorSourceDefinition = {
+  label: 'NASA Glenn',
+  title: 'Laminar Flat Plate: Study #1',
+  organization: 'NASA Glenn Research Center',
+  url: 'https://www.grc.nasa.gov/www/wind/valid/fplam/fplam01/fplam01.html',
+  accessedAt: accessedAtLatest,
+}
+
+const pennStateFlatPlate: CalculatorSourceDefinition = {
+  label: 'Penn State',
+  title: 'Turbulent Flat Plate Boundary Layer',
+  organization: 'Pennsylvania State University',
+  url: 'https://www.me.psu.edu/cimbala/me320/Lesson_Notes/Fluid_Mechanics_Lesson_13D.pdf',
+  accessedAt: accessedAtLatest,
+}
+
 const mitHeatTransfer: CalculatorSourceDefinition = {
   label: 'MIT OCW',
   title: 'Introduction to Engineering Heat Transfer',
@@ -138,7 +155,7 @@ export const calculatorCatalog: CalculatorDefinition[] = [
     name: 'y+ 与第一层网格高度',
     shortName: 'y+ 第一层高度',
     categoryId: 'near-wall-mesh',
-    summary: '根据目标 y+、壁面剪切应力和流体物性估算第一层单元中心距离与完整厚度。',
+    summary: '按初始估算、已知壁面剪切应力或已知壁面摩擦系数三种模式估算第一层单元中心距离与完整厚度。',
     availability: 'available',
     implementationId: 'y-plus-first-layer-height',
     inputs: [
@@ -153,19 +170,32 @@ export const calculatorCatalog: CalculatorDefinition[] = [
         required: true,
       },
       {
+        id: 'flow-scenario',
+        label: '流动场景',
+        quantity: 'flow-scenario',
+        kind: 'select',
+        defaultValue: 'flat-plate-external',
+        required: true,
+        options: [
+          { id: 'flat-plate-external', label: '平板外流估算' },
+          { id: 'internal-pipe', label: '管内流动估算（后续扩展）', disabled: true },
+        ],
+        helperText: '当前初始估算只开放平板外流局部摩擦关系；管内流动需要单独处理摩阻因子定义。',
+      },
+      {
         id: 'wall-shear-stress',
-        label: '壁面剪切应力',
+        label: '壁面剪切应力 τw',
         quantity: 'pressure',
         unitCategory: 'pressure',
         defaultUnit: 'Pa',
         defaultValue: 0.5,
         min: 0,
         required: true,
-        helperText: '请输入已知或估算的壁面剪切应力；本工具不会自动选择摩阻关联式。',
+        helperText: '用于已有仿真、实验或后处理 wall shear stress 的修正计算。',
       },
       {
         id: 'density',
-        label: '密度',
+        label: '密度 ρ',
         quantity: 'density',
         unitCategory: 'density',
         defaultUnit: 'kg/m^3',
@@ -175,7 +205,7 @@ export const calculatorCatalog: CalculatorDefinition[] = [
       },
       {
         id: 'dynamic-viscosity',
-        label: '动力黏度',
+        label: '动力黏度 μ',
         quantity: 'dynamic-viscosity',
         unitCategory: 'dynamicViscosity',
         defaultUnit: 'Pa*s',
@@ -185,7 +215,7 @@ export const calculatorCatalog: CalculatorDefinition[] = [
       },
       {
         id: 'reference-velocity',
-        label: '参考速度',
+        label: '参考速度 U',
         quantity: 'velocity',
         unitCategory: 'velocity',
         defaultUnit: 'm/s',
@@ -195,13 +225,24 @@ export const calculatorCatalog: CalculatorDefinition[] = [
       },
       {
         id: 'characteristic-length',
-        label: '特征长度',
+        label: '特征长度 L',
         quantity: 'length',
         unitCategory: 'length',
         defaultUnit: 'm',
         defaultValue: 1,
         min: 0,
         required: true,
+      },
+      {
+        id: 'friction-coefficient',
+        label: '壁面摩擦系数 Cf',
+        quantity: 'dimensionless',
+        unitCategory: 'dimensionless',
+        defaultUnit: '1',
+        defaultValue: 0.004,
+        min: 0,
+        required: true,
+        helperText: '请输入与 τw = 0.5 Cf ρ U² 定义一致的无量纲系数。',
       },
     ],
     outputs: [
@@ -220,7 +261,63 @@ export const calculatorCatalog: CalculatorDefinition[] = [
         defaultUnit: 'mm',
       },
     ],
-    resultPreview: ['第一层中心距离', '完整第一层厚度', '摩擦速度与壁面剪切中间量'],
+    resultPreview: ['第一层中心距离', '完整第一层厚度', 'Re、Cf、τw、uτ 与 ν'],
+    defaultModeId: 'initial-estimate',
+    modes: [
+      {
+        id: 'initial-estimate',
+        label: '初始估算：根据速度和特征长度',
+        description: '前处理阶段没有 τw 时，根据 U、L 和物性估算第一层高度。',
+        inputIds: [
+          'target-y-plus',
+          'flow-scenario',
+          'density',
+          'dynamic-viscosity',
+          'reference-velocity',
+          'characteristic-length',
+        ],
+        formulaIds: [
+          'reynolds-number-from-properties',
+          'flat-plate-wall-friction-coefficient',
+          'wall-shear-from-wall-friction-coefficient',
+          'friction-velocity',
+        ],
+      },
+      {
+        id: 'known-wall-shear-stress',
+        label: '修正计算：已知壁面剪切应力',
+        description: '已有仿真、实验或后处理 τw 时，直接反算第一层高度。',
+        inputIds: [
+          'target-y-plus',
+          'wall-shear-stress',
+          'density',
+          'dynamic-viscosity',
+        ],
+        formulaIds: ['friction-velocity'],
+      },
+      {
+        id: 'known-friction-coefficient',
+        label: '自定义摩擦：已知摩擦系数',
+        description: '用户已选定 Cf 时，由 Cf、ρ 和 U 计算 τw 后反算。',
+        inputIds: [
+          'target-y-plus',
+          'friction-coefficient',
+          'density',
+          'dynamic-viscosity',
+          'reference-velocity',
+        ],
+        formulaIds: [
+          'wall-shear-from-wall-friction-coefficient',
+          'friction-velocity',
+        ],
+      },
+    ],
+    commonFormulaIds: [
+      'y-plus-definition',
+      'kinematic-viscosity',
+      'first-cell-center-distance',
+      'first-layer-full-thickness',
+    ],
     formula: {
       id: 'y-plus-summary',
       title: 'y+ 第一层高度关系',
@@ -263,13 +360,36 @@ export const calculatorCatalog: CalculatorDefinition[] = [
         ],
       },
       {
-        id: 'wall-shear-from-skin-friction',
-        title: '壁面剪切应力与摩擦系数',
+        id: 'reynolds-number-from-properties',
+        title: 'Reynolds 数',
+        plainText: 'Re = rho U L / mu',
+        latex: String.raw`Re=\frac{\rho U L}{\mu}`,
+        variables: [
+          { symbol: 'Re', name: 'Reynolds 数', unit: '1', description: '由参考速度和特征长度定义的 Reynolds 数' },
+          { symbol: '\\rho', name: '密度', unit: 'kg/m^3', description: '流体密度' },
+          { symbol: 'U', name: '参考速度', unit: 'm/s', description: '与摩擦系数估算一致的速度' },
+          { symbol: 'L', name: '特征长度', unit: 'm', description: '平板外流中按距前缘距离或代表长度使用' },
+          { symbol: '\\mu', name: '动力黏度', unit: 'Pa*s', description: '流体动力黏度' },
+        ],
+      },
+      {
+        id: 'flat-plate-wall-friction-coefficient',
+        title: '平板外流局部壁面摩擦系数估算',
+        plainText: 'Cf = 0.664/sqrt(Re) for laminar estimate; Cf = 0.0592 Re^(-1/5) for turbulent estimate',
+        latex: String.raw`C_f=\begin{cases}\frac{0.664}{\sqrt{Re}},& Re\le 5\times10^5\\0.0592Re^{-1/5},& Re>5\times10^5\end{cases}`,
+        variables: [
+          { symbol: 'C_f', displaySymbol: 'Cf', name: '壁面摩擦系数', unit: '1', description: '平板外流局部估算系数' },
+          { symbol: 'Re', name: 'Reynolds 数', unit: '1', description: '由 ρUL/μ 计算' },
+        ],
+      },
+      {
+        id: 'wall-shear-from-wall-friction-coefficient',
+        title: '壁面剪切应力与壁面摩擦系数',
         plainText: 'tau_w = 0.5 Cf rho U^2',
         latex: String.raw`\tau_w=\frac{1}{2}C_f\rho U^2`,
         variables: [
           { symbol: '\\tau_w', name: '壁面剪切应力', unit: 'Pa', description: '壁面剪切应力' },
-          { symbol: 'C_f', displaySymbol: 'Cf', name: '皮肤摩擦系数', unit: '1', description: '外流皮肤摩擦系数' },
+          { symbol: 'C_f', displaySymbol: 'Cf', name: '壁面摩擦系数', unit: '1', description: '与所选场景和参考速度一致的无量纲系数' },
           { symbol: '\\rho', name: '密度', unit: 'kg/m^3', description: '流体密度' },
           { symbol: 'U', name: '参考速度', unit: 'm/s', description: '与摩擦系数定义一致的速度' },
         ],
@@ -302,24 +422,28 @@ export const calculatorCatalog: CalculatorDefinition[] = [
       { symbol: 'y', name: '第一层中心距离', unit: 'm', description: '壁面到第一层单元中心的距离' },
       { symbol: 'h_1', displaySymbol: 'h1', name: '第一层完整厚度', unit: 'm', description: '近似取中心距离的 2 倍' },
       { symbol: 'u_\\tau', displaySymbol: 'uτ', name: '摩擦速度', unit: 'm/s', description: '由壁面剪切应力和密度定义' },
-      { symbol: '\\tau_w', name: '壁面剪切应力', unit: 'Pa', description: '用户输入的壁面剪切应力' },
+      { symbol: '\\tau_w', displaySymbol: 'τw', name: '壁面剪切应力', unit: 'Pa', description: '用户输入或由 Cf 估算得到的壁面剪切应力' },
       { symbol: '\\rho', name: '密度', unit: 'kg/m^3', description: '流体密度' },
       { symbol: '\\mu', name: '动力黏度', unit: 'Pa*s', description: '流体动力黏度' },
       { symbol: '\\nu', name: '运动黏度', unit: 'm^2/s', description: '由动力黏度除以密度得到' },
-      { symbol: 'C_f', displaySymbol: 'Cf', name: '皮肤摩擦系数', unit: '1', description: '由输入剪切应力、密度和参考速度换算得到' },
-      { symbol: 'U', name: '参考速度', unit: 'm/s', description: '与 Reynolds 数和摩擦系数输出对应的速度尺度' },
+      { symbol: 'C_f', displaySymbol: 'Cf', name: '壁面摩擦系数', unit: '1', description: '用于 τw = 0.5 Cf ρU² 的无量纲系数' },
+      { symbol: 'U', name: '参考速度', unit: 'm/s', description: '与 Reynolds 数和 Cf 定义对应的速度尺度' },
+      { symbol: 'L', name: '特征长度', unit: 'm', description: '初始估算模式下用于计算 Reynolds 数' },
+      { symbol: 'Re', name: 'Reynolds 数', unit: '1', description: '由 ρUL/μ 计算' },
     ],
     scope: [
-      '当前计算方式只使用用户输入壁面剪切应力，不自动选择外流或内流摩擦系数关联式。',
+      '初始估算模式当前只开放平板外流局部估算；管内流动摩阻分支需单独验证后再开放。',
+      '已知壁面剪切应力模式直接使用用户输入的 τw，不重新估算新的 τw。',
+      '已知摩擦系数模式要求用户输入与 τw = 0.5 Cf ρU² 一致的 Cf。',
       '第一层完整厚度按单元中心位于第一层中点的常见网格假设估算。',
     ],
     notes: [
       '结果只用于初始网格估算，最终应以后处理 y+ 分布校核。',
       '不要混用第一层中心距离和完整第一层厚度。',
-      '若使用摩阻因子或外流平板关联式估算壁面剪切，应先确认其定义和适用范围。',
+      '不同流动场景的 Cf、Darcy 摩阻因子和 Fanning 摩阻因子定义不同，不能直接混用。',
     ],
-    sources: [nasaWallModel],
-    updatedAt: '2026-06-18',
+    sources: [nasaWallModel, nasaLaminarFlatPlate, pennStateFlatPlate],
+    updatedAt: '2026-06-21',
   },
   {
     id: 'boundary-layer-mesh',

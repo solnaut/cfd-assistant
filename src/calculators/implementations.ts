@@ -2,12 +2,13 @@ import type {
   CalculatorDefinition,
   CalculatorImplementationId,
   CalculatorInputDefinition,
+  CalculatorModeDefinition,
 } from '../models/calculator'
 import type { UnitCategory } from '../units/conversions'
 import { fromBaseValue, getUnitDisplaySymbol, toBaseValue } from '../units/conversions'
 
 export interface CalculatorInputValue {
-  value: number
+  value: number | string
   unitId?: string
 }
 
@@ -29,11 +30,18 @@ export interface CalculationResult {
   summary: string[]
 }
 
-type BaseInputs = Record<string, number>
+type BaseInputValue = number | string
+
+type BaseInputs = Record<string, BaseInputValue>
+
+interface CalculatorContext {
+  modeId?: string
+}
 
 type CalculatorImplementation = (
   inputs: BaseInputs,
   definition: CalculatorDefinition,
+  context: CalculatorContext,
 ) => CalculationResult
 
 const implementations: Record<CalculatorImplementationId, CalculatorImplementation> = {
@@ -67,15 +75,57 @@ const implementations: Record<CalculatorImplementationId, CalculatorImplementati
 export function calculate(
   definition: CalculatorDefinition,
   values: CalculatorInputValues,
+  options: CalculatorContext = {},
 ) {
   if (!definition.implementationId) {
     throw new Error('该计算器尚未开放计算。')
   }
 
   const implementation = implementations[definition.implementationId]
-  const baseInputs = toBaseInputs(definition.inputs, values)
+  const mode = getActiveMode(definition, options.modeId)
+  const inputDefinitions = getActiveInputDefinitions(definition, mode)
+  const baseInputs = toBaseInputs(inputDefinitions, values)
 
-  return implementation(baseInputs, definition)
+  return implementation(baseInputs, definition, {
+    modeId: mode?.id,
+  })
+}
+
+export function getDefaultModeId(definition: CalculatorDefinition) {
+  return definition.defaultModeId ?? definition.modes?.[0]?.id
+}
+
+export function getActiveMode(
+  definition: CalculatorDefinition,
+  modeId?: string,
+) {
+  if (!definition.modes?.length) {
+    return undefined
+  }
+
+  const fallbackModeId = getDefaultModeId(definition)
+
+  return (
+    definition.modes.find((mode) => mode.id === (modeId ?? fallbackModeId)) ??
+    definition.modes[0]
+  )
+}
+
+export function getActiveInputDefinitions(
+  definition: CalculatorDefinition,
+  mode?: CalculatorModeDefinition,
+) {
+  if (!mode) {
+    return definition.inputs
+  }
+
+  const inputsById = new Map(
+    definition.inputs.map((input) => [input.id, input]),
+  )
+
+  return mode.inputIds
+    .map((inputId) => inputsById.get(inputId))
+    .filter((input): input is CalculatorInputDefinition => Boolean(input))
 }
 
 export function formatCalculationValue(item: CalculationItem) {
@@ -106,32 +156,51 @@ function toBaseInputs(
   return definitions.reduce<BaseInputs>((accumulator, definition) => {
     const input = values[definition.id]
 
-    if (!input || input.value === undefined || Number.isNaN(input.value)) {
+    if (!input || input.value === undefined || input.value === '') {
       if (definition.required) {
         throw new Error(`请填写${definition.label}。`)
       }
       return accumulator
     }
 
-    if (!Number.isFinite(input.value)) {
+    if (definition.kind === 'select') {
+      const value = String(input.value)
+      const option = definition.options?.find((entry) => entry.id === value)
+
+      if (!option) {
+        throw new Error(`请选择有效的${definition.label}。`)
+      }
+
+      if (option.disabled) {
+        throw new Error(`${option.label}暂未开放计算。`)
+      }
+
+      accumulator[definition.id] = value
+      return accumulator
+    }
+
+    const numericValue =
+      typeof input.value === 'number' ? input.value : Number(input.value)
+
+    if (!Number.isFinite(numericValue)) {
       throw new Error(`${definition.label}必须是有限数值。`)
     }
 
-    if (definition.integer && !Number.isInteger(input.value)) {
+    if (definition.integer && !Number.isInteger(numericValue)) {
       throw new Error(`${definition.label}必须是整数。`)
     }
 
-    if (definition.min !== undefined && input.value < definition.min) {
+    if (definition.min !== undefined && numericValue < definition.min) {
       throw new Error(`${definition.label}不能小于 ${definition.min}。`)
     }
 
     accumulator[definition.id] = definition.unitCategory
       ? toBaseValue(
-          input.value,
+          numericValue,
           input.unitId ?? definition.defaultUnit ?? '1',
           definition.unitCategory,
         )
-      : input.value
+      : numericValue
 
     return accumulator
   }, {})
@@ -389,22 +458,115 @@ function calculateBoundaryLayerMesh(
 function calculateYPlusFirstLayerHeight(
   inputs: BaseInputs,
   definition: CalculatorDefinition,
+  context: CalculatorContext,
 ) {
+  const modeId = context.modeId ?? getDefaultModeId(definition)
   const targetYPlus = positive(inputs['target-y-plus'], '目标 y+')
-  const density = positive(inputs.density, '密度')
-  const viscosity = positive(inputs['dynamic-viscosity'], '动力黏度')
-  const wallShearStress = positive(inputs['wall-shear-stress'], '壁面剪切应力')
-  const velocity = positive(inputs['reference-velocity'], '参考速度')
-  const length = positive(inputs['characteristic-length'], '特征长度')
+  const density = positive(inputs.density, '密度 ρ')
+  const viscosity = positive(inputs['dynamic-viscosity'], '动力黏度 μ')
   const kinematicViscosity = viscosity / density
+
+  if (modeId === 'initial-estimate') {
+    const flowScenario = selectValue(inputs['flow-scenario'], '流动场景')
+    const velocity = positive(inputs['reference-velocity'], '参考速度 U')
+    const length = positive(inputs['characteristic-length'], '特征长度 L')
+    const reynolds = density * velocity * length / viscosity
+    const frictionEstimate = estimateFlatPlateFrictionCoefficient(
+      flowScenario,
+      reynolds,
+    )
+    const wallShearStress =
+      0.5 * frictionEstimate.coefficient * density * velocity ** 2
+
+    return createYPlusResult(definition, {
+      targetYPlus,
+      density,
+      kinematicViscosity,
+      wallShearStress,
+      frictionCoefficient: frictionEstimate.coefficient,
+      reynolds,
+      method: frictionEstimate.method,
+    })
+  }
+
+  if (modeId === 'known-wall-shear-stress') {
+    const wallShearStress = positive(inputs['wall-shear-stress'], '壁面剪切应力 τw')
+
+    return createYPlusResult(definition, {
+      targetYPlus,
+      density,
+      kinematicViscosity,
+      wallShearStress,
+    })
+  }
+
+  if (modeId === 'known-friction-coefficient') {
+    const frictionCoefficient = positive(inputs['friction-coefficient'], '壁面摩擦系数 Cf')
+    const velocity = positive(inputs['reference-velocity'], '参考速度 U')
+    const wallShearStress = 0.5 * frictionCoefficient * density * velocity ** 2
+
+    return createYPlusResult(definition, {
+      targetYPlus,
+      density,
+      kinematicViscosity,
+      wallShearStress,
+      frictionCoefficient,
+    })
+  }
+
+  throw new Error('请选择有效的计算模式。')
+}
+
+interface YPlusResultInputs {
+  targetYPlus: number
+  density: number
+  kinematicViscosity: number
+  wallShearStress: number
+  frictionCoefficient?: number
+  reynolds?: number
+  method?: string
+}
+
+function createYPlusResult(
+  definition: CalculatorDefinition,
+  values: YPlusResultInputs,
+) {
+  const {
+    targetYPlus,
+    density,
+    kinematicViscosity,
+    wallShearStress,
+    frictionCoefficient,
+    reynolds,
+    method,
+  } = values
   const frictionVelocity = Math.sqrt(wallShearStress / density)
   const centerDistance = targetYPlus * kinematicViscosity / frictionVelocity
   const fullThickness = 2 * centerDistance
-  const reynolds = density * velocity * length / viscosity
-  const skinFrictionCoefficient =
-    (2 * wallShearStress) / (density * velocity ** 2)
-
   const outputs = definition.outputs
+  const intermediates: CalculationItem[] = []
+
+  if (reynolds !== undefined) {
+    intermediates.push(item('reynolds-number', 'Reynolds 数', reynolds))
+  }
+
+  if (frictionCoefficient !== undefined) {
+    intermediates.push(item('wall-friction-coefficient', '壁面摩擦系数 Cf', frictionCoefficient))
+  }
+
+  intermediates.push(
+    item('wall-shear-stress', '壁面剪切应力 τw', wallShearStress, 'pressure', 'Pa'),
+    item('friction-velocity', '摩擦速度 uτ', frictionVelocity, 'velocity', 'm/s'),
+    item('kinematic-viscosity', '运动黏度 ν', kinematicViscosity, 'kinematicViscosity', 'm^2/s'),
+  )
+
+  if (method) {
+    intermediates.push({
+      id: 'friction-method',
+      label: '摩擦系数方法',
+      text: method,
+    })
+  }
 
   return {
     outputs: [
@@ -423,14 +585,29 @@ function calculateYPlusFirstLayerHeight(
         outputs[1].defaultUnit,
       ),
     ],
-    intermediates: [
-      item('reynolds-number', 'Reynolds 数', reynolds),
-      item('skin-friction-coefficient', '皮肤摩擦系数', skinFrictionCoefficient),
-      item('wall-shear-stress', '壁面剪切应力', wallShearStress, 'pressure', 'Pa'),
-      item('friction-velocity', '摩擦速度', frictionVelocity, 'velocity', 'm/s'),
-      item('kinematic-viscosity', '运动黏度', kinematicViscosity, 'kinematicViscosity', 'm^2/s'),
-    ],
+    intermediates,
     summary: definition.notes?.slice(0, 3) ?? [],
+  }
+}
+
+function estimateFlatPlateFrictionCoefficient(
+  flowScenario: string,
+  reynolds: number,
+) {
+  if (flowScenario !== 'flat-plate-external') {
+    throw new Error('该流动场景暂未开放计算。')
+  }
+
+  if (reynolds <= 5e5) {
+    return {
+      coefficient: 0.664 / Math.sqrt(reynolds),
+      method: '平板外流局部层流估算：Cf = 0.664 / √Re',
+    }
+  }
+
+  return {
+    coefficient: 0.0592 * reynolds ** -0.2,
+    method: '平板外流局部湍流估算：Cf = 0.0592 Re^(-1/5)',
   }
 }
 
@@ -568,24 +745,32 @@ function item(
   }
 }
 
-function positive(value: number, label: string) {
-  if (!Number.isFinite(value) || value <= 0) {
+function positive(value: BaseInputValue, label: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     throw new Error(`${label}必须大于 0。`)
   }
   return value
 }
 
-function nonNegative(value: number, label: string) {
-  if (!Number.isFinite(value) || value < 0) {
+function nonNegative(value: BaseInputValue, label: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     throw new Error(`${label}不能小于 0。`)
   }
   return value
 }
 
-function positiveInteger(value: number, label: string) {
-  if (!Number.isInteger(value) || value <= 0) {
+function positiveInteger(value: BaseInputValue, label: string) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
     throw new Error(`${label}必须是正整数。`)
   }
+  return value
+}
+
+function selectValue(value: BaseInputValue, label: string) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`请选择${label}。`)
+  }
+
   return value
 }
 

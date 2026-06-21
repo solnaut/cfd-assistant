@@ -1,20 +1,30 @@
 import { useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
   calculate,
   type CalculationResult,
   formatCalculationValue,
+  getActiveInputDefinitions,
+  getActiveMode,
+  getDefaultModeId,
 } from '../calculators/implementations'
 import {
+  getCalculatorCommonFormulaEntries,
   getCalculatorFormulaEntries,
   getCalculatorLatexSummary,
+  getCalculatorModeFormulaEntries,
 } from '../calculators/formulas'
 import { getCalculator, getCalculatorCategory } from '../calculators/registry'
 import Breadcrumbs from '../components/Breadcrumbs'
 import MathFormula from '../components/MathFormula'
 import PageHeader from '../components/PageHeader'
-import type { CalculatorCategory, CalculatorDefinition } from '../models/calculator'
+import type {
+  CalculatorCategory,
+  CalculatorDefinition,
+  CalculatorFormulaDefinition,
+  CalculatorInputDefinition,
+} from '../models/calculator'
 import { getUnits } from '../units/conversions'
 import {
   formatVariableSymbol,
@@ -60,13 +70,24 @@ function CalculatorDetailContent({
     () => createInitialState(calculator),
     [calculator],
   )
+  const initialModeId = useMemo(() => getDefaultModeId(calculator), [calculator])
   const [formState, setFormState] = useState<FormState>(initialState)
+  const [selectedModeId, setSelectedModeId] = useState<string | undefined>(
+    initialModeId,
+  )
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   const isAvailable = calculator.availability === 'available'
+  const activeMode = getActiveMode(calculator, selectedModeId)
+  const activeInputs = getActiveInputDefinitions(calculator, activeMode)
   const formulaEntries = getCalculatorFormulaEntries(calculator)
+  const commonFormulaEntries = getCalculatorCommonFormulaEntries(calculator)
+  const modeFormulaEntries = getCalculatorModeFormulaEntries(
+    calculator,
+    activeMode?.id,
+  )
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -76,7 +97,13 @@ function CalculatorDetailContent({
     }
 
     try {
-      setResult(calculate(calculator, toCalculatorInputs(formState)))
+      setResult(
+        calculate(
+          calculator,
+          toCalculatorInputs(formState, activeInputs),
+          { modeId: activeMode?.id },
+        ),
+      )
       setError(null)
     } catch (caughtError) {
       setResult(null)
@@ -90,6 +117,13 @@ function CalculatorDetailContent({
 
   function handleReset() {
     setFormState(createInitialState(calculator))
+    setSelectedModeId(initialModeId)
+    setResult(null)
+    setError(null)
+  }
+
+  function handleModeChange(modeId: string) {
+    setSelectedModeId(modeId)
     setResult(null)
     setError(null)
   }
@@ -137,56 +171,36 @@ function CalculatorDetailContent({
             <h2>输入参数</h2>
           </div>
 
-          {calculator.inputs.length > 0 ? (
+          {calculator.modes?.length ? (
+            <div className="mode-selector" aria-label="计算模式">
+              {calculator.modes.map((mode) => (
+                <button
+                  className={activeMode?.id === mode.id ? 'mode-card active' : 'mode-card'}
+                  key={mode.id}
+                  onClick={() => handleModeChange(mode.id)}
+                  type="button"
+                >
+                  <strong>{mode.label}</strong>
+                  <span>{mode.description}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {activeInputs.length > 0 ? (
             <div className="input-stack">
-              {calculator.inputs.map((input) => {
+              {activeInputs.map((input) => {
                 const field = formState[input.id] ?? { value: '' }
 
                 return (
                   <label className="form-field" key={input.id}>
                     <span>{input.label}</span>
-                    <div className="input-with-unit">
-                      <input
-                        disabled={!isAvailable}
-                        inputMode="decimal"
-                        min={input.min}
-                        onChange={(event) => {
-                          setFormState((current) => ({
-                            ...current,
-                            [input.id]: {
-                              ...field,
-                              value: event.target.value,
-                            },
-                          }))
-                        }}
-                        placeholder="输入数值"
-                        step={input.integer ? 1 : 'any'}
-                        type="number"
-                        value={field.value}
-                      />
-                      {input.unitCategory ? (
-                        <select
-                          aria-label={`${input.label}单位`}
-                          disabled={!isAvailable}
-                          onChange={(event) => {
-                            setFormState((current) => ({
-                              ...current,
-                              [input.id]: {
-                                ...field,
-                                unitId: event.target.value,
-                              },
-                            }))
-                          }}
-                          value={field.unitId ?? input.defaultUnit ?? '1'}
-                        >
-                          {getUnits(input.unitCategory).map((unit) => (
-                            <option key={unit.id} value={unit.id}>
-                              {unit.displaySymbol ?? unit.symbol}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                    </div>
+                    <InputControl
+                      field={field}
+                      input={input}
+                      isAvailable={isAvailable}
+                      setFormState={setFormState}
+                    />
                     {input.helperText ? (
                       <small className="field-help">{input.helperText}</small>
                     ) : null}
@@ -228,6 +242,7 @@ function CalculatorDetailContent({
             <ResultView
               calculator={calculator}
               copyText={copyText}
+              modeId={activeMode?.id}
               result={result}
             />
           ) : (
@@ -263,29 +278,31 @@ function CalculatorDetailContent({
         </div>
 
         <div className="formula-content">
-          {formulaEntries.length ? (
+          {calculator.modes?.length ? (
             <>
-              <div className="calculator-formula-list">
-                {formulaEntries.map((formula) => {
-                  const formulaKey = `calculator-${calculator.id}-${formula.id ?? formula.title}`
-
-                  return (
-                    <article className="calculator-formula-item" key={formulaKey}>
-                      <div className="formula-card-heading compact">
-                        <h3>{formula.title}</h3>
-                        <button
-                          className="ghost-button button-link-small"
-                          onClick={() => void copyText(formula.latex, formulaKey)}
-                          type="button"
-                        >
-                          {copiedKey === formulaKey ? '已复制' : '复制 LaTeX'}
-                        </button>
-                      </div>
-                      <MathFormula latex={formula.latex} />
-                    </article>
-                  )
-                })}
-              </div>
+              <FormulaEntryList
+                copiedKey={copiedKey}
+                copyText={copyText}
+                entries={commonFormulaEntries}
+                keyPrefix={`${calculator.id}-common`}
+                title="公共公式"
+              />
+              <FormulaEntryList
+                copiedKey={copiedKey}
+                copyText={copyText}
+                entries={modeFormulaEntries}
+                keyPrefix={`${calculator.id}-${activeMode?.id ?? 'mode'}`}
+                title="当前模式公式"
+              />
+            </>
+          ) : formulaEntries.length ? (
+            <>
+              <FormulaEntryList
+                copiedKey={copiedKey}
+                copyText={copyText}
+                entries={formulaEntries}
+                keyPrefix={`calculator-${calculator.id}`}
+              />
             </>
           ) : (
             <p>该工具正式开放计算时会同步显示公式与变量说明。</p>
@@ -310,13 +327,144 @@ function CalculatorDetailContent({
   )
 }
 
-interface ResultViewProps {
-  calculator: CalculatorDefinition
-  result: CalculationResult
-  copyText: (text: string) => void
+interface InputControlProps {
+  field: FieldState
+  input: CalculatorInputDefinition
+  isAvailable: boolean
+  setFormState: Dispatch<SetStateAction<FormState>>
 }
 
-function ResultView({ calculator, copyText, result }: ResultViewProps) {
+function InputControl({
+  field,
+  input,
+  isAvailable,
+  setFormState,
+}: InputControlProps) {
+  if (input.kind === 'select') {
+    return (
+      <select
+        disabled={!isAvailable}
+        onChange={(event) => {
+          setFormState((current) => ({
+            ...current,
+            [input.id]: {
+              ...field,
+              value: event.target.value,
+            },
+          }))
+        }}
+        value={field.value}
+      >
+        {input.options?.map((option) => (
+          <option disabled={option.disabled} key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  return (
+    <div className="input-with-unit">
+      <input
+        disabled={!isAvailable}
+        inputMode="decimal"
+        min={input.min}
+        onChange={(event) => {
+          setFormState((current) => ({
+            ...current,
+            [input.id]: {
+              ...field,
+              value: event.target.value,
+            },
+          }))
+        }}
+        placeholder="输入数值"
+        step={input.integer ? 1 : 'any'}
+        type="number"
+        value={field.value}
+      />
+      {input.unitCategory ? (
+        <select
+          aria-label={`${input.label}单位`}
+          disabled={!isAvailable}
+          onChange={(event) => {
+            setFormState((current) => ({
+              ...current,
+              [input.id]: {
+                ...field,
+                unitId: event.target.value,
+              },
+            }))
+          }}
+          value={field.unitId ?? input.defaultUnit ?? '1'}
+        >
+          {getUnits(input.unitCategory).map((unit) => (
+            <option key={unit.id} value={unit.id}>
+              {unit.displaySymbol ?? unit.symbol}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
+  )
+}
+
+interface FormulaEntryListProps {
+  copiedKey: string | null
+  copyText: (text: string, key?: string) => Promise<void>
+  entries: CalculatorFormulaDefinition[]
+  keyPrefix: string
+  title?: string
+}
+
+function FormulaEntryList({
+  copiedKey,
+  copyText,
+  entries,
+  keyPrefix,
+  title,
+}: FormulaEntryListProps) {
+  if (!entries.length) {
+    return null
+  }
+
+  return (
+    <div className="formula-entry-group">
+      {title ? <h3>{title}</h3> : null}
+      <div className="calculator-formula-list">
+        {entries.map((formula) => {
+          const formulaKey = `${keyPrefix}-${formula.id ?? formula.title}`
+
+          return (
+            <article className="calculator-formula-item" key={formulaKey}>
+              <div className="formula-card-heading compact">
+                <h4>{formula.title}</h4>
+                <button
+                  className="ghost-button button-link-small"
+                  onClick={() => void copyText(formula.latex, formulaKey)}
+                  type="button"
+                >
+                  {copiedKey === formulaKey ? '已复制' : '复制 LaTeX'}
+                </button>
+              </div>
+              <MathFormula latex={formula.latex} />
+            </article>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+interface ResultViewProps {
+  calculator: CalculatorDefinition
+  copyText: (text: string) => void
+  modeId?: string
+  result: CalculationResult
+}
+
+function ResultView({ calculator, copyText, modeId, result }: ResultViewProps) {
   const resultText = createResultText(calculator, result)
 
   return (
@@ -359,7 +507,7 @@ function ResultView({ calculator, copyText, result }: ResultViewProps) {
         <button
           className="ghost-button button-link-small"
           onClick={() => {
-            void copyText(`${resultText}\n\n公式：${getCalculatorLatexSummary(calculator)}`)
+            void copyText(`${resultText}\n\n公式：${getCalculatorLatexSummary(calculator, modeId)}`)
           }}
           type="button"
         >
@@ -430,15 +578,22 @@ function createInitialState(calculator: CalculatorDefinition): FormState {
   )
 }
 
-function toCalculatorInputs(formState: FormState) {
+function toCalculatorInputs(
+  formState: FormState,
+  inputs: CalculatorInputDefinition[],
+) {
   return Object.fromEntries(
-    Object.entries(formState).map(([inputId, field]) => [
-      inputId,
-      {
-        value: Number(field.value),
-        unitId: field.unitId,
-      },
-    ]),
+    inputs.map((input) => {
+      const field = formState[input.id] ?? { value: '' }
+
+      return [
+        input.id,
+        {
+          value: input.kind === 'select' ? field.value : Number(field.value),
+          unitId: field.unitId,
+        },
+      ]
+    }),
   )
 }
 

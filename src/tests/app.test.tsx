@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
 function renderApp(path = '/') {
@@ -56,6 +56,54 @@ describe('App', () => {
     expect(screen.getByText('公式与说明')).toBeInTheDocument()
   })
 
+  it('renders y+ mode-specific fields and switches the visible input set', () => {
+    renderApp('/calculators/near-wall-mesh/y-plus-first-layer-height')
+
+    expect(
+      screen.getByRole('button', { name: /初始估算：根据速度和特征长度/ }),
+    ).toHaveClass('active')
+    expect(screen.getByText('流动场景')).toBeInTheDocument()
+    expect(screen.getByText('密度 ρ')).toBeInTheDocument()
+    expect(screen.getByText('动力黏度 μ')).toBeInTheDocument()
+    expect(screen.getByText('参考速度 U')).toBeInTheDocument()
+    expect(screen.getByText('特征长度 L')).toBeInTheDocument()
+    expect(screen.queryByText('壁面剪切应力 τw')).not.toBeInTheDocument()
+    expect(screen.getByText('公共公式')).toBeInTheDocument()
+    expect(screen.getByText('当前模式公式')).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /修正计算：已知壁面剪切应力/ }),
+    )
+
+    expect(screen.getByText('壁面剪切应力 τw')).toBeInTheDocument()
+    expect(screen.queryByText('参考速度 U')).not.toBeInTheDocument()
+    expect(screen.queryByText('特征长度 L')).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /自定义摩擦：已知摩擦系数/ }),
+    )
+
+    expect(screen.getByText('壁面摩擦系数 Cf')).toBeInTheDocument()
+    expect(screen.getByText('参考速度 U')).toBeInTheDocument()
+    expect(screen.queryByText('壁面剪切应力 τw')).not.toBeInTheDocument()
+  })
+
+  it('copies raw LaTeX from the y+ formula area', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    })
+
+    renderApp('/calculators/near-wall-mesh/y-plus-first-layer-height')
+
+    fireEvent.click(screen.getAllByRole('button', { name: '复制 LaTeX' })[0])
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(String.raw`y^+=\frac{yu_\tau}{\nu}`)
+    })
+  })
+
   it('renders calculator variable symbols and units as user-facing text', () => {
     renderApp('/calculators/dimensionless-numbers/reynolds-number')
 
@@ -70,7 +118,7 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: 'CFD 公式库' })).toBeInTheDocument()
     expect(screen.getAllByText('Reynolds 数').length).toBeGreaterThan(0)
-    expect(screen.getByText('壁面剪切应力与摩擦系数')).toBeInTheDocument()
+    expect(screen.getByText('壁面剪切应力与壁面摩擦系数')).toBeInTheDocument()
     expect(screen.getByText('第一层完整厚度近似')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: '复制 LaTeX' }).length).toBeGreaterThan(0)
     expect(screen.queryByText('来源')).not.toBeInTheDocument()

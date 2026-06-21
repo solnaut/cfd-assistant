@@ -41,13 +41,22 @@ export interface CalculatorInputDefinition {
   id: string
   label: string
   quantity: string
+  kind?: 'number' | 'select'
   unitCategory?: UnitCategory
   defaultUnit?: string
-  defaultValue?: number
+  defaultValue?: number | string
   required: boolean
   helperText?: string
   integer?: boolean
   min?: number
+  options?: CalculatorInputOptionDefinition[]
+}
+
+export interface CalculatorInputOptionDefinition {
+  id: string
+  label: string
+  disabled?: boolean
+  helperText?: string
 }
 
 export interface CalculatorOutputDefinition {
@@ -83,6 +92,14 @@ export interface CalculatorSourceDefinition {
   accessedAt: string
 }
 
+export interface CalculatorModeDefinition {
+  id: string
+  label: string
+  description: string
+  inputIds: string[]
+  formulaIds: string[]
+}
+
 export interface CalculatorDefinition {
   id: string
   name: string
@@ -94,6 +111,9 @@ export interface CalculatorDefinition {
   inputs: CalculatorInputDefinition[]
   outputs: CalculatorOutputDefinition[]
   resultPreview: string[]
+  modes?: CalculatorModeDefinition[]
+  defaultModeId?: string
+  commonFormulaIds?: string[]
   formula?: CalculatorFormulaDefinition
   formulas?: CalculatorFormulaDefinition[]
   variables?: CalculatorVariableDefinition[]

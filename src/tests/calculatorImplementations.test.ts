@@ -15,6 +15,19 @@ function outputValue(id: string, values: Parameters<typeof calculate>[1]) {
   return result.outputs[0].value ?? Number.NaN
 }
 
+function intermediateValue(
+  result: ReturnType<typeof calculate>,
+  itemId: string,
+) {
+  const item = result.intermediates.find((entry) => entry.id === itemId)
+
+  if (!item || item.value === undefined) {
+    throw new Error(`Missing intermediate ${itemId}`)
+  }
+
+  return item.value
+}
+
 describe('calculator implementations', () => {
   it('calculates Reynolds number and handles unit conversion', () => {
     expect(
@@ -141,20 +154,83 @@ describe('calculator implementations', () => {
     expect(meshResult.outputs[1].value).toBeCloseTo(0.0020736)
   })
 
-  it('calculates y+ first-layer height from wall shear stress', () => {
+  it('calculates y+ first-layer height in initial estimate mode', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      {
+        'target-y-plus': { value: 1, unitId: '1' },
+        'flow-scenario': { value: 'flat-plate-external' },
+        density: { value: 1.225, unitId: 'kg/m^3' },
+        'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+        'reference-velocity': { value: 10, unitId: 'm/s' },
+        'characteristic-length': { value: 1, unitId: 'm' },
+      },
+      { modeId: 'initial-estimate' },
+    )
+
+    expect(result.outputs[0].value).toBeCloseTo(0.0000325438)
+    expect(result.outputs[1].value).toBeCloseTo(0.0000650876)
+    expect(intermediateValue(result, 'reynolds-number')).toBeCloseTo(684587.0124)
+    expect(intermediateValue(result, 'wall-friction-coefficient')).toBeCloseTo(0.0040293591)
+    expect(intermediateValue(result, 'wall-shear-stress')).toBeCloseTo(0.2467982459)
+    expect(intermediateValue(result, 'friction-velocity')).toBeCloseTo(0.4488518194)
+    expect(intermediateValue(result, 'kinematic-viscosity')).toBeCloseTo(0.0000146073)
+  })
+
+  it('calculates y+ first-layer height from known wall shear stress', () => {
     const result = calculate(calculator('y-plus-first-layer-height'), {
       'target-y-plus': { value: 1, unitId: '1' },
       'wall-shear-stress': { value: 0.5, unitId: 'Pa' },
       density: { value: 1.225, unitId: 'kg/m^3' },
       'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
-      'reference-velocity': { value: 10, unitId: 'm/s' },
-      'characteristic-length': { value: 1, unitId: 'm' },
-    })
+    }, { modeId: 'known-wall-shear-stress' })
 
     expect(result.outputs[0].value).toBeCloseTo(0.000022862)
     expect(result.outputs[1].value).toBeCloseTo(0.000045724)
-    expect(result.intermediates[0].value).toBeCloseTo(684587.0124)
-    expect(result.intermediates[1].value).toBeCloseTo(0.0081632653)
+    expect(intermediateValue(result, 'wall-shear-stress')).toBeCloseTo(0.5)
+    expect(intermediateValue(result, 'friction-velocity')).toBeCloseTo(0.6388765649)
+    expect(intermediateValue(result, 'kinematic-viscosity')).toBeCloseTo(0.0000146073)
+    expect(result.intermediates.some((item) => item.id === 'reynolds-number')).toBe(false)
+    expect(result.intermediates.some((item) => item.id === 'wall-friction-coefficient')).toBe(false)
+  })
+
+  it('calculates y+ first-layer height from known friction coefficient', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      {
+        'target-y-plus': { value: 1, unitId: '1' },
+        'friction-coefficient': { value: 0.005, unitId: '1' },
+        density: { value: 1.225, unitId: 'kg/m^3' },
+        'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+        'reference-velocity': { value: 10, unitId: 'm/s' },
+      },
+      { modeId: 'known-friction-coefficient' },
+    )
+
+    expect(result.outputs[0].value).toBeCloseTo(0.0000292147)
+    expect(result.outputs[1].value).toBeCloseTo(0.0000584294)
+    expect(intermediateValue(result, 'wall-friction-coefficient')).toBeCloseTo(0.005)
+    expect(intermediateValue(result, 'wall-shear-stress')).toBeCloseTo(0.30625)
+    expect(intermediateValue(result, 'friction-velocity')).toBeCloseTo(0.5)
+  })
+
+  it('keeps inactive y+ mode fields out of validation and supports unit conversion', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      {
+        'target-y-plus': { value: 1, unitId: '1' },
+        'wall-shear-stress': { value: 0.5, unitId: 'Pa' },
+        density: { value: 0.001225, unitId: 'g/cm^3' },
+        'dynamic-viscosity': { value: 0.017894, unitId: 'mPa*s' },
+        'reference-velocity': { value: 0, unitId: 'm/s' },
+        'characteristic-length': { value: 0, unitId: 'm' },
+        'friction-coefficient': { value: 0, unitId: '1' },
+      },
+      { modeId: 'known-wall-shear-stress' },
+    )
+
+    expect(result.outputs[0].value).toBeCloseTo(0.000022862)
+    expect(result.outputs[1].value).toBeCloseTo(0.000045724)
   })
 
   it('calculates time-step helper calculators', () => {
@@ -296,6 +372,123 @@ describe('calculator implementations', () => {
         area: { value: 0, unitId: 'm^2' },
       }),
     ).toThrow(/面积必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 0, unitId: '1' },
+          'flow-scenario': { value: 'flat-plate-external' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+          'reference-velocity': { value: 10, unitId: 'm/s' },
+          'characteristic-length': { value: 1, unitId: 'm' },
+        },
+        { modeId: 'initial-estimate' },
+      ),
+    ).toThrow(/目标 y\+必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'flow-scenario': { value: 'flat-plate-external' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+          'reference-velocity': { value: 0, unitId: 'm/s' },
+          'characteristic-length': { value: 1, unitId: 'm' },
+        },
+        { modeId: 'initial-estimate' },
+      ),
+    ).toThrow(/参考速度 U必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'flow-scenario': { value: 'flat-plate-external' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+          'reference-velocity': { value: 10, unitId: 'm/s' },
+          'characteristic-length': { value: 0, unitId: 'm' },
+        },
+        { modeId: 'initial-estimate' },
+      ),
+    ).toThrow(/特征长度 L必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'flow-scenario': { value: 'flat-plate-external' },
+          density: { value: 0, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+          'reference-velocity': { value: 10, unitId: 'm/s' },
+          'characteristic-length': { value: 1, unitId: 'm' },
+        },
+        { modeId: 'initial-estimate' },
+      ),
+    ).toThrow(/密度 ρ必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'flow-scenario': { value: 'flat-plate-external' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 0, unitId: 'Pa*s' },
+          'reference-velocity': { value: 10, unitId: 'm/s' },
+          'characteristic-length': { value: 1, unitId: 'm' },
+        },
+        { modeId: 'initial-estimate' },
+      ),
+    ).toThrow(/动力黏度 μ必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'flow-scenario': { value: 'internal-pipe' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+          'reference-velocity': { value: 10, unitId: 'm/s' },
+          'characteristic-length': { value: 1, unitId: 'm' },
+        },
+        { modeId: 'initial-estimate' },
+      ),
+    ).toThrow(/暂未开放计算/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'wall-shear-stress': { value: 0, unitId: 'Pa' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+        },
+        { modeId: 'known-wall-shear-stress' },
+      ),
+    ).toThrow(/壁面剪切应力 τw必须大于 0/)
+
+    expect(() =>
+      calculate(
+        calculator('y-plus-first-layer-height'),
+        {
+          'target-y-plus': { value: 1, unitId: '1' },
+          'friction-coefficient': { value: 0, unitId: '1' },
+          density: { value: 1.225, unitId: 'kg/m^3' },
+          'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+          'reference-velocity': { value: 10, unitId: 'm/s' },
+        },
+        { modeId: 'known-friction-coefficient' },
+      ),
+    ).toThrow(/壁面摩擦系数 Cf必须大于 0/)
   })
 
   it('formats result values with units for display', () => {
