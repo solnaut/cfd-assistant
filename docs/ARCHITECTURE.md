@@ -62,6 +62,40 @@ docs/              项目文档
 
 页面不得硬编码知识正文。修改单个解释时，只更新知识库条目。v0.3 已在知识库控件模型中加入 `dialog.controls`，用于描述模拟窗口和窗口内部可点击控件。页面组件只根据这些结构渲染窗口、切换当前控件并在右侧解释面板显示对应说明。
 
+### Fluent Solver 教学模拟器
+
+2026-06-22 起，`/fluent-guide` 以新的 Fluent Solver 主界面教学模拟器作为主要展示方式。该模拟器仍然遵守第三方教学工具边界：
+
+- 不连接 Fluent。
+- 不执行真实仿真。
+- 不使用 Ansys 或 Fluent 官方 Logo、截图、图标资源。
+- 不逐像素复制官方视觉设计。
+- 使用自主 CSS、HTML 结构和简化占位图标表达界面区域与操作逻辑。
+
+模拟器代码和数据集中在 `src/fluentMock/`：
+
+```text
+src/fluentMock/
+  FluentSolverMock.tsx      只负责渲染、点击状态、弹窗开关和解释面板切换
+  fluentTypes.ts            控件、任务页、弹窗、解释和来源索引类型
+  fluentControls.ts         Ribbon、功能树、任务页、图形窗口、控制台控件数据
+  fluentDialogs.ts          模拟弹窗及弹窗内部控件数据
+  fluentExplanations.ts     控件解释数据和自然占位解释生成
+  fluentLayoutData.ts       汇总页面布局数据
+  fluentResearchIndex.ts    Fluent 模拟器公开来源索引
+```
+
+数据流：
+
+```text
+用户点击控件 -> control.id -> control.explanationId -> fluentExplanationById -> 解释面板
+用户点击树节点 -> panelId -> taskPanels -> 中间任务页切换
+用户点击带 dialogId 的控件 -> fluentDialogs -> 模拟弹窗打开
+用户点击弹窗控件 -> dialog control explanationId -> 解释面板
+```
+
+后续补充新的 Fluent 窗口时，优先新增或修改 `fluentDialogs.ts`、`fluentControls.ts` 和 `fluentExplanations.ts` 中的数据。只有布局能力不足时才修改 `FluentSolverMock.tsx`。
+
 ## 静态部署
 
 生产构建输出目录是 `dist`。`public/_redirects` 用于 Cloudflare Pages 单页应用路由回退。

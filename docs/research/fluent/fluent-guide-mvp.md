@@ -68,6 +68,52 @@ v0.3 将 Fluent 导览从只显示主面板控件扩展为数据驱动的模拟�
 - 选项覆盖仍是高频入口，不包含每个高级模型的全部子选项。
 - 部分来源链接可能要求用户具备 Ansys 帮助站访问权限；后续需要补充更多公开可访问的官方教程、大学课程或验证案例。
 
+## 2026-06-22 Fluent Solver 主界面模拟器更新
+
+本次将 `/fluent-guide` 的主要展示升级为 Fluent Solver 主界面教学模拟器。模拟器使用用户提供的 Fluent 求解器主界面截图作为空间布局参考，但没有嵌入、裁切或复用官方截图，也没有使用 Ansys/Fluent 官方 Logo 或图标资源。
+
+### 当前模拟区域
+
+- 顶部 Ribbon 菜单和工具分组。
+- 左侧案例视图 / Outline 功能树。
+- 中间任务页面，默认 General / 一般。
+- 右侧 User Window 1 图形窗口。
+- 图形窗口左右工具栏和选择过滤入口。
+- 底部控制台。
+- 右侧控件说明面板。
+
+### 当前初版页面和弹窗
+
+- General：Solver Type、Velocity Formulation、Time、Gravity。
+- Mesh：Check、Scale、Report Quality、Display、Units。
+- Models：Energy、Viscous。
+- Materials：Materials 主页面、Fluid material、Solid material。
+- Boundary Conditions：Velocity Inlet、Pressure Outlet、Wall。
+- Solution：Methods、Controls、Initialization、Run Calculation、Residual Monitors。
+- Results：Contours、Vectors、Reports。
+- 其他树节点提供自然教学占位说明，用于后续按截图继续细化。
+
+### 数据结构
+
+模拟器数据集中在 `src/fluentMock/`：
+
+- `fluentControls.ts`：Ribbon、功能树、任务页、图形窗口和控制台控件。
+- `fluentDialogs.ts`：模拟弹窗和弹窗内部控件。
+- `fluentExplanations.ts`：控件解释数据。
+- `fluentResearchIndex.ts`：公开来源索引。
+- `FluentSolverMock.tsx`：渲染、点击状态和弹窗交互。
+
+控件解释通过 `control.explanationId` 查询，不在页面组件中硬编码专业解释。
+
+### 2026-06-22 新增来源
+
+| 来源 ID | 来源类型 | 标题 | 机构 | 章节或范围 | 链接 | 访问日期 | 用途 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| F5 | 官方用户指南 | Determining Mesh Statistics and Quality | Ansys | 6.3 Determining Mesh Statistics and Quality | https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/flu_ug/tgd_user_report.html | 2026-06-22 | Mesh Check、Report Quality、网格质量指标说明核对 |
+| F6 | 官方用户指南 | Solution Methods Task Page | Ansys | 51.12 Solution Methods Task Page | https://ansyshelp.ansys.com/public/Views/Secured/corp/v251/en/flu_ug/flu_ug_solution_methods_task_page.html | 2026-06-22 | Solution Methods、Pressure-Velocity Coupling 结构核对 |
+| F7 | 官方文档 | Post-processing Results | Ansys | 37.11 Post-processing Results | https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/fluent_beta_doc/flu_beta_post_analysis_postprocessing.html | 2026-06-22 | Contours、Vectors、Reports、Graphics Objects 结构核对 |
+| F8 | 官方教程 | Fluid Flow and Heat Transfer in a Mixing Elbow | Ansys | Solution setup and Run Calculation tutorial steps | https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_tg_workbench/flu_tg_elbow_workbench.html | 2026-06-22 | Initialization、Run Calculation、Monitors 工作流核对 |
+
 ## 后续待办
 
 - 为每个 Fluent 条目拆分独立研究记录。

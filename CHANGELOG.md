@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- 新增 Fluent Solver 主界面教学模拟器：按 Ribbon、案例视图/Outline、任务页面、User Window 图形窗口、图形工具栏、底部控制台和右侧解释面板搭建自主 HTML/CSS 可点击界面，不使用官方 Logo、截图或图标资源。
+- 新增 `src/fluentMock` 数据结构，拆分 Fluent 模拟器的控件、任务页、弹窗、解释内容、研究来源索引和 React 渲染组件；说明面板由控件 `explanationId` 驱动。
+- Fluent 模拟器初版覆盖 General、Mesh、Models、Materials、Boundary Conditions、Solution Methods、Solution Controls、Initialization、Run Calculation、Residual Monitors、Contours、Vectors、Reports 等页面或弹窗入口。
+- 为 Fluent 模拟器补充页面交互测试和数据完整性测试，覆盖主界面渲染、树节点点击、Ribbon 点击、弹窗打开/关闭、弹窗控件解释、控件 ID 去重和说明数据覆盖。
+- 新增 `docs/review/PARAMETERS_AND_FORMULAS_REVIEW.md`，导出当前参数计算与 CFD 公式库的完整 Markdown 审核文档，包含 y+ 详细分支、输入输出、公式、流程、测试样例、风险项、公式总表和来源附录。
+- 更新 Fluent 研究记录，补充 2026-06-22 的模拟器初版覆盖范围和公开来源索引。
 - 完善 `y+ 与第一层网格高度` 计算器：初始估算模式新增平板外流公式选择和管道内流工况，支持湍流平板局部 `Cf,x = 0.0592/Re_x^(1/5)`、层流平板局部 `Cf,x = 0.664/√Re_x`、用户自定义 Cf、管道层流 Darcy `f = 64/Re_D`、光滑管 Blasius Darcy `f = 0.3164/Re_D^(1/4)`、用户自定义 Darcy f 和用户自定义 Fanning Cf。
 - 在 y+ 结果后新增“边界层网格推荐方案”，直接使用推荐第一层完整厚度 h1，支持自动总厚度、指定目标总厚度 H、指定层数 n，并输出层高表、累计厚度、Hn/D、表格复制、CSV 复制和简要方案复制。
 - 平板外流自动总厚度推荐使用层流 `δ = 5x/√Re_x` 或湍流 `δ = 0.37x/Re_x^(1/5)`；管道内流默认使用工程预设 `r=1.2, n=15`，不套用平板边界层厚度公式。

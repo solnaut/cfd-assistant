@@ -190,4 +190,67 @@ describe('App', () => {
     expect(screen.queryByText('适用范围')).not.toBeInTheDocument()
     expect(screen.queryByText('注意事项')).not.toBeInTheDocument()
   })
+
+  it('renders the Fluent Solver main interface simulator entry and shell', async () => {
+    renderApp('/fluent-guide')
+
+    expect(
+      await screen.findByRole('button', { name: 'Fluent Solver 主界面模拟器' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Ribbon 菜单')).toBeInTheDocument()
+    expect(screen.getByText('案例视图')).toBeInTheDocument()
+    expect(screen.getByText('任务页面')).toBeInTheDocument()
+    expect(screen.getByText('User Window 1')).toBeInTheDocument()
+    expect(screen.getByText('控制台')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '一般' })).toBeInTheDocument()
+  })
+
+  it('updates the Fluent simulator explanation from tree, ribbon, task controls, graphics tools and console', async () => {
+    renderApp('/fluent-guide')
+
+    await screen.findByText('User Window 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '边界条件' }))
+    expect(screen.getByRole('button', { name: '边界条件' })).toHaveClass('active')
+    expect(screen.getByRole('heading', { name: '边界条件' })).toBeInTheDocument()
+    expect(screen.getByText('设置 / 边界条件')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '检查' }))
+    expect(screen.getByRole('heading', { name: '网格检查' })).toBeInTheDocument()
+    expect(screen.getByText('Ribbon → 区域 → 网格')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '基于压力' }))
+    expect(screen.getByRole('heading', { name: '基于压力求解器' })).toBeInTheDocument()
+    expect(screen.getByText('任务页面 → 一般 → 求解器 → 类型')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '选择工具' }))
+    expect(screen.getByRole('heading', { name: '图形窗口选择工具' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '控制台区域' }))
+    expect(screen.getByRole('heading', { name: '控制台' })).toBeInTheDocument()
+    expect(screen.getByText('底部控制台')).toBeInTheDocument()
+  })
+
+  it('opens and closes Fluent simulator teaching dialogs and updates explanation from dialog controls', async () => {
+    renderApp('/fluent-guide')
+
+    await screen.findByText('User Window 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '单位' }))
+    expect(screen.getByRole('dialog', { name: '单位设置' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '单位设置' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '长度单位' }))
+    expect(screen.getByRole('heading', { name: '长度单位' })).toBeInTheDocument()
+    expect(screen.getByText('模拟窗口 → 单位设置')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭单位设置' }))
+    expect(screen.queryByRole('dialog', { name: '单位设置' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '报告质量' }))
+    expect(screen.getByRole('dialog', { name: '网格质量报告' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '最小正交质量' }))
+    expect(screen.getByRole('heading', { name: '最小正交质量' })).toBeInTheDocument()
+  })
 })
