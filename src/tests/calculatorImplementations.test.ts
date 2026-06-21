@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { calculate, formatCalculationValue } from '../calculators/implementations'
+import {
+  calculate,
+  formatCalculationValue,
+} from '../calculators/implementations'
+import {
+  formatBoundaryLayerPlanCsv,
+  formatBoundaryLayerPlanSummary,
+  formatBoundaryLayerPlanTable,
+} from '../calculators/boundaryLayerPlan'
 import { getCalculator } from '../calculators/registry'
 
 function calculator(id: string) {
@@ -15,6 +23,38 @@ function outputValue(id: string, values: Parameters<typeof calculate>[1]) {
   return result.outputs[0].value ?? Number.NaN
 }
 
+function yPlusFlatPlateInputs(
+  overrides: Parameters<typeof calculate>[1] = {},
+) {
+  return {
+    'target-y-plus': { value: 1, unitId: '1' },
+    'flow-scenario': { value: 'flat-plate-external' },
+    'flat-plate-friction-method': { value: 'flat-plate-turbulent' },
+    density: { value: 1.225, unitId: 'kg/m^3' },
+    'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
+    'reference-velocity': { value: 10, unitId: 'm/s' },
+    'characteristic-length': { value: 1, unitId: 'm' },
+    'grid-growth-rate': { value: 1.2, unitId: '1' },
+    'grid-recommendation-method': { value: 'auto-total-thickness' },
+    ...overrides,
+  }
+}
+
+function yPlusPipeInputs(overrides: Parameters<typeof calculate>[1] = {}) {
+  return {
+    'target-y-plus': { value: 1, unitId: '1' },
+    'flow-scenario': { value: 'internal-pipe' },
+    'pipe-friction-method': { value: 'pipe-blasius-darcy' },
+    density: { value: 1000, unitId: 'kg/m^3' },
+    'dynamic-viscosity': { value: 0.001, unitId: 'Pa*s' },
+    'reference-velocity': { value: 1.5, unitId: 'm/s' },
+    'hydraulic-diameter': { value: 50, unitId: 'mm' },
+    'grid-growth-rate': { value: 1.2, unitId: '1' },
+    'grid-recommendation-method': { value: 'auto-total-thickness' },
+    ...overrides,
+  }
+}
+
 function intermediateValue(
   result: ReturnType<typeof calculate>,
   itemId: string,
@@ -26,6 +66,19 @@ function intermediateValue(
   }
 
   return item.value
+}
+
+function intermediateText(
+  result: ReturnType<typeof calculate>,
+  itemId: string,
+) {
+  const item = result.intermediates.find((entry) => entry.id === itemId)
+
+  if (!item || item.text === undefined) {
+    throw new Error(`Missing intermediate text ${itemId}`)
+  }
+
+  return item.text
 }
 
 describe('calculator implementations', () => {
@@ -157,14 +210,7 @@ describe('calculator implementations', () => {
   it('calculates y+ first-layer height in initial estimate mode', () => {
     const result = calculate(
       calculator('y-plus-first-layer-height'),
-      {
-        'target-y-plus': { value: 1, unitId: '1' },
-        'flow-scenario': { value: 'flat-plate-external' },
-        density: { value: 1.225, unitId: 'kg/m^3' },
-        'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
-        'reference-velocity': { value: 10, unitId: 'm/s' },
-        'characteristic-length': { value: 1, unitId: 'm' },
-      },
+      yPlusFlatPlateInputs(),
       { modeId: 'initial-estimate' },
     )
 
@@ -175,6 +221,193 @@ describe('calculator implementations', () => {
     expect(intermediateValue(result, 'wall-shear-stress')).toBeCloseTo(0.2467982459)
     expect(intermediateValue(result, 'friction-velocity')).toBeCloseTo(0.4488518194)
     expect(intermediateValue(result, 'kinematic-viscosity')).toBeCloseTo(0.0000146073)
+    expect(intermediateText(result, 'friction-method')).toContain('湍流平板局部')
+    expect(result.boundaryLayerPlan?.targetTotalThickness).toBeCloseTo(0.0251357)
+    expect(result.boundaryLayerPlan?.layerCount).toBe(
+      Math.ceil(
+        Math.log(1 + 0.0251357 * 0.2 / 0.0000650876) / Math.log(1.2),
+      ),
+    )
+    expect(result.boundaryLayerPlan?.lastLayerHeight).toBeCloseTo(
+      0.0000650876 * 1.2 ** ((result.boundaryLayerPlan?.layerCount ?? 1) - 1),
+    )
+  })
+
+  it('uses the selected laminar flat-plate friction and thickness formulas', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusFlatPlateInputs({
+        'reference-velocity': { value: 1, unitId: 'm/s' },
+        'flat-plate-friction-method': { value: 'flat-plate-laminar' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+
+    const reynolds = 1.225 * 1 * 1 / 1.7894e-5
+    const frictionCoefficient = 0.664 / Math.sqrt(reynolds)
+    const wallShearStress = 0.5 * frictionCoefficient * 1.225
+    const frictionVelocity = Math.sqrt(wallShearStress / 1.225)
+    const centerDistance = 1 * (1.7894e-5 / 1.225) / frictionVelocity
+    const firstLayerHeight = 2 * centerDistance
+    const boundaryLayerThickness = 5 / Math.sqrt(reynolds)
+
+    expect(intermediateValue(result, 'reynolds-number')).toBeCloseTo(reynolds)
+    expect(intermediateValue(result, 'wall-friction-coefficient')).toBeCloseTo(frictionCoefficient)
+    expect(intermediateValue(result, 'wall-shear-stress')).toBeCloseTo(wallShearStress)
+    expect(result.outputs[0].value).toBeCloseTo(centerDistance)
+    expect(result.outputs[1].value).toBeCloseTo(firstLayerHeight)
+    expect(result.boundaryLayerPlan?.targetTotalThickness).toBeCloseTo(boundaryLayerThickness)
+    expect(result.boundaryLayerPlan?.methodLabel).toBe('自动推荐总厚度')
+    expect(intermediateText(result, 'friction-method')).toContain('层流平板局部')
+  })
+
+  it('allows user-defined flat-plate Cf without forcing an automatic boundary-layer thickness formula', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusFlatPlateInputs({
+        'flat-plate-friction-method': { value: 'flat-plate-custom' },
+        'friction-coefficient': { value: 0.005, unitId: '1' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+
+    expect(intermediateValue(result, 'wall-friction-coefficient')).toBeCloseTo(0.005)
+    expect(intermediateText(result, 'friction-method')).toContain('用户自定义')
+    expect(result.boundaryLayerPlan?.methodLabel).toBe('工程预设层数')
+    expect(result.boundaryLayerPlan?.layerCount).toBe(15)
+  })
+
+  it('calculates pipe y+ with laminar Darcy friction factor', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusPipeInputs({
+        'reference-velocity': { value: 0.02, unitId: 'm/s' },
+        'pipe-friction-method': { value: 'pipe-laminar-darcy' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+
+    expect(intermediateValue(result, 'pipe-reynolds-number')).toBeCloseTo(1000)
+    expect(intermediateValue(result, 'darcy-friction-factor')).toBeCloseTo(0.064)
+    expect(intermediateValue(result, 'wall-friction-coefficient')).toBeCloseTo(0.016)
+    expect(intermediateValue(result, 'wall-shear-stress')).toBeCloseTo(0.0032)
+    expect(intermediateValue(result, 'friction-velocity')).toBeCloseTo(0.0017888544)
+    expect(result.outputs[0].value).toBeCloseTo(0.000559017)
+    expect(result.outputs[1].value).toBeCloseTo(0.001118034)
+    expect(result.boundaryLayerPlan?.methodLabel).toBe('工程预设层数')
+    expect(result.boundaryLayerPlan?.layerCount).toBe(15)
+    expect(result.boundaryLayerPlan?.thicknessRatio).toBeCloseTo(
+      0.001118034 * (1.2 ** 15 - 1) / 0.2 / 0.05,
+    )
+  })
+
+  it('calculates pipe y+ with Blasius Darcy friction factor for smooth turbulent pipes', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusPipeInputs(),
+      { modeId: 'initial-estimate' },
+    )
+
+    const reynolds = 1000 * 1.5 * 0.05 / 0.001
+    const darcyFrictionFactor = 0.3164 * reynolds ** -0.25
+    const fanningCoefficient = darcyFrictionFactor / 4
+
+    expect(intermediateValue(result, 'pipe-reynolds-number')).toBeCloseTo(reynolds)
+    expect(intermediateValue(result, 'darcy-friction-factor')).toBeCloseTo(darcyFrictionFactor)
+    expect(intermediateValue(result, 'wall-friction-coefficient')).toBeCloseTo(fanningCoefficient)
+    expect(intermediateText(result, 'friction-method')).toContain('Blasius')
+    expect(result.boundaryLayerPlan?.methodLabel).toBe('工程预设层数')
+  })
+
+  it('accepts user-defined Darcy and Fanning pipe friction inputs as separate options', () => {
+    const darcyResult = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusPipeInputs({
+        'pipe-friction-method': { value: 'pipe-custom-darcy' },
+        'darcy-friction-factor': { value: 0.02, unitId: '1' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+    const fanningResult = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusPipeInputs({
+        'pipe-friction-method': { value: 'pipe-custom-fanning' },
+        'fanning-friction-coefficient': { value: 0.005, unitId: '1' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+
+    expect(intermediateValue(darcyResult, 'darcy-friction-factor')).toBeCloseTo(0.02)
+    expect(intermediateValue(darcyResult, 'wall-friction-coefficient')).toBeCloseTo(0.005)
+    expect(intermediateValue(fanningResult, 'darcy-friction-factor')).toBeCloseTo(0.02)
+    expect(intermediateValue(fanningResult, 'wall-friction-coefficient')).toBeCloseTo(0.005)
+    expect(darcyResult.outputs[1].value).toBeCloseTo(fanningResult.outputs[1].value ?? Number.NaN)
+  })
+
+  it('builds boundary-layer plan by target thickness, fixed layer count, and r = 1', () => {
+    const targetResult = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusFlatPlateInputs({
+        'grid-recommendation-method': { value: 'target-total-thickness' },
+        'target-total-thickness': { value: 10, unitId: 'mm' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+    const fixedCountResult = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusFlatPlateInputs({
+        'grid-recommendation-method': { value: 'fixed-layer-count' },
+        'grid-layer-count': { value: 5 },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+    const unitGrowthResult = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusFlatPlateInputs({
+        'grid-growth-rate': { value: 1, unitId: '1' },
+        'grid-recommendation-method': { value: 'target-total-thickness' },
+        'target-total-thickness': { value: 1, unitId: 'mm' },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+
+    const h1 = targetResult.outputs[1].value ?? Number.NaN
+    const targetH = 0.01
+    const expectedN = Math.ceil(Math.log(1 + targetH * 0.2 / h1) / Math.log(1.2))
+
+    expect(targetResult.boundaryLayerPlan?.layerCount).toBe(expectedN)
+    expect(targetResult.boundaryLayerPlan?.targetDifference).toBeGreaterThanOrEqual(0)
+    expect(fixedCountResult.boundaryLayerPlan?.layerCount).toBe(5)
+    expect(fixedCountResult.boundaryLayerPlan?.actualTotalThickness).toBeCloseTo(
+      h1 * (1.2 ** 5 - 1) / 0.2,
+    )
+    expect(unitGrowthResult.boundaryLayerPlan?.growthRate).toBe(1)
+    expect(unitGrowthResult.boundaryLayerPlan?.layerCount).toBe(
+      Math.ceil(0.001 / h1),
+    )
+    expect(unitGrowthResult.boundaryLayerPlan?.lastLayerHeight).toBeCloseTo(h1)
+  })
+
+  it('formats boundary-layer plan table, CSV, and summary for copying', () => {
+    const result = calculate(
+      calculator('y-plus-first-layer-height'),
+      yPlusFlatPlateInputs({
+        'grid-recommendation-method': { value: 'fixed-layer-count' },
+        'grid-layer-count': { value: 3 },
+      }),
+      { modeId: 'initial-estimate' },
+    )
+    const plan = result.boundaryLayerPlan
+
+    if (!plan) {
+      throw new Error('Missing boundary layer plan')
+    }
+
+    expect(formatBoundaryLayerPlanTable(plan)).toContain('层数\t单层高度(m)\t累计厚度(m)')
+    expect(formatBoundaryLayerPlanCsv(plan)).toContain('layer,height_m,cumulative_thickness_m')
+    expect(formatBoundaryLayerPlanCsv(plan).split('\n')).toHaveLength(4)
+    expect(formatBoundaryLayerPlanSummary(plan)).toContain('边界层网格推荐方案')
+    expect(formatBoundaryLayerPlanSummary(plan)).toContain('层数 n: 3')
   })
 
   it('calculates y+ first-layer height from known wall shear stress', () => {
@@ -457,11 +690,11 @@ describe('calculator implementations', () => {
           density: { value: 1.225, unitId: 'kg/m^3' },
           'dynamic-viscosity': { value: 1.7894e-5, unitId: 'Pa*s' },
           'reference-velocity': { value: 10, unitId: 'm/s' },
-          'characteristic-length': { value: 1, unitId: 'm' },
+          'hydraulic-diameter': { value: 0, unitId: 'm' },
         },
         { modeId: 'initial-estimate' },
       ),
-    ).toThrow(/暂未开放计算/)
+    ).toThrow(/管径或水力直径 D必须大于 0/)
 
     expect(() =>
       calculate(

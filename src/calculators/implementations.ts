@@ -6,6 +6,10 @@ import type {
 } from '../models/calculator'
 import type { UnitCategory } from '../units/conversions'
 import { fromBaseValue, getUnitDisplaySymbol, toBaseValue } from '../units/conversions'
+import {
+  createBoundaryLayerPlan,
+  type BoundaryLayerPlan,
+} from './boundaryLayerPlan'
 
 export interface CalculatorInputValue {
   value: number | string
@@ -28,6 +32,7 @@ export interface CalculationResult {
   outputs: CalculationItem[]
   intermediates: CalculationItem[]
   summary: string[]
+  boundaryLayerPlan?: BoundaryLayerPlan
 }
 
 type BaseInputValue = number | string
@@ -469,34 +474,83 @@ function calculateYPlusFirstLayerHeight(
   if (modeId === 'initial-estimate') {
     const flowScenario = selectValue(inputs['flow-scenario'], '流动场景')
     const velocity = positive(inputs['reference-velocity'], '参考速度 U')
-    const length = positive(inputs['characteristic-length'], '特征长度 L')
-    const reynolds = density * velocity * length / viscosity
-    const frictionEstimate = estimateFlatPlateFrictionCoefficient(
-      flowScenario,
-      reynolds,
-    )
-    const wallShearStress =
-      0.5 * frictionEstimate.coefficient * density * velocity ** 2
+    const gridSettings = readBoundaryLayerGridSettings(inputs)
 
-    return createYPlusResult(definition, {
-      targetYPlus,
-      density,
-      kinematicViscosity,
-      wallShearStress,
-      frictionCoefficient: frictionEstimate.coefficient,
-      reynolds,
-      method: frictionEstimate.method,
-    })
+    if (flowScenario === 'flat-plate-external') {
+      const length = positive(inputs['characteristic-length'], '特征长度 L')
+      const reynolds = density * velocity * length / viscosity
+      const frictionEstimate = estimateFlatPlateFrictionCoefficient(
+        inputs,
+        reynolds,
+      )
+      const wallShearStress =
+        0.5 * frictionEstimate.coefficient * density * velocity ** 2
+      const automaticTotalThickness = estimateFlatPlateBoundaryLayerThickness(
+        frictionEstimate.methodId,
+        length,
+        reynolds,
+      )
+
+      return createYPlusResult(definition, {
+        targetYPlus,
+        density,
+        kinematicViscosity,
+        wallShearStress,
+        frictionCoefficient: frictionEstimate.coefficient,
+        reynolds,
+        method: frictionEstimate.method,
+        warnings: frictionEstimate.warnings,
+        gridSettings,
+        automaticTotalThickness,
+        automaticThicknessLabel:
+          automaticTotalThickness === undefined
+            ? undefined
+            : frictionEstimate.methodId === 'flat-plate-laminar'
+              ? '层流平板边界层厚度 δ = 5x/√Re_x'
+              : '湍流平板边界层厚度 δ = 0.37x/Re_x^(1/5)',
+      })
+    }
+
+    if (flowScenario === 'internal-pipe') {
+      const diameter = positive(inputs['hydraulic-diameter'], '管径或水力直径 D')
+      const pipeEstimate = estimatePipeFrictionCoefficient(
+        inputs,
+        density,
+        velocity,
+        diameter,
+        viscosity,
+      )
+      const wallShearStress =
+        0.5 * pipeEstimate.fanningCoefficient * density * velocity ** 2
+
+      return createYPlusResult(definition, {
+        targetYPlus,
+        density,
+        kinematicViscosity,
+        wallShearStress,
+        frictionCoefficient: pipeEstimate.fanningCoefficient,
+        darcyFrictionFactor: pipeEstimate.darcyFrictionFactor,
+        pipeReynolds: pipeEstimate.reynolds,
+        method: pipeEstimate.method,
+        warnings: pipeEstimate.warnings,
+        gridSettings,
+        pipeDiameter: diameter,
+      })
+    }
+
+    throw new Error('请选择有效的流动场景。')
   }
 
   if (modeId === 'known-wall-shear-stress') {
     const wallShearStress = positive(inputs['wall-shear-stress'], '壁面剪切应力 τw')
+    const gridSettings = readBoundaryLayerGridSettings(inputs)
 
     return createYPlusResult(definition, {
       targetYPlus,
       density,
       kinematicViscosity,
       wallShearStress,
+      gridSettings,
     })
   }
 
@@ -504,6 +558,7 @@ function calculateYPlusFirstLayerHeight(
     const frictionCoefficient = positive(inputs['friction-coefficient'], '壁面摩擦系数 Cf')
     const velocity = positive(inputs['reference-velocity'], '参考速度 U')
     const wallShearStress = 0.5 * frictionCoefficient * density * velocity ** 2
+    const gridSettings = readBoundaryLayerGridSettings(inputs)
 
     return createYPlusResult(definition, {
       targetYPlus,
@@ -511,6 +566,7 @@ function calculateYPlusFirstLayerHeight(
       kinematicViscosity,
       wallShearStress,
       frictionCoefficient,
+      gridSettings,
     })
   }
 
@@ -523,8 +579,15 @@ interface YPlusResultInputs {
   kinematicViscosity: number
   wallShearStress: number
   frictionCoefficient?: number
+  darcyFrictionFactor?: number
   reynolds?: number
+  pipeReynolds?: number
   method?: string
+  warnings?: string[]
+  gridSettings?: BoundaryLayerGridSettings
+  automaticTotalThickness?: number
+  automaticThicknessLabel?: string
+  pipeDiameter?: number
 }
 
 function createYPlusResult(
@@ -537,8 +600,15 @@ function createYPlusResult(
     kinematicViscosity,
     wallShearStress,
     frictionCoefficient,
+    darcyFrictionFactor,
     reynolds,
+    pipeReynolds,
     method,
+    warnings = [],
+    gridSettings,
+    automaticTotalThickness,
+    automaticThicknessLabel,
+    pipeDiameter,
   } = values
   const frictionVelocity = Math.sqrt(wallShearStress / density)
   const centerDistance = targetYPlus * kinematicViscosity / frictionVelocity
@@ -547,11 +617,23 @@ function createYPlusResult(
   const intermediates: CalculationItem[] = []
 
   if (reynolds !== undefined) {
-    intermediates.push(item('reynolds-number', 'Reynolds 数', reynolds))
+    intermediates.push(item('reynolds-number', 'Re_x', reynolds))
+  }
+
+  if (pipeReynolds !== undefined) {
+    intermediates.push(item('pipe-reynolds-number', 'Re_D', pipeReynolds))
+  }
+
+  if (darcyFrictionFactor !== undefined) {
+    intermediates.push(
+      item('darcy-friction-factor', 'Darcy 摩阻系数 f', darcyFrictionFactor),
+    )
   }
 
   if (frictionCoefficient !== undefined) {
-    intermediates.push(item('wall-friction-coefficient', '壁面摩擦系数 Cf', frictionCoefficient))
+    intermediates.push(
+      item('wall-friction-coefficient', 'Fanning 摩擦系数 Cf', frictionCoefficient),
+    )
   }
 
   intermediates.push(
@@ -567,6 +649,25 @@ function createYPlusResult(
       text: method,
     })
   }
+
+  if (warnings.length) {
+    intermediates.push({
+      id: 'range-warning',
+      label: '适用范围提示',
+      text: warnings.join('；'),
+    })
+  }
+
+  const boundaryLayerPlan = createBoundaryLayerPlan({
+    firstLayerHeight: fullThickness,
+    growthRate: gridSettings?.growthRate,
+    recommendationMethod: gridSettings?.recommendationMethod,
+    targetTotalThickness: gridSettings?.targetTotalThickness,
+    layerCount: gridSettings?.layerCount,
+    automaticTotalThickness,
+    automaticThicknessLabel,
+    pipeDiameter,
+  })
 
   return {
     outputs: [
@@ -587,27 +688,141 @@ function createYPlusResult(
     ],
     intermediates,
     summary: definition.notes?.slice(0, 3) ?? [],
+    boundaryLayerPlan,
+  }
+}
+
+interface BoundaryLayerGridSettings {
+  growthRate: number
+  recommendationMethod: string
+  targetTotalThickness?: number
+  layerCount?: number
+}
+
+function readBoundaryLayerGridSettings(inputs: BaseInputs): BoundaryLayerGridSettings {
+  return {
+    growthRate: optionalPositive(inputs['grid-growth-rate'], '增长率 r') ?? 1.2,
+    recommendationMethod:
+      optionalSelectValue(inputs['grid-recommendation-method']) ??
+      'auto-total-thickness',
+    targetTotalThickness: optionalPositive(
+      inputs['target-total-thickness'],
+      '目标总厚度 H',
+    ),
+    layerCount: optionalPositiveInteger(inputs['grid-layer-count'], '层数 n'),
   }
 }
 
 function estimateFlatPlateFrictionCoefficient(
-  flowScenario: string,
+  inputs: BaseInputs,
   reynolds: number,
 ) {
-  if (flowScenario !== 'flat-plate-external') {
-    throw new Error('该流动场景暂未开放计算。')
+  const methodId =
+    optionalSelectValue(inputs['flat-plate-friction-method']) ??
+    'flat-plate-turbulent'
+  const warnings: string[] = []
+
+  if (methodId === 'flat-plate-laminar') {
+    if (reynolds >= 5e5) {
+      warnings.push('当前 Re_x 已超过常用平板层流转捩参考值，应谨慎使用层流局部公式')
+    }
+
+    return {
+      coefficient: 0.664 / Math.sqrt(reynolds),
+      method: '层流平板局部摩擦系数：Cf,x = 0.664 / √Re_x',
+      methodId,
+      warnings,
+    }
+  }
+
+  if (methodId === 'flat-plate-custom') {
+    return {
+      coefficient: positive(inputs['friction-coefficient'], '壁面摩擦系数 Cf'),
+      method: '用户自定义平板壁面摩擦系数 Cf',
+      methodId,
+      warnings,
+    }
+  }
+
+  if (methodId !== 'flat-plate-turbulent') {
+    throw new Error('请选择有效的平板摩擦系数公式。')
   }
 
   if (reynolds <= 5e5) {
-    return {
-      coefficient: 0.664 / Math.sqrt(reynolds),
-      method: '平板外流局部层流估算：Cf = 0.664 / √Re',
-    }
+    warnings.push('当前 Re_x 未超过常用平板转捩参考值，应谨慎使用湍流局部公式')
   }
 
   return {
     coefficient: 0.0592 * reynolds ** -0.2,
-    method: '平板外流局部湍流估算：Cf = 0.0592 Re^(-1/5)',
+    method: '湍流平板局部摩擦系数：Cf,x = 0.0592 Re_x^(-1/5)',
+    methodId,
+    warnings,
+  }
+}
+
+function estimateFlatPlateBoundaryLayerThickness(
+  methodId: string,
+  length: number,
+  reynolds: number,
+) {
+  if (methodId === 'flat-plate-laminar') {
+    return 5 * length / Math.sqrt(reynolds)
+  }
+
+  if (methodId === 'flat-plate-turbulent') {
+    return 0.37 * length / reynolds ** 0.2
+  }
+
+  return undefined
+}
+
+function estimatePipeFrictionCoefficient(
+  inputs: BaseInputs,
+  density: number,
+  velocity: number,
+  diameter: number,
+  viscosity: number,
+) {
+  const methodId =
+    optionalSelectValue(inputs['pipe-friction-method']) ??
+    'pipe-blasius-darcy'
+  const reynolds = density * velocity * diameter / viscosity
+  const warnings: string[] = []
+  let darcyFrictionFactor: number
+  let method: string
+
+  if (methodId === 'pipe-laminar-darcy') {
+    if (reynolds >= 2300) {
+      warnings.push('当前 Re_D 不在圆管层流常用范围 Re_D < 2300 内')
+    }
+    darcyFrictionFactor = 64 / reynolds
+    method = '管道层流 Darcy 摩阻系数：f = 64 / Re_D'
+  } else if (methodId === 'pipe-blasius-darcy') {
+    if (reynolds <= 4000 || reynolds >= 1e5) {
+      warnings.push('Blasius 光滑管估算通常用于 4000 < Re_D < 1e5')
+    }
+    darcyFrictionFactor = 0.3164 * reynolds ** -0.25
+    method = '光滑管湍流 Blasius Darcy 摩阻系数：f = 0.3164 Re_D^(-1/4)'
+  } else if (methodId === 'pipe-custom-darcy') {
+    darcyFrictionFactor = positive(inputs['darcy-friction-factor'], 'Darcy 摩阻系数 f')
+    method = '用户自定义 Darcy 摩阻系数 f'
+  } else if (methodId === 'pipe-custom-fanning') {
+    const fanningCoefficient = positive(
+      inputs['fanning-friction-coefficient'],
+      'Fanning 摩擦系数 Cf',
+    )
+    darcyFrictionFactor = 4 * fanningCoefficient
+    method = '用户自定义 Fanning 摩擦系数 Cf'
+  } else {
+    throw new Error('请选择有效的管道摩阻估算方式。')
+  }
+
+  return {
+    reynolds,
+    darcyFrictionFactor,
+    fanningCoefficient: darcyFrictionFactor / 4,
+    method,
+    warnings,
   }
 }
 
@@ -766,12 +981,36 @@ function positiveInteger(value: BaseInputValue, label: string) {
   return value
 }
 
+function optionalPositive(value: BaseInputValue | undefined, label: string) {
+  if (value === undefined) {
+    return undefined
+  }
+
+  return positive(value, label)
+}
+
+function optionalPositiveInteger(value: BaseInputValue | undefined, label: string) {
+  if (value === undefined) {
+    return undefined
+  }
+
+  return positiveInteger(value, label)
+}
+
 function selectValue(value: BaseInputValue, label: string) {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`请选择${label}。`)
   }
 
   return value
+}
+
+function optionalSelectValue(value: BaseInputValue | undefined) {
+  if (value === undefined) {
+    return undefined
+  }
+
+  return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
 function finite(value: number, label: string) {

@@ -741,6 +741,24 @@ main {
   gap: 14px;
 }
 
+.input-group {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+.input-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.input-group h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 0.94rem;
+}
+
 .mode-selector {
   display: grid;
   gap: 10px;
@@ -978,6 +996,49 @@ main {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
+}
+
+.boundary-plan-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.boundary-plan-table-wrap {
+  max-height: 360px;
+  margin-top: 16px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.boundary-plan-table {
+  width: 100%;
+  min-width: 440px;
+  border-collapse: collapse;
+}
+
+.boundary-plan-table th,
+.boundary-plan-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.boundary-plan-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--text-muted);
+  background: #f8fbfc;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.boundary-plan-table tr:last-child td {
+  border-bottom: 0;
 }
 
 .reference-section {

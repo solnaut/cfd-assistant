@@ -10,6 +10,13 @@ import {
   getDefaultModeId,
 } from '../calculators/implementations'
 import {
+  formatBoundaryLayerPlanCsv,
+  formatBoundaryLayerPlanSummary,
+  formatBoundaryLayerPlanTable,
+  type BoundaryLayerPlan,
+  type BoundaryLayerPlanRow,
+} from '../calculators/boundaryLayerPlan'
+import {
   getCalculatorCommonFormulaEntries,
   getCalculatorFormulaEntries,
   getCalculatorLatexSummary,
@@ -38,6 +45,149 @@ interface FieldState {
 }
 
 type FormState = Record<string, FieldState>
+
+const yPlusGridInputIds = new Set([
+  'grid-growth-rate',
+  'grid-recommendation-method',
+  'target-total-thickness',
+  'grid-layer-count',
+])
+
+const yPlusPrimaryInputIds = new Set([
+  'target-y-plus',
+  'flow-scenario',
+  'flat-plate-friction-method',
+  'pipe-friction-method',
+  'wall-shear-stress',
+  'density',
+  'dynamic-viscosity',
+  'reference-velocity',
+  'characteristic-length',
+  'hydraulic-diameter',
+  'friction-coefficient',
+  'darcy-friction-factor',
+  'fanning-friction-coefficient',
+])
+
+function getVisibleInputDefinitions(
+  calculator: CalculatorDefinition,
+  inputs: CalculatorInputDefinition[],
+  formState: FormState,
+  modeId?: string,
+) {
+  if (calculator.id !== 'y-plus-first-layer-height') {
+    return inputs
+  }
+
+  return inputs.filter((input) => isVisibleYPlusInput(input.id, formState, modeId))
+}
+
+function isVisibleYPlusInput(
+  inputId: string,
+  formState: FormState,
+  modeId?: string,
+) {
+  const flowScenario = fieldValue(formState, 'flow-scenario', 'flat-plate-external')
+  const flatPlateMethod = fieldValue(
+    formState,
+    'flat-plate-friction-method',
+    'flat-plate-turbulent',
+  )
+  const pipeMethod = fieldValue(
+    formState,
+    'pipe-friction-method',
+    'pipe-blasius-darcy',
+  )
+  const gridMethod = fieldValue(
+    formState,
+    'grid-recommendation-method',
+    'auto-total-thickness',
+  )
+
+  if (modeId === 'known-wall-shear-stress') {
+    return [
+      'target-y-plus',
+      'wall-shear-stress',
+      'density',
+      'dynamic-viscosity',
+      'grid-growth-rate',
+      'grid-recommendation-method',
+      gridMethod === 'target-total-thickness' ? 'target-total-thickness' : '',
+      gridMethod === 'fixed-layer-count' ? 'grid-layer-count' : '',
+    ].includes(inputId)
+  }
+
+  if (modeId === 'known-friction-coefficient') {
+    return [
+      'target-y-plus',
+      'friction-coefficient',
+      'density',
+      'dynamic-viscosity',
+      'reference-velocity',
+      'grid-growth-rate',
+      'grid-recommendation-method',
+      gridMethod === 'target-total-thickness' ? 'target-total-thickness' : '',
+      gridMethod === 'fixed-layer-count' ? 'grid-layer-count' : '',
+    ].includes(inputId)
+  }
+
+  if (flowScenario === 'internal-pipe') {
+    return [
+      'target-y-plus',
+      'flow-scenario',
+      'pipe-friction-method',
+      'density',
+      'dynamic-viscosity',
+      'reference-velocity',
+      'hydraulic-diameter',
+      pipeMethod === 'pipe-custom-darcy' ? 'darcy-friction-factor' : '',
+      pipeMethod === 'pipe-custom-fanning' ? 'fanning-friction-coefficient' : '',
+      'grid-growth-rate',
+      'grid-recommendation-method',
+      gridMethod === 'target-total-thickness' ? 'target-total-thickness' : '',
+      gridMethod === 'fixed-layer-count' ? 'grid-layer-count' : '',
+    ].includes(inputId)
+  }
+
+  return [
+    'target-y-plus',
+    'flow-scenario',
+    'flat-plate-friction-method',
+    'density',
+    'dynamic-viscosity',
+    'reference-velocity',
+    'characteristic-length',
+    flatPlateMethod === 'flat-plate-custom' ? 'friction-coefficient' : '',
+    'grid-growth-rate',
+    'grid-recommendation-method',
+    gridMethod === 'target-total-thickness' ? 'target-total-thickness' : '',
+    gridMethod === 'fixed-layer-count' ? 'grid-layer-count' : '',
+  ].includes(inputId)
+}
+
+function fieldValue(formState: FormState, inputId: string, fallback: string) {
+  return formState[inputId]?.value ?? fallback
+}
+
+function getInputGroups(
+  calculator: CalculatorDefinition,
+  inputs: CalculatorInputDefinition[],
+) {
+  if (calculator.id !== 'y-plus-first-layer-height') {
+    return [{ title: '', inputs }]
+  }
+
+  return [
+    {
+      title: 'y+ 输入',
+      inputs: inputs.filter((input) => yPlusPrimaryInputIds.has(input.id)),
+    },
+    {
+      title: '边界层网格推荐设置',
+      inputs: inputs.filter((input) => yPlusGridInputIds.has(input.id)),
+    },
+  ].filter((group) => group.inputs.length)
+}
 
 function CalculatorDetailPage() {
   const { categoryId, calculatorId } = useParams()
@@ -82,6 +232,12 @@ function CalculatorDetailContent({
   const isAvailable = calculator.availability === 'available'
   const activeMode = getActiveMode(calculator, selectedModeId)
   const activeInputs = getActiveInputDefinitions(calculator, activeMode)
+  const visibleInputs = getVisibleInputDefinitions(
+    calculator,
+    activeInputs,
+    formState,
+    activeMode?.id,
+  )
   const formulaEntries = getCalculatorFormulaEntries(calculator)
   const commonFormulaEntries = getCalculatorCommonFormulaEntries(calculator)
   const modeFormulaEntries = getCalculatorModeFormulaEntries(
@@ -100,7 +256,7 @@ function CalculatorDetailContent({
       setResult(
         calculate(
           calculator,
-          toCalculatorInputs(formState, activeInputs),
+          toCalculatorInputs(formState, visibleInputs),
           { modeId: activeMode?.id },
         ),
       )
@@ -187,26 +343,31 @@ function CalculatorDetailContent({
             </div>
           ) : null}
 
-          {activeInputs.length > 0 ? (
+          {visibleInputs.length > 0 ? (
             <div className="input-stack">
-              {activeInputs.map((input) => {
-                const field = formState[input.id] ?? { value: '' }
+              {getInputGroups(calculator, visibleInputs).map((group) => (
+                <div className="input-group" key={group.title}>
+                  {group.title ? <h3>{group.title}</h3> : null}
+                  {group.inputs.map((input) => {
+                    const field = formState[input.id] ?? { value: '' }
 
-                return (
-                  <label className="form-field" key={input.id}>
-                    <span>{input.label}</span>
-                    <InputControl
-                      field={field}
-                      input={input}
-                      isAvailable={isAvailable}
-                      setFormState={setFormState}
-                    />
-                    {input.helperText ? (
-                      <small className="field-help">{input.helperText}</small>
-                    ) : null}
-                  </label>
-                )
-              })}
+                    return (
+                      <label className="form-field" key={input.id}>
+                        <span>{input.label}</span>
+                        <InputControl
+                          field={field}
+                          input={input}
+                          isAvailable={isAvailable}
+                          setFormState={setFormState}
+                        />
+                        {input.helperText ? (
+                          <small className="field-help">{input.helperText}</small>
+                        ) : null}
+                      </label>
+                    )
+                  })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="empty-result compact">
@@ -459,7 +620,7 @@ function FormulaEntryList({
 
 interface ResultViewProps {
   calculator: CalculatorDefinition
-  copyText: (text: string) => void
+  copyText: (text: string, key?: string) => Promise<void>
   modeId?: string
   result: CalculationResult
 }
@@ -496,6 +657,13 @@ function ResultView({ calculator, copyText, modeId, result }: ResultViewProps) {
         <ReferenceList title="计算说明" items={result.summary} />
       ) : null}
 
+      {result.boundaryLayerPlan ? (
+        <BoundaryLayerPlanView
+          copyText={copyText}
+          plan={result.boundaryLayerPlan}
+        />
+      ) : null}
+
       <div className="copy-row">
         <button
           className="ghost-button button-link-small"
@@ -515,6 +683,115 @@ function ResultView({ calculator, copyText, modeId, result }: ResultViewProps) {
         </button>
       </div>
     </div>
+  )
+}
+
+function BoundaryLayerPlanView({
+  copyText,
+  plan,
+}: {
+  copyText: (text: string, key?: string) => Promise<void>
+  plan: BoundaryLayerPlan
+}) {
+  return (
+    <section className="boundary-plan-panel" aria-label="Boundary layer mesh plan">
+      <div className="formula-card-heading compact">
+        <div>
+          <p className="eyebrow">Inflation Layers</p>
+          <h3>边界层网格推荐方案</h3>
+        </div>
+      </div>
+
+      <div className="result-card-grid">
+        <PlanMetric label="推荐方式" text={plan.methodLabel} />
+        <PlanMetric label="层数 n" text={plan.layerCount.toString()} />
+        <PlanMetric label="实际总厚度 Hn" value={plan.actualTotalThickness} />
+        <PlanMetric label="最后一层高度 hn" value={plan.lastLayerHeight} />
+        {plan.targetTotalThickness !== undefined ? (
+          <PlanMetric label="目标总厚度 H" value={plan.targetTotalThickness} />
+        ) : null}
+        {plan.targetDifference !== undefined ? (
+          <PlanMetric label="差值 Hn-H" value={plan.targetDifference} />
+        ) : null}
+        {plan.thicknessRatio !== undefined ? (
+          <PlanMetric label="Hn/D" text={formatDimensionless(plan.thicknessRatio)} />
+        ) : null}
+      </div>
+
+      {plan.notes.length ? (
+        <ReferenceList title="方案说明" items={plan.notes} />
+      ) : null}
+
+      <div className="boundary-plan-table-wrap">
+        <table className="boundary-plan-table">
+          <thead>
+            <tr>
+              <th>层数</th>
+              <th>单层高度</th>
+              <th>累计厚度</th>
+            </tr>
+          </thead>
+          <tbody>
+            {plan.rows.map((row) => (
+              <BoundaryLayerPlanRowView key={row.layer} row={row} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="copy-row">
+        <button
+          className="ghost-button button-link-small"
+          onClick={() => void copyText(formatBoundaryLayerPlanTable(plan))}
+          type="button"
+        >
+          复制表格
+        </button>
+        <button
+          className="ghost-button button-link-small"
+          onClick={() => void copyText(formatBoundaryLayerPlanCsv(plan))}
+          type="button"
+        >
+          复制 CSV
+        </button>
+        <button
+          className="ghost-button button-link-small"
+          onClick={() => void copyText(formatBoundaryLayerPlanSummary(plan))}
+          type="button"
+        >
+          复制简要方案
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function PlanMetric({
+  label,
+  text,
+  value,
+}: {
+  label: string
+  text?: string
+  value?: number
+}) {
+  return (
+    <div className="result-card">
+      <span>{label}</span>
+      <strong>
+        {text ?? formatLength(value ?? 0)}
+      </strong>
+    </div>
+  )
+}
+
+function BoundaryLayerPlanRowView({ row }: { row: BoundaryLayerPlanRow }) {
+  return (
+    <tr>
+      <td>{row.layer}</td>
+      <td>{formatLength(row.height)}</td>
+      <td>{formatLength(row.cumulativeThickness)}</td>
+    </tr>
   )
 }
 
@@ -564,6 +841,26 @@ function ReferenceList({ title, items }: { title: string; items: string[] }) {
       </ul>
     </div>
   )
+}
+
+function formatLength(value: number) {
+  return formatCalculationValue({
+    id: 'length',
+    label: '长度',
+    value,
+    unitCategory: 'length',
+    unitId: 'mm',
+  })
+}
+
+function formatDimensionless(value: number) {
+  return formatCalculationValue({
+    id: 'dimensionless',
+    label: '无量纲',
+    value,
+    unitCategory: 'dimensionless',
+    unitId: '1',
+  })
 }
 
 function createInitialState(calculator: CalculatorDefinition): FormState {

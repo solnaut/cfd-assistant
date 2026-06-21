@@ -62,11 +62,21 @@ describe('calculator metadata display', () => {
       'y-plus-definition',
       'friction-velocity',
       'kinematic-viscosity',
-      'reynolds-number-from-properties',
-      'flat-plate-wall-friction-coefficient',
+      'flat-plate-reynolds-number',
+      'pipe-reynolds-number',
+      'flat-plate-turbulent-friction',
+      'flat-plate-laminar-friction',
+      'pipe-laminar-darcy-friction',
+      'pipe-blasius-darcy-friction',
+      'fanning-from-darcy',
       'wall-shear-from-wall-friction-coefficient',
       'first-cell-center-distance',
       'first-layer-full-thickness',
+      'flat-plate-laminar-thickness',
+      'flat-plate-turbulent-thickness',
+      'boundary-layer-height-series',
+      'boundary-layer-total-thickness',
+      'boundary-layer-layer-count-from-target',
     ])
   })
 
@@ -88,7 +98,7 @@ describe('calculator metadata display', () => {
     expect(
       yPlusCalculator.inputs.find((input) => input.id === 'flow-scenario')
         ?.options?.find((option) => option.id === 'internal-pipe')?.disabled,
-    ).toBe(true)
+    ).toBeUndefined()
   })
 
   it('keeps formula variable display symbols free of raw LaTeX commands', () => {
