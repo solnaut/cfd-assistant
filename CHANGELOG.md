@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- 升级 Fluent Solver 教学模拟器右侧说明面板，改为“是什么 / 建议 / 适用场景 / 检查要点 / 常见误区”的操作建议型结构，去除面向用户的“后续补充”式说明。
+- 扩展 Fluent Solver 教学模拟器数据，新增 Cell Zone Conditions、Reference Values、Report Definitions、Surface Integrals、Plane Surface、XY Plot 等常用单相流动与传热工作流弹窗和窗口内控件。
 - 新增 Fluent Solver 主界面教学模拟器：按 Ribbon、案例视图/Outline、任务页面、User Window 图形窗口、图形工具栏、底部控制台和右侧解释面板搭建自主 HTML/CSS 可点击界面，不使用官方 Logo、截图或图标资源。
 - 新增 `src/fluentMock` 数据结构，拆分 Fluent 模拟器的控件、任务页、弹窗、解释内容、研究来源索引和 React 渲染组件；说明面板由控件 `explanationId` 驱动。
 - Fluent 模拟器初版覆盖 General、Mesh、Models、Materials、Boundary Conditions、Solution Methods、Solution Controls、Initialization、Run Calculation、Residual Monitors、Contours、Vectors、Reports 等页面或弹窗入口。

@@ -253,4 +253,31 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: '最小正交质量' }))
     expect(screen.getByRole('heading', { name: '最小正交质量' })).toBeInTheDocument()
   })
+
+  it('shows action-oriented Fluent explanations and deeper model dialog options', async () => {
+    renderApp('/fluent-guide')
+
+    await screen.findByText('User Window 1')
+
+    expect(screen.getByText('是什么')).toBeInTheDocument()
+    expect(screen.getByText('建议')).toBeInTheDocument()
+    expect(screen.getByText('检查要点')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '物理' }))
+    fireEvent.click(screen.getByRole('button', { name: '能量' }))
+    expect(screen.getByRole('dialog', { name: 'Energy 模型' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '启用 Energy' }))
+    expect(screen.getByRole('heading', { name: '启用 Energy' })).toBeInTheDocument()
+    expect(screen.getByText('适合存在热传导、热通量、温度边界或可压缩热效应的算例。')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭Energy 模型' }))
+    fireEvent.click(screen.getByRole('button', { name: '边界条件' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Velocity Inlet' }))
+    expect(screen.getByRole('dialog', { name: 'Velocity Inlet' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Turbulence Specification' }))
+    expect(screen.getByRole('heading', { name: 'Turbulence Specification' })).toBeInTheDocument()
+    expect(screen.getByText('检查入口湍流强度、长度尺度或水力直径是否来自工况估算。')).toBeInTheDocument()
+  })
 })

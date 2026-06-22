@@ -489,36 +489,38 @@ function ExplanationPane({
 
   return (
     <aside className="fluent-explanation-pane" aria-label="控件说明">
-      <p className="eyebrow">Control explanation</p>
+      <p className="eyebrow">Control guide</p>
       <h2>{explanation.title}</h2>
-      <dl>
-        <div>
-          <dt>所在位置</dt>
-          <dd>{explanation.location}</dd>
-        </div>
-        <div>
-          <dt>控件类型</dt>
-          <dd>{explanation.controlType}</dd>
-        </div>
-      </dl>
-      <ExplanationSection title="功能作用" text={explanation.summary} />
-      <ExplanationSection title="使用场景" text={explanation.whenToUse} />
-      <ExplanationSection title="注意事项" text={explanation.commonMistakes} />
+      <div className="fluent-explanation-meta" aria-label="控件元信息">
+        <span>{explanation.location}</span>
+        <span>{explanation.controlType}</span>
+      </div>
+      <ExplanationSection title="是什么" text={explanation.whatItIs} />
+      <ExplanationSection title="建议" text={explanation.recommendation} />
+      <ExplanationSection title="适用场景" text={explanation.whenToUse} />
+      <div className="fluent-explanation-section">
+        <strong>检查要点</strong>
+        <ul className="fluent-check-list">
+          {explanation.checkItems.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+      <ExplanationSection title="常见误区" text={explanation.commonMistakes} />
       {explanation.relatedControls.length ? (
         <div className="fluent-explanation-section">
           <strong>相关功能</strong>
           <div className="fluent-related-list">
-            {explanation.relatedControls.map((controlId) => (
-              <span key={controlId}>{controlId}</span>
-            ))}
+            {explanation.relatedControls.map((controlId) => {
+              const relatedControl = findControlById(controlId)
+              return (
+                <span key={controlId}>
+                  {relatedControl?.labelZh ?? controlId}
+                </span>
+              )
+            })}
           </div>
         </div>
-      ) : null}
-      {explanation.futureWindowNotes ? (
-        <ExplanationSection
-          title="后续补充"
-          text={explanation.futureWindowNotes}
-        />
       ) : null}
     </aside>
   )

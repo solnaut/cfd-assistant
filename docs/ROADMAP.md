@@ -28,6 +28,7 @@
 - 确认知识条目字段是否足够。
 - 建立由知识库 ID 驱动的高保真教学模拟界面，不使用官方 Logo、截图或图标。
 - 第一阶段覆盖 General、Models、Materials、Cell Zone Conditions、Boundary Conditions、Solution Methods、Initialization、Monitors、Run Calculation 和 Results 中的常用单相流动与传热功能。
+- 已扩展 Fluent Solver 教学模拟器右侧说明面板和常用工作流弹窗，覆盖 Cell Zone Conditions、Reference Values、Report Definitions、Surface Integrals、Plane Surface、XY Plot 等可点击路径。
 - 增加搜索、关联功能跳转、关联计算器跳转和内容版本展示。
 - 优化手机端详情阅读体验。
 

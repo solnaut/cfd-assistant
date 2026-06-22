@@ -114,6 +114,36 @@ v0.3 将 Fluent 导览从只显示主面板控件扩展为数据驱动的模拟�
 | F7 | 官方文档 | Post-processing Results | Ansys | 37.11 Post-processing Results | https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/fluent_beta_doc/flu_beta_post_analysis_postprocessing.html | 2026-06-22 | Contours、Vectors、Reports、Graphics Objects 结构核对 |
 | F8 | 官方教程 | Fluid Flow and Heat Transfer in a Mixing Elbow | Ansys | Solution setup and Run Calculation tutorial steps | https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_tg_workbench/flu_tg_elbow_workbench.html | 2026-06-22 | Initialization、Run Calculation、Monitors 工作流核对 |
 
+## 2026-06-22 操作建议型说明面板与常用工作流弹窗扩展
+
+本次迭代继续推进 Fluent Solver 教学模拟器，但仍保持第三方自主教学界面的产品边界：不连接 Fluent、不执行求解、不复用官方 Logo、截图或官方图标。页面交互结构参考真实 Fluent 的学习逻辑和公开文档中的功能层级，用自定义 HTML/CSS 与数据驱动控件表达。
+
+### 说明面板结构
+
+右侧控件说明面板从单段解释升级为面向操作检查的结构：
+
+- 是什么：说明控件在工作流中的角色。
+- 建议：给出初学者在该位置应如何使用或优先检查。
+- 适用场景：说明何时需要关注该控件。
+- 检查要点：列出执行设置前后的核对项。
+- 常见误区：提示不要把默认值、窗口入口或显示操作误解为完整设置。
+- 相关功能：显示相关控件的中文名称，便于跳转理解。
+
+### 新增模拟弹窗和窗口内控件
+
+新增或细化的教学弹窗包括：
+
+- Cell Zone Conditions：Fluid Zone、Solid Zone、Source Terms。
+- Reference Values：Compute From、Area、Length、Density、Velocity。
+- Report Definitions：Force Report、Surface Report。
+- Results：Surface Integrals、Plane Surface、XY Plot。
+
+这些弹窗内部控件均通过 `explanationId` 读取解释数据，页面组件不硬编码专业解释。
+
+### 结构来源和限制
+
+本次结构参考了公开 Ansys Fluent 用户指南中的常见任务页层级，也结合本机 PyFluent 对 Fluent 设置树的可读层级探针结果进行模块范围核对。由于当前 Codex 会话尚未暴露已配置的 Fluent MCP 工具，实时 GUI 点击、截图和 live session 工具调用仍不能作为本次自动采集来源。后续需要在新的 Codex 会话中确认 MCP 工具可见后，再补充 `child_names`、`command_names` 和 `allowed_values` 的结构化采集记录。
+
 ## 后续待办
 
 - 为每个 Fluent 条目拆分独立研究记录。

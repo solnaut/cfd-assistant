@@ -34,13 +34,15 @@ export interface FluentMockExplanation {
   title: string
   location: string
   controlType: string
+  whatItIs: string
+  recommendation: string
+  checkItems: string[]
   summary: string
   purpose: string
   whenToUse: string
   commonMistakes: string
   relatedControls: string[]
   sourceStatus: 'source-checked' | 'draft-public-sources' | 'natural-placeholder'
-  futureWindowNotes?: string
 }
 
 export interface FluentMockRibbonTab {

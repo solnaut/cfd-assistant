@@ -94,6 +94,8 @@ src/fluentMock/
 用户点击弹窗控件 -> dialog control explanationId -> 解释面板
 ```
 
+`FluentMockExplanation` 面向初学者解释控件时采用结构化字段：`whatItIs`、`recommendation`、`whenToUse`、`checkItems`、`commonMistakes` 和 `relatedControls`。右侧说明面板只渲染这些字段，不展示内部研究状态、TODO 或后续开发提示。新增 Fluent 页面、弹窗或窗口内控件时，必须同时补充对应解释数据和数据完整性测试。
+
 后续补充新的 Fluent 窗口时，优先新增或修改 `fluentDialogs.ts`、`fluentControls.ts` 和 `fluentExplanations.ts` 中的数据。只有布局能力不足时才修改 `FluentSolverMock.tsx`。
 
 ## 静态部署

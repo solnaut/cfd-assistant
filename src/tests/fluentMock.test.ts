@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { allDialogControls, fluentDialogs } from '../fluentMock/fluentDialogs'
-import { allMainControls } from '../fluentMock/fluentControls'
+import { allMainControls, allTaskPanels } from '../fluentMock/fluentControls'
 import { fluentExplanationById } from '../fluentMock/fluentExplanations'
 
 describe('Fluent mock data', () => {
@@ -28,5 +28,57 @@ describe('Fluent mock data', () => {
     expect(modulesWithDialogs.has('Boundary Conditions')).toBe(true)
     expect(modulesWithDialogs.has('Results')).toBe(true)
     expect(modulesWithDialogs.size).toBeGreaterThanOrEqual(5)
+  })
+
+  it('covers the primary single-phase Fluent workflow with task panels and dialogs', () => {
+    const panelModules = new Set(allTaskPanels.map((panel) => panel.module))
+    const dialogModules = new Set(fluentDialogs.map((dialog) => dialog.module))
+
+    for (const module of [
+      'General',
+      'Models',
+      'Materials',
+      'Cell Zone Conditions',
+      'Boundary Conditions',
+      'Reference Values',
+      'Solution Methods',
+      'Solution Controls',
+      'Initialization',
+      'Monitors',
+      'Run Calculation',
+      'Results',
+    ]) {
+      expect(panelModules.has(module) || dialogModules.has(module)).toBe(true)
+    }
+  })
+
+  it('includes detailed teaching dialogs for zone, reference, reporting and surface workflows', () => {
+    const dialogIds = new Set(fluentDialogs.map((dialog) => dialog.id))
+
+    for (const dialogId of [
+      'cell-zone-fluid-dialog',
+      'cell-zone-source-dialog',
+      'reference-values-dialog',
+      'report-definition-dialog',
+      'surface-integrals-dialog',
+      'plane-surface-dialog',
+      'xy-plot-dialog',
+    ]) {
+      expect(dialogIds.has(dialogId)).toBe(true)
+    }
+  })
+
+  it('provides useful action-oriented explanation fields for every visible control', () => {
+    const explanations = [...allMainControls, ...allDialogControls].map((control) =>
+      fluentExplanationById.get(control.explanationId),
+    )
+
+    for (const explanation of explanations) {
+      expect(explanation?.whatItIs).toBeTruthy()
+      expect(explanation?.recommendation).toBeTruthy()
+      expect(explanation?.checkItems.length).toBeGreaterThan(0)
+      expect(explanation?.sourceStatus).not.toBe('natural-placeholder')
+      expect('futureWindowNotes' in explanation!).toBe(false)
+    }
   })
 })

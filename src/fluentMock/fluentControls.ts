@@ -422,9 +422,29 @@ export const taskPanels: FluentMockTaskPanel[] = [
     }),
   ]),
   simplePanel('cell-zone-panel', '单元区域条件', 'Cell Zone Conditions', [
-    panelControl('cell-zone-fluid', 'Fluid zone', 'Cell Zone Conditions', '单元区域', 'button'),
-    panelControl('cell-zone-solid', 'Solid zone', 'Cell Zone Conditions', '单元区域', 'button'),
-    panelControl('cell-zone-source', 'Source terms', 'Cell Zone Conditions', '单元区域', 'button'),
+    panelControl('cell-zone-fluid', 'Fluid zone', 'Cell Zone Conditions', '单元区域', 'button', {
+      dialogId: 'cell-zone-fluid-dialog',
+    }),
+    panelControl('cell-zone-solid', 'Solid zone', 'Cell Zone Conditions', '单元区域', 'button', {
+      dialogId: 'cell-zone-solid-dialog',
+    }),
+    panelControl('cell-zone-source', 'Source terms', 'Cell Zone Conditions', '单元区域', 'button', {
+      dialogId: 'cell-zone-source-dialog',
+    }),
+  ]),
+  simplePanel('reference-values-panel', '参考值', 'Reference Values', [
+    panelControl('reference-compute-from', 'Compute From', 'Reference Values', '参考值', 'select', {
+      value: 'inlet',
+      dialogId: 'reference-values-dialog',
+    }),
+    panelControl('reference-area', 'Area', 'Reference Values', '参考值', 'field', {
+      value: '1 m²',
+      dialogId: 'reference-values-dialog',
+    }),
+    panelControl('reference-length', 'Length', 'Reference Values', '参考值', 'field', {
+      value: '1 m',
+      dialogId: 'reference-values-dialog',
+    }),
   ]),
   simplePanel('solution-methods-panel', '方法', 'Solution Methods', [
     panelControl('methods-pressure-velocity', 'Pressure-Velocity Coupling', 'Solution Methods', '方法', 'select', {
@@ -479,8 +499,24 @@ export const taskPanels: FluentMockTaskPanel[] = [
     panelControl('results-surface-integrals', 'Surface Integrals', 'Results', '报告', 'button'),
   ]),
   simplePanel('report-definitions-panel', '报告定义', 'Report Definitions', [
-    panelControl('report-definition-force', 'Force Report', 'Report Definitions', '报告定义', 'button'),
-    panelControl('report-definition-surface', 'Surface Report', 'Report Definitions', '报告定义', 'button'),
+    panelControl('report-definition-force', 'Force Report', 'Report Definitions', '报告定义', 'button', {
+      dialogId: 'report-definition-dialog',
+    }),
+    panelControl('report-definition-surface', 'Surface Report', 'Report Definitions', '报告定义', 'button', {
+      dialogId: 'surface-integrals-dialog',
+    }),
+  ]),
+  simplePanel('surfaces-panel', '表面', 'Results', [
+    panelControl('surface-plane', 'Plane Surface', 'Results', '表面', 'button', {
+      dialogId: 'plane-surface-dialog',
+    }),
+    panelControl('surface-iso-surface', 'Iso-Surface', 'Results', '表面', 'button'),
+  ]),
+  simplePanel('plots-panel', '图', 'Results', [
+    panelControl('plot-xy', 'XY Plot', 'Results', '图', 'button', {
+      dialogId: 'xy-plot-dialog',
+    }),
+    panelControl('plot-residuals', 'Residual Plot', 'Results', '图', 'button'),
   ]),
   simplePanel('mesh-adaptation-panel', '网格自适应', 'Mesh Adaptation', [
     panelControl('adapt-register', 'Create Register', 'Mesh Adaptation', '网格自适应', 'button', {
@@ -500,14 +536,11 @@ const fallbackPanelIds = [
   ['motion-panel', 'Motion Definitions', 'Motion Definitions'],
   ['mesh-interface-panel', '网格界面', 'Mesh Interfaces'],
   ['aux-geometry-panel', '辅助几何结构定义', 'Auxiliary Geometry'],
-  ['reference-values-panel', '参考值', 'Reference Values'],
   ['reference-frames-panel', '参考系', 'Reference Frames'],
   ['named-expressions-panel', '已命名的表达式', 'Named Expressions'],
   ['curvilinear-panel', '曲线坐标系', 'Curvilinear Coordinates'],
   ['cell-registers-panel', '单元标记', 'Cell Registers'],
   ['calculation-activities-panel', '计算设置', 'Calculation Activities'],
-  ['surfaces-panel', '表面', 'Surfaces'],
-  ['plots-panel', '图', 'Plots'],
   ['dashboard-panel', 'Dashboard', 'Dashboard'],
   ['animations-panel', '动画', 'Animations'],
   ['parameters-controls-panel', '参数和控制', 'Parameters and Controls'],
