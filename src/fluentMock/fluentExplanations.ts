@@ -12,6 +12,12 @@ interface ModuleProfile {
 }
 
 const moduleProfiles: Record<string, ModuleProfile> = {
+  File: {
+    what: '文件操作区，用于读取、保存和导出 case/data 以及相关结果文件。',
+    recommendation: '关键设置变更和长时间计算前后都应保存 case/data；不要只依赖当前内存状态。',
+    when: '读入算例、保存阶段结果、导出后处理文件或准备重启计算时使用。',
+    checks: ['保存路径是否明确', '是否同时保存 case 和 data', '文件名是否能区分迭代阶段'],
+  },
   General: {
     what: '全局求解设置区，用来确认求解器、时间形式、网格检查和重力等基础状态。',
     recommendation: '读入网格后先检查单位、网格质量和稳态/瞬态选择，再进入模型和边界条件。',
@@ -89,6 +95,12 @@ const moduleProfiles: Record<string, ModuleProfile> = {
     recommendation: '点击计算前确认保存策略、监控量和时间步；不要在关键设置未核对时直接长时间运行。',
     when: '初始化完成、监控和输出设置确认后使用。',
     checks: ['迭代数或时间步数是否合理', '瞬态时间步是否满足 CFL 或物理时间尺度', '计算前是否已保存 case'],
+  },
+  'Calculation Activities': {
+    what: '计算活动设置区，用来安排自动保存、命令执行、数据采样和计算期间的附加动作。',
+    recommendation: '长时间稳态迭代或瞬态计算前先设置自动保存和必要的输出动作。',
+    when: '正式计算前、需要周期性保存或执行命令时使用。',
+    checks: ['自动保存频率是否合理', '文件保留数量是否足够', '执行命令是否会改变求解状态'],
   },
   Results: {
     what: '后处理结果区，用于创建云图、矢量图、报告、曲线和表面积分。',
@@ -213,6 +225,51 @@ const overrides: Record<string, ExplanationOverride> = {
     whenToUse: '开启湍流模型且入口边界为 velocity inlet 或 mass-flow inlet 时检查。',
     checkItems: ['检查入口湍流强度、长度尺度或水力直径是否来自工况估算。', '湍流参数是否与 Reynolds 数和入口发展程度一致', '不要把默认值当成所有工况的可靠输入'],
     relatedControls: ['viscous-kepsilon', 'viscous-kw-sst', 'bc-velocity-inlet'],
+  },
+  'mass-flow-inlet-flow-rate-explanation': {
+    title: 'Mass Flow Rate',
+    location: '模拟窗口 → Mass-Flow Inlet → Momentum',
+    whatItIs: '质量流量入口用总质量流量约束入口，Fluent 会结合边界面积和方向得到入口速度规模。',
+    recommendation: '适合已知质量流量的入口；同时核对湍流、温度和方向设置。',
+    whenToUse: '风机、管路、设备入口给定质量流量而不是速度时使用。',
+    checkItems: ['质量流量单位是否为 kg/s', '方向是否为法向或指定方向', '多个入口时总流量是否守恒'],
+    relatedControls: ['bc-mass-flow-inlet', 'mass-flow-inlet-direction', 'mass-flow-inlet-turbulence'],
+  },
+  'operating-pressure-explanation': {
+    title: 'Operating Pressure',
+    location: '模拟窗口 → Operating Conditions',
+    whatItIs: '操作压力是表压边界和绝对压力换算的参考压力，也会影响部分浮力和可压缩设置的解释。',
+    recommendation: '低速不可压缩流通常保持默认参考压力；涉及浮力、可压缩或表压边界时要主动核对。',
+    whenToUse: '使用 pressure inlet/outlet、理想气体密度、浮力或高度压力变化问题时检查。',
+    checkItems: ['边界压力是表压还是绝对压力', '操作压力是否与实验或工程参考一致', '密度模型是否依赖绝对压力'],
+    relatedControls: ['general-operating-conditions', 'pressure-outlet-gauge', 'operating-density'],
+  },
+  'initialization-patch-region-explanation': {
+    title: 'Patch Region',
+    location: '模拟窗口 → Patch',
+    whatItIs: 'Patch Region 指定要写入初始变量值的局部区域、cell zone 或寄存器。',
+    recommendation: '只在明确知道局部初始场时使用 Patch，避免把局部速度或温度误写到全域。',
+    whenToUse: '需要给局部热区、旋涡区、液位区或特定区域设置不同初值时使用。',
+    checkItems: ['区域选择是否只包含目标单元', '变量和值是否符合物理初值', 'Patch 后是否检查云图确认写入范围'],
+    relatedControls: ['initialization-patch', 'initialization-patch-variable', 'initialization-patch-value'],
+  },
+  'autosave-frequency-explanation': {
+    title: 'Save Every',
+    location: '模拟窗口 → Automatic Saving',
+    whatItIs: '自动保存频率决定 Fluent 在计算过程中隔多少迭代步或时间步写出 case/data。',
+    recommendation: '长时间迭代或瞬态计算应设置自动保存频率，避免中断后丢失关键阶段结果。',
+    whenToUse: '长时间稳态收敛、瞬态计算、参数扫描或不稳定算例调试时使用。',
+    checkItems: ['保存频率是否不会生成过多文件', '是否同时保存 data', '磁盘空间是否足够'],
+    relatedControls: ['calculation-autosave', 'autosave-file-type', 'autosave-retain-files'],
+  },
+  'material-density-method-explanation': {
+    title: 'Density Method',
+    location: '模拟窗口 → Create/Edit Materials',
+    whatItIs: '材料密度方法决定密度是常数、理想气体、分段函数还是其他表达。',
+    recommendation: '不可压缩低速流可先用常数密度；温度或压力显著影响密度时再选择合适模型。',
+    whenToUse: '创建或编辑流体材料时必须检查，尤其是可压缩、浮力或传热问题。',
+    checkItems: ['密度单位是否为 kg/m³', '密度是否随温度或压力变化', '所选密度模型是否与求解器和能量方程匹配'],
+    relatedControls: ['materials-create-edit', 'fluid-density', 'operating-pressure'],
   },
   'mesh-quality-orthogonal-explanation': {
     title: '最小正交质量',

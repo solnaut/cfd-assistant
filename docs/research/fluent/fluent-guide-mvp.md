@@ -137,8 +137,17 @@ v0.3 将 Fluent 导览从只显示主面板控件扩展为数据驱动的模拟�
 - Reference Values：Compute From、Area、Length、Density、Velocity。
 - Report Definitions：Force Report、Surface Report。
 - Results：Surface Integrals、Plane Surface、XY Plot。
+- File：Case/Data 文件读取和保存。
+- General：Solver 设置、Operating Conditions。
+- Materials：Create/Edit Materials，并支持从 Materials 主页面继续打开下一层材料编辑窗口。
+- Boundary Conditions：Mass-Flow Inlet、Symmetry、Outflow。
+- Initialization：Patch。
+- Calculation Activities：Automatic Saving。
+- Results：Display Options。
 
 这些弹窗内部控件均通过 `explanationId` 读取解释数据，页面组件不硬编码专业解释。
+
+本轮还补充了高误用风险控件的具体建议，包括 Mass Flow Rate、Operating Pressure、Patch Region、Automatic Saving 频率和 Density Method。说明面板保持简洁工程建议，不展示内部 TODO、审核状态或来源链接。
 
 ### 结构来源和限制
 

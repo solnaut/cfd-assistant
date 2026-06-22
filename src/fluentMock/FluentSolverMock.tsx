@@ -74,6 +74,9 @@ function FluentSolverMock() {
 
   function activateDialogControl(control: FluentMockControl) {
     setActiveDialogControlId(control.id)
+    if (control.dialogId) {
+      setOpenDialogId(control.dialogId)
+    }
   }
 
   function closeDialog(dialog: FluentMockDialog) {

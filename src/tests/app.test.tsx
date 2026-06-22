@@ -280,4 +280,21 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Turbulence Specification' })).toBeInTheDocument()
     expect(screen.getByText('检查入口湍流强度、长度尺度或水力直径是否来自工况估算。')).toBeInTheDocument()
   })
+
+  it('opens nested teaching windows from dialog controls', async () => {
+    renderApp('/fluent-guide')
+
+    await screen.findByText('User Window 1')
+
+    fireEvent.click(screen.getByRole('button', { name: '材料' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Materials 主页面' }))
+    expect(screen.getByRole('dialog', { name: 'Materials 主页面' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create/Edit' }))
+    expect(screen.getByRole('dialog', { name: 'Create/Edit Materials' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Density Method' }))
+    expect(screen.getByRole('heading', { name: 'Density Method' })).toBeInTheDocument()
+    expect(screen.getByText('材料密度方法决定密度是常数、理想气体、分段函数还是其他表达。')).toBeInTheDocument()
+  })
 })

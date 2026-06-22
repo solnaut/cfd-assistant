@@ -52,8 +52,8 @@ export const ribbonTabs: FluentMockRibbonTab[] = [
         id: 'ribbon-file-case',
         label: '案例',
         controls: [
-          ribbonControl('ribbon-read-case', '读取', '案例'),
-          ribbonControl('ribbon-write-case', '保存', '案例'),
+          ribbonControl('ribbon-read-case', '读取', '案例', 'case-file-dialog'),
+          ribbonControl('ribbon-write-case', '保存', '案例', 'case-file-dialog'),
           ribbonControl('ribbon-export', '导出', '案例'),
         ],
       },
@@ -342,6 +342,9 @@ const generalPanel: FluentMockTaskPanel = {
           defaultSelected: true,
         }),
         panelControl('general-relative-velocity', '相对', 'General', '求解器 / 速度公式', 'radio'),
+        panelControl('general-solver-settings', '求解器设置', 'General', '求解器', 'button', {
+          dialogId: 'general-solver-dialog',
+        }),
       ],
     },
     {
@@ -367,6 +370,9 @@ const generalPanel: FluentMockTaskPanel = {
         }),
         panelControl('general-gravity-z', 'Z 重力加速度', 'General', '重力', 'field', {
           value: '0 m/s²',
+        }),
+        panelControl('general-operating-conditions', '操作条件', 'General', '重力', 'button', {
+          dialogId: 'operating-conditions-dialog',
         }),
       ],
     },
@@ -414,11 +420,20 @@ export const taskPanels: FluentMockTaskPanel[] = [
     panelControl('bc-velocity-inlet', 'Velocity Inlet', 'Boundary Conditions', '边界条件', 'button', {
       dialogId: 'velocity-inlet-dialog',
     }),
+    panelControl('bc-mass-flow-inlet', 'Mass-Flow Inlet', 'Boundary Conditions', '边界条件', 'button', {
+      dialogId: 'mass-flow-inlet-dialog',
+    }),
     panelControl('bc-pressure-outlet', 'Pressure Outlet', 'Boundary Conditions', '边界条件', 'button', {
       dialogId: 'pressure-outlet-dialog',
     }),
     panelControl('bc-wall', 'Wall', 'Boundary Conditions', '边界条件', 'button', {
       dialogId: 'wall-dialog',
+    }),
+    panelControl('bc-symmetry', 'Symmetry', 'Boundary Conditions', '边界条件', 'button', {
+      dialogId: 'symmetry-dialog',
+    }),
+    panelControl('bc-outflow', 'Outflow', 'Boundary Conditions', '边界条件', 'button', {
+      dialogId: 'outflow-dialog',
     }),
   ]),
   simplePanel('cell-zone-panel', '单元区域条件', 'Cell Zone Conditions', [
@@ -469,6 +484,16 @@ export const taskPanels: FluentMockTaskPanel[] = [
       dialogId: 'initialization-dialog',
     }),
     panelControl('initialization-standard', 'Standard Initialization', 'Initialization', '初始化', 'button'),
+    panelControl('initialization-patch', 'Patch', 'Initialization', '初始化', 'button', {
+      dialogId: 'patch-initialization-dialog',
+    }),
+  ]),
+  simplePanel('calculation-activities-panel', '计算设置', 'Calculation Activities', [
+    panelControl('calculation-autosave', 'Automatic Saving', 'Calculation Activities', '自动保存', 'button', {
+      dialogId: 'autosave-dialog',
+    }),
+    panelControl('calculation-execute-commands', 'Execute Commands', 'Calculation Activities', '执行命令', 'button'),
+    panelControl('calculation-data-sampling', 'Data Sampling', 'Calculation Activities', '数据采样', 'button'),
   ]),
   simplePanel('run-calculation-panel', '运行计算', 'Run Calculation', [
     panelControl('run-iterations', 'No. of Iterations', 'Run Calculation', '运行计算', 'field', {
@@ -490,6 +515,9 @@ export const taskPanels: FluentMockTaskPanel[] = [
     }),
     panelControl('results-vectors', 'Vectors', 'Results', '图形', 'button', {
       dialogId: 'vectors-dialog',
+    }),
+    panelControl('results-display-options', 'Display Options', 'Results', '图形', 'button', {
+      dialogId: 'display-options-dialog',
     }),
   ]),
   simplePanel('reports-panel', '报告', 'Results', [
@@ -540,7 +568,6 @@ const fallbackPanelIds = [
   ['named-expressions-panel', '已命名的表达式', 'Named Expressions'],
   ['curvilinear-panel', '曲线坐标系', 'Curvilinear Coordinates'],
   ['cell-registers-panel', '单元标记', 'Cell Registers'],
-  ['calculation-activities-panel', '计算设置', 'Calculation Activities'],
   ['dashboard-panel', 'Dashboard', 'Dashboard'],
   ['animations-panel', '动画', 'Animations'],
   ['parameters-controls-panel', '参数和控制', 'Parameters and Controls'],
