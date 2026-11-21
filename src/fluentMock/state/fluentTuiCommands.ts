@@ -3,8 +3,10 @@ import type { FluentSimAction, FluentSimState } from './fluentSimState'
 export const tuiPresetCommands = [
   '/mesh/check',
   '/mesh/quality',
+  '/solve/check-case',
   '/solve/initialize/hyb-initialization',
   '/solve/iterate 50',
+  '/report/fluxes/mass-flow',
   'help',
   'clear',
 ] as const
@@ -34,7 +36,7 @@ export function parseAndExecuteTui(
         { kind: 'command', text: `> ${command}` },
         {
           kind: 'info',
-          text: 'Available Teaching TUI commands: /mesh/check | /mesh/quality | /define/models/energy | /solve/initialize/hyb-initialization | /solve/iterate <n> | clear',
+          text: 'Available Teaching TUI commands: /mesh/check | /mesh/quality | /solve/check-case | /define/models/energy | /solve/initialize/hyb-initialization | /solve/iterate <n> | /report/fluxes/mass-flow | /report/forces/wall-forces | /parallel/partition/auto | clear',
         },
       ],
     }
@@ -48,8 +50,40 @@ export function parseAndExecuteTui(
     return { type: 'RUN_MESH_QUALITY' }
   }
 
+  if (normalized === '/solve/check-case' || normalized === 'check case') {
+    return { type: 'RUN_CASE_CHECK' }
+  }
+
+  if (normalized === '/report/fluxes/mass-flow') {
+    return { type: 'RUN_FLUXES_REPORT' }
+  }
+
+  if (normalized === '/report/forces/wall-forces') {
+    return { type: 'RUN_FORCES_REPORT' }
+  }
+
+  if (normalized.startsWith('/parallel/partition')) {
+    return { type: 'RUN_PARTITION' }
+  }
+
   if (normalized.startsWith('/define/models/energy')) {
     return { type: 'SET_ENERGY_ENABLED', enabled: !state.energyEnabled }
+  }
+
+  if (normalized.startsWith('/define/models/multiphase')) {
+    return {
+      type: 'SET_CONTROL_VALUE',
+      controlId: 'multiphase-model-select',
+      value: state.multiphaseModel === 'Off' ? 'Volume of Fluid (VOF)' : 'Off',
+    }
+  }
+
+  if (normalized.startsWith('/define/models/radiation')) {
+    return {
+      type: 'SET_CONTROL_VALUE',
+      controlId: 'radiation-model-select',
+      value: state.radiationModel === 'Off' ? 'Discrete Ordinates (DO)' : 'Off',
+    }
   }
 
   if (

@@ -110,4 +110,47 @@ describe('Fluent simulation state machine', () => {
     state = fluentSimReducer(state, parseAndExecuteTui('clear', state))
     expect(state.consoleLogs).toHaveLength(1)
   })
+
+  it('supports extended models, check case, reports, partition, and meshing handoff', () => {
+    let state = createInitialFluentSimState()
+
+    state = fluentSimReducer(state, {
+      type: 'APPLY_MESHING_HANDOFF',
+      handoff: {
+        fromMeshing: true,
+        meshType: 'poly-hexcore',
+        cellCount: 64200,
+        surfaceFaceCount: 7800,
+        minOrthogonalQuality: 0.36,
+        maxSkewness: 0.68,
+        boundaryLayers: 6,
+        dimension: '3d',
+        doublePrecision: true,
+        processes: 8,
+        boundarySummary: [{ name: 'velocity-inlet', type: 'velocity-inlet' }],
+      },
+    })
+    expect(state.meshInfo.transferredFromMeshing).toBe(true)
+    expect(state.meshInfo.cellCount).toBe(64200)
+    expect(state.processes).toBe(8)
+
+    state = fluentSimReducer(state, {
+      type: 'SET_CONTROL_VALUE',
+      controlId: 'multiphase-model-select',
+      value: 'Volume of Fluid (VOF)',
+    })
+    expect(state.multiphaseModel).toBe('Volume of Fluid (VOF)')
+
+    state = fluentSimReducer(state, parseAndExecuteTui('/solve/check-case', state))
+    expect(state.consoleLogs.at(-1)?.text).toContain('Check Case completed')
+
+    state = fluentSimReducer(
+      state,
+      parseAndExecuteTui('/report/fluxes/mass-flow', state),
+    )
+    expect(state.consoleLogs.at(-1)?.text).toContain('Mass Flow Rate')
+
+    state = fluentSimReducer(state, { type: 'RUN_PARTITION' })
+    expect(state.consoleLogs.at(-1)?.text).toContain('8 balanced subdomains')
+  })
 })

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { FluentLabel } from '../fluentLanguage'
 import type { ConsoleEntry } from '../state/fluentSimState'
 import { tuiPresetCommands } from '../state/fluentTuiCommands'
@@ -9,6 +8,7 @@ export function ConsolePane({
   consoleControl,
   logs,
   label,
+  presetCommands = tuiPresetCommands,
   onInspect,
   onClear,
   onRunCommand,
@@ -17,18 +17,19 @@ export function ConsolePane({
   consoleControl: FluentMockControl
   logs: ConsoleEntry[]
   label: FluentLabel
+  presetCommands?: readonly string[]
   onInspect: (control: FluentMockControl) => void
   onClear: () => void
   onRunCommand: (command: string) => void
 }) {
-  const [commandText, setCommandText] = useState('')
-
   function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!commandText.trim()) return
     onRunCommand(commandText)
     setCommandText('')
   }
+
+  const [commandText, setCommandText] = useState('')
 
   return (
     <section className="fluent-console-pane" aria-label={label('Console')}>
@@ -62,7 +63,7 @@ export function ConsolePane({
         </div>
 
         <div className="fluent-console-tui-bar" aria-label="快捷 TUI 命令">
-          {tuiPresetCommands.map((cmd) => (
+          {presetCommands.map((cmd) => (
             <button
               key={cmd}
               type="button"
@@ -88,3 +89,5 @@ export function ConsolePane({
     </section>
   )
 }
+
+import { useState } from 'react'

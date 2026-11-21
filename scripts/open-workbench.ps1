@@ -1,6 +1,6 @@
 param(
-    [ValidateSet('fluent-guide', 'home', 'calculators', 'formulas')]
-    [string]$Target = 'fluent-guide',
+    [ValidateSet('home', 'fluent-meshing', 'fluent-guide', 'calculators', 'formulas')]
+    [string]$Target = 'home',
     [switch]$Stop,
     [switch]$Preview
 )
@@ -10,10 +10,11 @@ $ProgressPreference = 'SilentlyContinue'
 $project = Split-Path -Parent $PSScriptRoot
 $ports = 5173, 5174
 $routeMap = @{
-    'home'         = '/'
-    'calculators'  = '/calculators'
-    'formulas'     = '/formulas'
-    'fluent-guide' = '/fluent-guide'
+    'home'           = '/'
+    'fluent-meshing' = '/fluent-meshing'
+    'calculators'    = '/calculators'
+    'formulas'       = '/formulas'
+    'fluent-guide'   = '/fluent-guide'
 }
 
 function Test-Workbench([int]$Port) {

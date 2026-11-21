@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { allDialogControls, fluentDialogs } from '../fluentMock/fluentDialogs'
-import { allMainControls, allTaskPanels } from '../fluentMock/fluentControls'
+import {
+  allMainControls,
+  allTaskPanels,
+  ribbonTabs,
+} from '../fluentMock/fluentControls'
 import { fluentExplanationById } from '../fluentMock/fluentExplanations'
 
 describe('Fluent mock data', () => {
@@ -142,5 +146,36 @@ describe('Fluent mock data', () => {
       expect(explanation?.sourceStatus).not.toBe('natural-placeholder')
       expect('futureWindowNotes' in explanation!).toBe(false)
     }
+  })
+
+  it('populates all 11 solver ribbon tabs, 11 models, 12 boundary types, and replaces stub panels', () => {
+    expect(ribbonTabs).toHaveLength(11)
+    for (const tab of ribbonTabs) {
+      const controlCount = tab.groups.reduce(
+        (sum, group) => sum + group.controls.length,
+        0,
+      )
+      expect(controlCount).toBeGreaterThan(0)
+    }
+
+    const modelsPanel = allTaskPanels.find((panel) => panel.id === 'models-panel')
+    expect(modelsPanel).toBeDefined()
+    const modelIds = modelsPanel!.groups.flatMap((g) => g.controls.map((c) => c.id))
+    expect(modelIds).toHaveLength(11)
+
+    const boundaryPanel = allTaskPanels.find(
+      (panel) => panel.id === 'boundary-panel',
+    )
+    expect(boundaryPanel).toBeDefined()
+    const boundaryIds = boundaryPanel!.groups.flatMap((g) =>
+      g.controls.map((c) => c.id),
+    )
+    expect(boundaryIds).toHaveLength(12)
+
+    const allLabels = allTaskPanels.flatMap((p) =>
+      p.groups.flatMap((g) => g.controls.map((c) => c.label)),
+    )
+    expect(allLabels).not.toContain('打开设置')
+    expect(allLabels).not.toContain('查看说明')
   })
 })

@@ -2,6 +2,7 @@ import { FluentIcon } from '../FluentIcons'
 import type { FluentLabel } from '../fluentLanguage'
 import { controlOptionsById } from '../fluentTeachingExtras'
 import {
+  formatViscousBadge,
   getControlChecked,
   getControlValue,
   type FluentSimState,
@@ -31,9 +32,14 @@ function getRadioGroupName(control: FluentMockControl) {
     return 'fluent-time-formulation'
   }
   if (
+    control.id === 'viscous-inviscid' ||
     control.id === 'viscous-laminar' ||
+    control.id === 'viscous-sa' ||
     control.id === 'viscous-kepsilon' ||
-    control.id === 'viscous-kw-sst'
+    control.id === 'viscous-kw-sst' ||
+    control.id === 'viscous-transition-sst' ||
+    control.id === 'viscous-rsm' ||
+    control.id === 'viscous-les'
   ) {
     return 'fluent-viscous-model'
   }
@@ -83,6 +89,38 @@ function isControlDisabled(
     return true
   }
   return false
+}
+
+function getDynamicButtonValue(
+  control: FluentMockControl,
+  simState: FluentSimState,
+): string | undefined {
+  switch (control.id) {
+    case 'models-multiphase':
+      return simState.multiphaseModel
+    case 'models-energy':
+      return simState.energyEnabled ? 'On' : 'Off'
+    case 'models-viscous':
+      return formatViscousBadge(simState.viscousModel)
+    case 'models-radiation':
+      return simState.radiationModel
+    case 'models-heat-exchanger':
+      return simState.heatExchangerModel
+    case 'models-species':
+      return simState.speciesModel
+    case 'models-dpm':
+      return simState.dpmEnabled ? 'On' : 'Off'
+    case 'models-solidification':
+      return simState.solidificationEnabled ? 'On' : 'Off'
+    case 'models-acoustics':
+      return simState.acousticsModel
+    case 'models-wall-film':
+      return simState.wallFilmEnabled ? 'On' : 'Off'
+    case 'models-battery':
+      return simState.batteryModel
+    default:
+      return control.value
+  }
 }
 
 export function ControlRenderer({
@@ -209,6 +247,8 @@ export function ControlRenderer({
     )
   }
 
+  const buttonValue = getDynamicButtonValue(control, simState)
+
   return (
     <button
       type="button"
@@ -218,7 +258,7 @@ export function ControlRenderer({
       onClick={() => onButtonActivate(control)}
     >
       <span>{label(control.label)}</span>
-      {control.value && <small>{label(control.value)}</small>}
+      {buttonValue && <small>{label(buttonValue)}</small>}
       {control.dialogId && <FluentIcon name="chevron" />}
     </button>
   )

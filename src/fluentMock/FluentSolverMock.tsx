@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FluentIcon } from './FluentIcons'
 import { FluentViewport } from './FluentViewport'
 import { ConsolePane } from './components/ConsolePane'
@@ -14,9 +14,14 @@ import { walkthroughSteps } from './fluentTeachingExtras'
 import {
   createInitialFluentSimState,
   fluentSimReducer,
+  formatViscousBadge,
   type HighlightedBoundary,
 } from './state/fluentSimState'
 import { parseAndExecuteTui } from './state/fluentTuiCommands'
+import {
+  consumeMeshingHandoff,
+  parseLauncherParams,
+} from './state/fluentWorkbenchBridge'
 import type { FluentMockControl } from './fluentTypes'
 import './styles/fluentWorkspace.css'
 
@@ -57,11 +62,16 @@ const expandableTreeNodes = [
   'tree-cell-zone-conditions',
   'tree-boundary-conditions',
   'tree-monitors',
+  'tree-surfaces',
   'tree-graphics',
+  'tree-plots',
+  'tree-reports',
 ]
 
 export default function FluentSolverMock() {
   const root = useRef<HTMLElement>(null)
+  const navigate = useNavigate()
+  const location = useLocation()
   const [simState, dispatch] = useReducer(
     fluentSimReducer,
     undefined,
@@ -83,6 +93,14 @@ export default function FluentSolverMock() {
   const [showWalkthrough, setShowWalkthrough] = useState(false)
   const [dialogs, setDialogs] = useState<OpenDialogEntry[]>([])
   const [focusTarget, setFocusTarget] = useState<{ id: string } | null>(null)
+
+  useEffect(() => {
+    const handoff = consumeMeshingHandoff()
+    const launcher = parseLauncherParams(location.search)
+    if (handoff || Object.keys(launcher).length > 0) {
+      dispatch({ type: 'APPLY_MESHING_HANDOFF', handoff, launcher })
+    }
+  }, [location.search])
 
   const label: FluentLabel = (term) => labelIn(language, term)
   const ribbon =
@@ -125,20 +143,39 @@ export default function FluentSolverMock() {
         break
       case 'general-display':
       case 'ribbon-mesh-display':
+      case 'results-mesh':
         dispatch({ type: 'DISPLAY_MESH' })
+        break
+      case 'run-check-case':
+      case 'ribbon-check-case':
+        dispatch({ type: 'RUN_CASE_CHECK' })
+        break
+      case 'ribbon-run-steady':
+        dispatch({ type: 'SET_TIME_FORMULATION', value: 'steady' })
+        break
+      case 'ribbon-run-transient':
+        dispatch({ type: 'SET_TIME_FORMULATION', value: 'transient' })
         break
       case 'material-change-create':
         dispatch({ type: 'UPSERT_MATERIAL' })
         break
       case 'initialization-hybrid':
       case 'initialization-run':
+      case 'initialization-fmg':
+      case 'ribbon-initialize-fmg':
         dispatch({ type: 'RUN_INITIALIZE', method: 'hybrid' })
         break
       case 'initialization-standard':
         dispatch({ type: 'RUN_INITIALIZE', method: 'standard' })
         break
+      case 'initialization-reset':
+        dispatch({ type: 'RESET_INITIALIZATION' })
+        break
       case 'initialization-patch-apply':
         dispatch({ type: 'RUN_PATCH' })
+        break
+      case 'controls-reset-default':
+        dispatch({ type: 'RESET_URF_DEFAULTS' })
         break
       case 'run-calculate':
       case 'run-calculation-calculate':
@@ -146,17 +183,112 @@ export default function FluentSolverMock() {
         break
       case 'results-contours':
       case 'ribbon-contours':
+      case 'dash-show-contours':
         dispatch({ type: 'SET_VIEWPORT_TAB', tab: 'contours' })
         break
       case 'results-vectors':
       case 'ribbon-vectors':
         dispatch({ type: 'SET_VIEWPORT_TAB', tab: 'vectors' })
         break
+      case 'results-pathlines':
+      case 'ribbon-pathlines':
+      case 'pathlines-display':
+      case 'results-particle-tracks':
+      case 'ribbon-particle-tracks':
+        dispatch({ type: 'SET_VIEWPORT_TAB', tab: 'pathlines' })
+        break
       case 'plot-xy':
         dispatch({ type: 'SET_VIEWPORT_TAB', tab: 'xy-plot' })
         break
       case 'plot-residuals':
+      case 'dash-show-residuals':
         dispatch({ type: 'SET_VIEWPORT_TAB', tab: 'residuals' })
+        break
+      case 'fluxes-compute':
+      case 'dash-check-fluxes':
+        dispatch({ type: 'RUN_FLUXES_REPORT' })
+        break
+      case 'forces-compute':
+        dispatch({ type: 'RUN_FORCES_REPORT' })
+        break
+      case 'vol-int-compute':
+        dispatch({ type: 'RUN_VOLUME_INTEGRAL' })
+        break
+      case 'partition-run':
+      case 'ribbon-parallel-auto-partition':
+        dispatch({ type: 'RUN_PARTITION' })
+        break
+      case 'ribbon-parallel-network':
+      case 'ribbon-parallel-timer':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            {
+              kind: 'output',
+              text: `[Parallel Diagnostics] ${simState.processes} MPI processes active, network latency = 0.04 ms (Teaching Demo).`,
+            },
+          ],
+        })
+        break
+      case 'udf-load':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            {
+              kind: 'success',
+              text: '[Teaching Demo] UDF source compiled and loaded into libudf.',
+            },
+          ],
+        })
+        break
+      case 'sim-report-generate':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            {
+              kind: 'success',
+              text: '[Teaching Demo] Generated Simulation Report snapshot with mesh, physics & convergence summary.',
+            },
+          ],
+        })
+        break
+      case 'ribbon-view-iso':
+        dispatch({ type: 'SET_CAMERA_PRESET', preset: 'isometric' })
+        break
+      case 'ribbon-view-front':
+        dispatch({ type: 'SET_CAMERA_PRESET', preset: 'front' })
+        break
+      case 'ribbon-view-top':
+        dispatch({ type: 'SET_CAMERA_PRESET', preset: 'top' })
+        break
+      case 'ribbon-view-left':
+        dispatch({ type: 'SET_CAMERA_PRESET', preset: 'left' })
+        break
+      case 'ribbon-view-fit':
+      case 'ribbon-view-reset':
+        dispatch({ type: 'SET_CAMERA_PRESET', preset: 'isometric' })
+        dispatch({ type: 'SET_VIEWPORT_TAB', tab: 'mesh' })
+        break
+      case 'ribbon-switch-to-meshing':
+      case 'ribbon-help-meshing':
+        navigate(
+          `/fluent-meshing?dim=${simState.dimension}&dp=${simState.doublePrecision ? '1' : '0'}&np=${simState.processes}`,
+        )
+        break
+      case 'ribbon-help-walkthrough':
+        setShowWalkthrough((v) => !v)
+        break
+      case 'ribbon-help-troubleshoot':
+        setShowGuide(true)
+        break
+      case 'ribbon-help-calculators':
+        navigate('/calculators')
+        break
+      case 'ribbon-help-formulas':
+        navigate('/formulas')
+        break
+      case 'ribbon-help-tui':
+        dispatch(parseAndExecuteTui('help', simState))
         break
       case 'units-restore-si':
         dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'units-length', value: 'm' })
@@ -191,14 +323,22 @@ export default function FluentSolverMock() {
   }
 
   function highlightBoundaryForControl(controlId: string): HighlightedBoundary {
-    if (controlId === 'bc-velocity-inlet' || controlId === 'bc-mass-flow-inlet') {
+    if (
+      controlId === 'bc-velocity-inlet' ||
+      controlId === 'bc-mass-flow-inlet' ||
+      controlId === 'bc-pressure-inlet'
+    ) {
       return 'inlet'
     }
-    if (controlId === 'bc-pressure-outlet' || controlId === 'bc-outflow') {
+    if (
+      controlId === 'bc-pressure-outlet' ||
+      controlId === 'bc-outflow' ||
+      controlId === 'bc-pressure-far-field'
+    ) {
       return 'outlet'
     }
     if (controlId === 'bc-wall') return 'wall'
-    if (controlId === 'bc-symmetry') return 'symmetry'
+    if (controlId === 'bc-symmetry' || controlId === 'bc-axis') return 'symmetry'
     return null
   }
 
@@ -324,9 +464,16 @@ export default function FluentSolverMock() {
         <div className="fluent-topbar-brand">
           <Link to="/">CFD Assistant</Link>
           <nav aria-label="站内导航" lang="zh-CN">
+            <Link to="/">功能首页</Link>
             <Link to="/calculators">参数计算</Link>
             <Link to="/formulas">CFD 公式库</Link>
           </nav>
+          <div className="fluent-mode-switcher" role="group" aria-label="Fluent 模式切换">
+            <Link className="fluent-mode-pill" to="/fluent-meshing">
+              Meshing
+            </Link>
+            <span className="fluent-mode-pill active">Solution</span>
+          </div>
         </div>
         <div className="fluent-topbar-actions" lang="zh-CN">
           <button
@@ -373,6 +520,9 @@ export default function FluentSolverMock() {
         <div className="fluent-titlebar-left">
           <h1 id="fluent-title">{label('Fluent Solver Workbench')}</h1>
           <p>
+            [{simState.dimension}, {simState.doublePrecision ? 'dp' : 'sp'},{' '}
+            {simState.solverType === 'pressure-based' ? 'pbns' : 'dbns'}, np=
+            {simState.processes}] <span aria-hidden="true">/</span>{' '}
             {label('Teaching preview')} <span aria-hidden="true">/</span>{' '}
             {label('No solver session')}
           </p>
@@ -435,37 +585,31 @@ export default function FluentSolverMock() {
           ))}
         </nav>
         <div className="fluent-ribbon-groups">
-          {ribbon.groups.some((group) => group.controls.length > 0) ? (
-            ribbon.groups.map((group) => (
-              <div className="fluent-ribbon-group" key={group.id}>
-                <div className="fluent-ribbon-buttons">
-                  {group.controls.map((control) => (
-                    <button
-                      className={
-                        'fluent-ribbon-tool' +
-                        (control.id === activeControlId ? ' active' : '')
-                      }
-                      data-fluent-control={control.id}
-                      disabled={!control.enabled}
-                      key={control.id}
-                      onClick={() => activate(control)}
-                      type="button"
-                    >
-                      <FluentIcon controlId={control.id} />
-                      <span>{label(control.label)}</span>
-                    </button>
-                  ))}
-                </div>
-                <span className="fluent-ribbon-group-label">
-                  {label(group.id === 'ribbon-zone' ? 'Zones' : group.label)}
-                </span>
+          {ribbon.groups.map((group) => (
+            <div className="fluent-ribbon-group" key={group.id}>
+              <div className="fluent-ribbon-buttons">
+                {group.controls.map((control) => (
+                  <button
+                    className={
+                      'fluent-ribbon-tool' +
+                      (control.id === activeControlId ? ' active' : '')
+                    }
+                    data-fluent-control={control.id}
+                    disabled={!control.enabled}
+                    key={control.id}
+                    onClick={() => activate(control)}
+                    type="button"
+                  >
+                    <FluentIcon controlId={control.id} />
+                    <span>{label(control.label)}</span>
+                  </button>
+                ))}
               </div>
-            ))
-          ) : (
-            <p className="fluent-ribbon-empty">
-              {label('No interactive commands in this tab.')}
-            </p>
-          )}
+              <span className="fluent-ribbon-group-label">
+                {label(group.id === 'ribbon-zone' ? 'Zones' : group.label)}
+              </span>
+            </div>
+          ))}
         </div>
       </header>
 
@@ -520,6 +664,7 @@ export default function FluentSolverMock() {
             const target = controlById.get(targetControlId)
             if (target) activate(target)
           }}
+          onDisplayMesh={() => dispatch({ type: 'DISPLAY_MESH' })}
         />
 
         <section className="fluent-task-pane" aria-label={label('Task Page')}>
@@ -546,6 +691,7 @@ export default function FluentSolverMock() {
                   ))}
 
                   {panel.id === 'run-calculation-panel' &&
+                    group.id === 'run-parameters-group' &&
                     simState.timeFormulation === 'transient' && (
                       <>
                         <div className="fluent-field-row">
@@ -587,11 +733,12 @@ export default function FluentSolverMock() {
                       </>
                     )}
 
-                  {panel.id === 'solution-methods-panel' && (
+                  {panel.id === 'solution-methods-panel' &&
+                    group.id === 'methods-options-group' && (
                     <>
                       {simState.energyEnabled && (
                         <div className="fluent-inline-note">
-                          Energy 方程已激活：可点击上方 Solution Methods 详情核对二阶迎风能量离散。
+                          Energy 方程已激活：可直接在上方核对二阶迎风能量离散格式。
                         </div>
                       )}
                       {simState.timeFormulation === 'transient' && (
@@ -681,6 +828,28 @@ export default function FluentSolverMock() {
           }}
         />
       </div>
+
+      <footer className="fluent-statusbar">
+        <span>
+          Solver: {simState.solverType} ({simState.timeFormulation})
+        </span>
+        <span>Viscous: {formatViscousBadge(simState.viscousModel)}</span>
+        <span>Energy: {simState.energyEnabled ? 'On' : 'Off'}</span>
+        <span>
+          Mesh: {simState.meshInfo.cellCount.toLocaleString()} cells ({simState.meshInfo.meshType})
+        </span>
+        <span>
+          Status:{' '}
+          {simState.runCalculation.hasCalculated
+            ? `Converged (${simState.runCalculation.completedIterations} iter)`
+            : simState.initialization.isInitialized
+              ? 'Initialized'
+              : 'Not Initialized'}
+        </span>
+        <Link className="fluent-status-link" to="/fluent-meshing">
+          {label('Switch to Meshing')} →
+        </Link>
+      </footer>
     </section>
   )
 }

@@ -16,6 +16,7 @@ const viewportTabs: Array<{ id: ViewportTab; labelKey: string }> = [
   { id: 'geometry', labelKey: 'Geometry' },
   { id: 'contours', labelKey: 'Contours' },
   { id: 'vectors', labelKey: 'Vectors' },
+  { id: 'pathlines', labelKey: 'Pathlines' },
   { id: 'residuals', labelKey: 'Scaled Residuals' },
   { id: 'xy-plot', labelKey: 'XY Plot' },
 ]
@@ -47,6 +48,15 @@ export function FluentViewport({
   const showMeshEdges =
     activeTab === 'mesh' ||
     (activeTab === 'contours' && simState.meshDisplay.showEdges)
+
+  const presetRotationOffset =
+    simState.cameraPreset === 'front'
+      ? 0
+      : simState.cameraPreset === 'top'
+        ? -12
+        : simState.cameraPreset === 'left'
+          ? 12
+          : 0
 
   function activate(tool: FluentMockControl) {
     onInspect(tool)
@@ -120,7 +130,7 @@ export function FluentViewport({
             <ElbowCanvas
               activeTab={activeTab}
               pan={pan}
-              rotation={rotation}
+              rotation={rotation + presetRotationOffset}
               showMeshEdges={showMeshEdges}
               simState={simState}
               zoom={zoom}
@@ -156,7 +166,9 @@ export function FluentViewport({
             </div>
           )}
 
-          {(activeTab === 'contours' || activeTab === 'vectors') &&
+          {(activeTab === 'contours' ||
+            activeTab === 'vectors' ||
+            activeTab === 'pathlines') &&
             !simState.runCalculation.hasCalculated && (
               <div className="fluent-canvas-hint">
                 教学示例预览（运行 Initialize → Calculate 后将刷新收敛演示视图）
@@ -215,6 +227,9 @@ export function FluentViewport({
             <option value="edges">edges</option>
             <option value="cells">cells</option>
           </select>
+          <small className="fluent-mesh-badge-inline">
+            View: {simState.cameraPreset}
+          </small>
         </div>
       )}
     </section>
@@ -231,6 +246,8 @@ function captionForTab(
       return `${label('Contours')}: ${simState.contourField} (Teaching Demo)`
     case 'vectors':
       return `${label('Vectors')}: ${simState.vectorField} (Teaching Demo)`
+    case 'pathlines':
+      return `${label('Pathlines')}: Released from inlet (Teaching Demo)`
     case 'residuals':
       return `${label('Scaled Residuals')} (${simState.runCalculation.hasCalculated ? `${simState.runCalculation.completedIterations} iter` : 'Pending Calculate'})`
     case 'xy-plot':
@@ -325,6 +342,27 @@ function ElbowCanvas({
             <path d="M268 171l24-18m-7-1 7 1-2 7" />
             <path d="M318 128l18-28m-7 2 7-2 1 7" />
             <path d="M340 84V52m-4 5 4-5 4 5" />
+          </g>
+        )}
+
+        {activeTab === 'pathlines' && (
+          <g fill="none" strokeWidth="1.8" strokeLinecap="round">
+            <path
+              d="M48 162H235A84 84 0 0 0 319 78V40"
+              stroke="#fde047"
+            />
+            <path
+              d="M48 176H235A98 98 0 0 0 333 78V40"
+              stroke="#38bdf8"
+            />
+            <path
+              d="M48 190H235A112 112 0 0 0 347 78V40"
+              stroke="#fb7185"
+            />
+            <path
+              d="M48 205H235A127 127 0 0 0 362 78V40"
+              stroke="#34d399"
+            />
           </g>
         )}
 

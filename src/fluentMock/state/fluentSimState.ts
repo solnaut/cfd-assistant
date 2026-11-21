@@ -1,3 +1,9 @@
+import type {
+  FluentDimension,
+  FluentLauncherConfig,
+  MeshingToSolutionHandoff,
+} from './fluentWorkbenchBridge'
+
 export type ConsoleEntryKind = 'info' | 'command' | 'output' | 'warning' | 'success'
 
 export interface ConsoleEntry {
@@ -11,6 +17,7 @@ export type ViewportTab =
   | 'geometry'
   | 'contours'
   | 'vectors'
+  | 'pathlines'
   | 'residuals'
   | 'xy-plot'
 
@@ -21,7 +28,21 @@ export type HighlightedBoundary =
   | 'wall'
   | 'symmetry'
 
+export type CameraPreset = 'isometric' | 'front' | 'top' | 'left'
+
 export interface FluentSimState {
+  dimension: FluentDimension
+  doublePrecision: boolean
+  processes: number
+  meshInfo: {
+    transferredFromMeshing: boolean
+    meshType: string
+    cellCount: number
+    surfaceFaceCount: number
+    minOrthogonalQuality: number
+    maxSkewness: number
+  }
+  cameraPreset: CameraPreset
   solverType: 'pressure-based' | 'density-based'
   velocityFormulation: 'absolute' | 'relative'
   timeFormulation: 'steady' | 'transient'
@@ -29,15 +50,35 @@ export interface FluentSimState {
   gravityVector: { x: string; y: string; z: string }
   operatingPressure: string
   operatingDensity: string
+  multiphaseModel: string
   energyEnabled: boolean
   viscousHeating: boolean
   diffusionEnergySource: boolean
-  viscousModel: 'laminar' | 'k-epsilon' | 'k-omega-sst'
+  viscousModel:
+    | 'inviscid'
+    | 'laminar'
+    | 'spalart-allmaras'
+    | 'k-epsilon'
+    | 'k-omega-sst'
+    | 'transition-sst'
+    | 'rsm'
+    | 'les'
   kEpsilonSubModel: 'standard' | 'rng' | 'realizable'
+  kOmegaSubModel: 'standard' | 'bsl' | 'sst' | 'geko'
   nearWallTreatment:
     | 'Standard Wall Functions'
     | 'Scalable Wall Functions'
     | 'Enhanced Wall Treatment'
+  curvatureCorrection: boolean
+  productionLimiter: boolean
+  radiationModel: string
+  heatExchangerModel: string
+  speciesModel: string
+  dpmEnabled: boolean
+  solidificationEnabled: boolean
+  acousticsModel: string
+  wallFilmEnabled: boolean
+  batteryModel: string
   materials: {
     fluids: string[]
     solids: string[]
@@ -102,13 +143,29 @@ export interface FluentSimState {
     gradient: string
     pressure: string
     momentum: string
+    tkeScheme: string
+    omegaScheme: string
     energyScheme: string
     transientFormulation: string
+    warpedFaceCorrection: boolean
+    highOrderTermRelaxation: boolean
+    pseudoTimeMethod: string
   }
   controls: {
     pressureUrf: string
+    densityUrf: string
+    bodyForcesUrf: string
     momentumUrf: string
+    tkeUrf: string
+    omegaUrf: string
+    turbViscosityUrf: string
+    energyUrf: string
+    flowEquationEnabled: boolean
+    turbulenceEquationEnabled: boolean
     energyEquationEnabled: boolean
+    minTempLimit: string
+    maxTempLimit: string
+    maxTurbViscRatio: string
   }
   monitors: {
     continuityResidual: boolean
@@ -122,6 +179,7 @@ export interface FluentSimState {
   }
   initialization: {
     method: 'hybrid' | 'standard'
+    computeFrom: string
     referenceFrame: string
     isInitialized: boolean
     patchRegion: string
@@ -130,6 +188,8 @@ export interface FluentSimState {
   }
   runCalculation: {
     iterations: string
+    reportingInterval: string
+    profileUpdateInterval: string
     timeStepSize: string
     numberOfTimeSteps: string
     maxIterationsPerTimeStep: string
@@ -176,6 +236,7 @@ export interface FluentSimState {
   selectionFilter: 'all' | 'faces' | 'edges' | 'cells'
   viewportTab: ViewportTab
   highlightedBoundary: HighlightedBoundary
+  controlOverrides: Record<string, string | boolean>
   consoleLogs: ConsoleEntry[]
   nextLogId: number
   walkthroughStep: number
@@ -200,7 +261,7 @@ export type FluentSimAction =
   | { type: 'SET_ENERGY_ENABLED'; enabled: boolean }
   | {
       type: 'SET_VISCOUS_MODEL'
-      model: 'laminar' | 'k-epsilon' | 'k-omega-sst'
+      model: FluentSimState['viscousModel']
     }
   | {
       type: 'SET_NEAR_WALL_TREATMENT'
@@ -210,11 +271,24 @@ export type FluentSimAction =
   | { type: 'RUN_MESH_CHECK' }
   | { type: 'RUN_MESH_QUALITY' }
   | { type: 'DISPLAY_MESH' }
+  | { type: 'RUN_CASE_CHECK' }
   | { type: 'RUN_INITIALIZE'; method?: 'hybrid' | 'standard' }
+  | { type: 'RESET_INITIALIZATION' }
   | { type: 'RUN_PATCH' }
   | { type: 'RUN_CALCULATE'; iterationsOverride?: number }
   | { type: 'APPLY_DIALOG'; dialogTitle: string }
   | { type: 'COMPUTE_REPORT'; reportLabel: string }
+  | { type: 'RUN_FLUXES_REPORT' }
+  | { type: 'RUN_FORCES_REPORT' }
+  | { type: 'RUN_VOLUME_INTEGRAL' }
+  | { type: 'RUN_PARTITION' }
+  | { type: 'RESET_URF_DEFAULTS' }
+  | { type: 'SET_CAMERA_PRESET'; preset: CameraPreset }
+  | {
+      type: 'APPLY_MESHING_HANDOFF'
+      handoff?: MeshingToSolutionHandoff | null
+      launcher?: Partial<FluentLauncherConfig>
+    }
   | {
       type: 'SET_CONTROL_VALUE'
       controlId: string
@@ -233,6 +307,18 @@ export type FluentSimAction =
 
 export function createInitialFluentSimState(): FluentSimState {
   return {
+    dimension: '3d',
+    doublePrecision: true,
+    processes: 4,
+    meshInfo: {
+      transferredFromMeshing: false,
+      meshType: 'poly-hexcore',
+      cellCount: 18420,
+      surfaceFaceCount: 3840,
+      minOrthogonalQuality: 0.21,
+      maxSkewness: 0.82,
+    },
+    cameraPreset: 'isometric',
     solverType: 'pressure-based',
     velocityFormulation: 'absolute',
     timeFormulation: 'steady',
@@ -240,12 +326,24 @@ export function createInitialFluentSimState(): FluentSimState {
     gravityVector: { x: '0', y: '-9.81', z: '0' },
     operatingPressure: '101325',
     operatingDensity: '1.225',
+    multiphaseModel: 'Off',
     energyEnabled: false,
     viscousHeating: false,
     diffusionEnergySource: false,
     viscousModel: 'k-omega-sst',
     kEpsilonSubModel: 'realizable',
+    kOmegaSubModel: 'sst',
     nearWallTreatment: 'Enhanced Wall Treatment',
+    curvatureCorrection: false,
+    productionLimiter: true,
+    radiationModel: 'Off',
+    heatExchangerModel: 'Off',
+    speciesModel: 'Off',
+    dpmEnabled: false,
+    solidificationEnabled: false,
+    acousticsModel: 'Off',
+    wallFilmEnabled: false,
+    batteryModel: 'Off',
     materials: {
       fluids: ['air', 'water-liquid'],
       solids: ['aluminum'],
@@ -310,13 +408,29 @@ export function createInitialFluentSimState(): FluentSimState {
       gradient: 'Least Squares Cell Based',
       pressure: 'Second Order',
       momentum: 'Second Order Upwind',
+      tkeScheme: 'Second Order Upwind',
+      omegaScheme: 'Second Order Upwind',
       energyScheme: 'Second Order Upwind',
       transientFormulation: 'First Order Implicit',
+      warpedFaceCorrection: false,
+      highOrderTermRelaxation: false,
+      pseudoTimeMethod: 'Global Time Step',
     },
     controls: {
       pressureUrf: '0.3',
+      densityUrf: '1.0',
+      bodyForcesUrf: '1.0',
       momentumUrf: '0.7',
+      tkeUrf: '0.8',
+      omegaUrf: '0.8',
+      turbViscosityUrf: '1.0',
+      energyUrf: '1.0',
+      flowEquationEnabled: true,
+      turbulenceEquationEnabled: true,
       energyEquationEnabled: false,
+      minTempLimit: '1',
+      maxTempLimit: '5000',
+      maxTurbViscRatio: '1e5',
     },
     monitors: {
       continuityResidual: true,
@@ -330,6 +444,7 @@ export function createInitialFluentSimState(): FluentSimState {
     },
     initialization: {
       method: 'hybrid',
+      computeFrom: 'inlet',
       referenceFrame: 'Relative to Cell Zone',
       isInitialized: false,
       patchRegion: 'fluid-domain',
@@ -338,6 +453,8 @@ export function createInitialFluentSimState(): FluentSimState {
     },
     runCalculation: {
       iterations: '250',
+      reportingInterval: '1',
+      profileUpdateInterval: '1',
       timeStepSize: '0.005 s',
       numberOfTimeSteps: '100',
       maxIterationsPerTimeStep: '20',
@@ -384,6 +501,7 @@ export function createInitialFluentSimState(): FluentSimState {
     selectionFilter: 'all',
     viewportTab: 'mesh',
     highlightedBoundary: null,
+    controlOverrides: {},
     consoleLogs: [
       {
         id: 1,
@@ -436,11 +554,92 @@ function parseGravityVectorString(
   return { x: parts[0], y: parts[1], z: parts[2] }
 }
 
+export function formatViscousBadge(model: FluentSimState['viscousModel']): string {
+  switch (model) {
+    case 'inviscid':
+      return 'Inviscid'
+    case 'laminar':
+      return 'Laminar'
+    case 'spalart-allmaras':
+      return 'Spalart-Allmaras'
+    case 'k-epsilon':
+      return 'k-epsilon'
+    case 'k-omega-sst':
+      return 'SST k-omega'
+    case 'transition-sst':
+      return 'Transition SST'
+    case 'rsm':
+      return 'RSM'
+    case 'les':
+      return 'LES / DES'
+  }
+}
+
 export function fluentSimReducer(
   state: FluentSimState,
   action: FluentSimAction,
 ): FluentSimState {
   switch (action.type) {
+    case 'APPLY_MESHING_HANDOFF': {
+      const nextDim =
+        action.handoff?.dimension ?? action.launcher?.dimension ?? state.dimension
+      const nextDp =
+        action.handoff?.doublePrecision ??
+        action.launcher?.doublePrecision ??
+        state.doublePrecision
+      const nextNp =
+        action.handoff?.processes ?? action.launcher?.processes ?? state.processes
+
+      if (!action.handoff) {
+        if (
+          nextDim === state.dimension &&
+          nextDp === state.doublePrecision &&
+          nextNp === state.processes
+        ) {
+          return state
+        }
+        return {
+          ...state,
+          dimension: nextDim,
+          doublePrecision: nextDp,
+          processes: nextNp,
+          ...appendLogs(state, [
+            {
+              kind: 'info',
+              text: `[Launcher Config] Session configured as [${nextDim}, ${nextDp ? 'dp' : 'sp'}, np=${nextNp}].`,
+            },
+          ]),
+        }
+      }
+
+      const h = action.handoff
+      return {
+        ...state,
+        dimension: h.dimension,
+        doublePrecision: h.doublePrecision,
+        processes: h.processes,
+        meshInfo: {
+          transferredFromMeshing: true,
+          meshType: h.meshType,
+          cellCount: h.cellCount,
+          surfaceFaceCount: h.surfaceFaceCount,
+          minOrthogonalQuality: h.minOrthogonalQuality,
+          maxSkewness: h.maxSkewness,
+        },
+        viewportTab: 'mesh',
+        ...appendLogs(state, [
+          {
+            kind: 'success',
+            text: `[Switch to Solution] Received ${h.meshType} mesh from Fluent Meshing: ${h.cellCount.toLocaleString()} cells, ${h.boundaryLayers} prism layers, Min Ortho Quality = ${h.minOrthogonalQuality}.`,
+          },
+          {
+            kind: 'output',
+            text: `Transferred boundary zones: ${h.boundarySummary.map((b) => `${b.name}(${b.type})`).join(', ')}.`,
+          },
+        ]),
+      }
+    }
+
     case 'SET_TIME_FORMULATION': {
       if (state.timeFormulation === action.value) return state
       return {
@@ -521,9 +720,9 @@ export function fluentSimReducer(
           {
             kind: 'info',
             text:
-              action.model === 'laminar'
-                ? 'Viscous model set to Laminar. Turbulence inputs in inlets/outlets are bypassed.'
-                : `Viscous model set to ${action.model === 'k-epsilon' ? `k-epsilon (${state.kEpsilonSubModel})` : 'k-omega SST'}. Check y+ target and near-wall mesh.`,
+              action.model === 'laminar' || action.model === 'inviscid'
+                ? `Viscous model set to ${formatViscousBadge(action.model)}. Turbulence inputs in inlets/outlets are bypassed.`
+                : `Viscous model set to ${formatViscousBadge(action.model)}. Check y+ target and near-wall mesh.`,
           },
         ]),
       }
@@ -579,7 +778,7 @@ export function fluentSimReducer(
           },
           {
             kind: 'success',
-            text: 'Volume statistics: minimum volume = 1.42e-09 m³ (> 0). Mesh check complete (Teaching Demo).',
+            text: `Volume statistics (${state.meshInfo.cellCount.toLocaleString()} cells): minimum volume = 1.42e-09 m³ (> 0). Mesh check complete (Teaching Demo).`,
           },
         ]),
       }
@@ -593,7 +792,7 @@ export function fluentSimReducer(
           { kind: 'command', text: '> /mesh/quality' },
           {
             kind: 'output',
-            text: 'Minimum Orthogonal Quality = 2.10e-01 | Maximum Aspect Ratio = 1.45e+02 | Max Skewness = 0.82',
+            text: `Minimum Orthogonal Quality = ${state.meshInfo.minOrthogonalQuality.toExponential(2)} | Max Skewness = ${state.meshInfo.maxSkewness}`,
           },
         ]),
       }
@@ -607,6 +806,27 @@ export function fluentSimReducer(
           {
             kind: 'info',
             text: `Displayed mesh surfaces (${state.meshDisplay.surfaces}), edges=${state.meshDisplay.showEdges ? 'on' : 'off'}.`,
+          },
+        ]),
+      }
+    }
+
+    case 'RUN_CASE_CHECK': {
+      const notes: string[] = [
+        `Mesh: ${state.meshInfo.cellCount.toLocaleString()} cells (${state.meshInfo.meshType}), Min Ortho=${state.meshInfo.minOrthogonalQuality}.`,
+        `Models: Viscous=${formatViscousBadge(state.viscousModel)}, Energy=${state.energyEnabled ? 'On' : 'Off'}, Multiphase=${state.multiphaseModel}.`,
+        state.initialization.isInitialized
+          ? 'Initialization: Initialized and ready.'
+          : 'Recommendation: Run Hybrid or Standard Initialization before Calculate.',
+      ]
+      return {
+        ...state,
+        ...appendLogs(state, [
+          { kind: 'command', text: '> /solve/check-case' },
+          ...notes.map((text) => ({ kind: 'output' as const, text })),
+          {
+            kind: 'success',
+            text: '[Teaching Demo] Check Case completed with 0 critical errors.',
           },
         ]),
       }
@@ -634,11 +854,32 @@ export function fluentSimReducer(
             text:
               method === 'hybrid'
                 ? 'Hybrid Initialization: solving Laplace potential field (10 demo iterations)...'
-                : 'Standard Initialization: computing initial field from inlet reference values...',
+                : `Standard Initialization: computing initial field from ${state.initialization.computeFrom}...`,
           },
           {
             kind: 'success',
             text: 'Initialization complete (Teaching Demo). Ready to run calculation.',
+          },
+        ]),
+      }
+    }
+
+    case 'RESET_INITIALIZATION': {
+      return {
+        ...state,
+        initialization: {
+          ...state.initialization,
+          isInitialized: false,
+        },
+        runCalculation: {
+          ...state.runCalculation,
+          hasCalculated: false,
+          completedIterations: 0,
+        },
+        ...appendLogs(state, [
+          {
+            kind: 'info',
+            text: 'Flow field initialization reset (Teaching Demo).',
           },
         ]),
       }
@@ -719,7 +960,7 @@ export function fluentSimReducer(
           },
           {
             kind: 'success',
-            text: `Teaching Demo converged after ${requestedSteps} ${state.timeFormulation === 'transient' ? 'time steps' : 'iterations'}. Contours & Vectors preview unlocked.`,
+            text: `Teaching Demo converged after ${requestedSteps} ${state.timeFormulation === 'transient' ? 'time steps' : 'iterations'}. Contours, Vectors & Pathlines unlocked.`,
           },
         ]),
       }
@@ -744,6 +985,93 @@ export function fluentSimReducer(
           {
             kind: 'output',
             text: `[Teaching Demo] ${action.reportLabel}: Area-Weighted Velocity = 2.54 m/s, Mass Imbalance = 1.2e-06 kg/s.`,
+          },
+        ]),
+      }
+    }
+
+    case 'RUN_FLUXES_REPORT': {
+      return {
+        ...state,
+        ...appendLogs(state, [
+          { kind: 'command', text: '> /report/fluxes/mass-flow' },
+          {
+            kind: 'output',
+            text: 'Mass Flow Rate [kg/s]: velocity-inlet = +0.0240, mass-flow-inlet = +0.1500, pressure-outlet = -0.1740 | Net = 1.2e-06 kg/s (Teaching Demo).',
+          },
+        ]),
+      }
+    }
+
+    case 'RUN_FORCES_REPORT': {
+      return {
+        ...state,
+        ...appendLogs(state, [
+          { kind: 'command', text: '> /report/forces/wall-forces' },
+          {
+            kind: 'output',
+            text: 'Forces on wall-heated (N): Pressure = (0.142, -0.038, 0), Viscous = (0.019, -0.004, 0), Total = 0.161 N (Teaching Demo).',
+          },
+        ]),
+      }
+    }
+
+    case 'RUN_VOLUME_INTEGRAL': {
+      return {
+        ...state,
+        ...appendLogs(state, [
+          {
+            kind: 'output',
+            text: '[Teaching Demo] Volume-Average (fluid-domain): Static Temperature = 308.4 K, Total Volume = 4.62e-3 m³.',
+          },
+        ]),
+      }
+    }
+
+    case 'RUN_PARTITION': {
+      return {
+        ...state,
+        ...appendLogs(state, [
+          { kind: 'command', text: '> /parallel/partition/auto' },
+          {
+            kind: 'success',
+            text: `[Teaching Demo] Metis partitioned ${state.meshInfo.cellCount.toLocaleString()} cells into ${state.processes} balanced subdomains (max imbalance < 1.8%).`,
+          },
+        ]),
+      }
+    }
+
+    case 'RESET_URF_DEFAULTS': {
+      return {
+        ...state,
+        controls: {
+          ...state.controls,
+          pressureUrf: '0.3',
+          densityUrf: '1.0',
+          bodyForcesUrf: '1.0',
+          momentumUrf: '0.7',
+          tkeUrf: '0.8',
+          omegaUrf: '0.8',
+          turbViscosityUrf: '1.0',
+          energyUrf: '1.0',
+        },
+        ...appendLogs(state, [
+          {
+            kind: 'info',
+            text: 'Under-Relaxation Factors restored to Fluent defaults (P=0.3, Mom=0.7, k/omega=0.8, Energy=1.0).',
+          },
+        ]),
+      }
+    }
+
+    case 'SET_CAMERA_PRESET': {
+      return {
+        ...state,
+        cameraPreset: action.preset,
+        ...appendLogs(state, [
+          {
+            kind: 'info',
+            text: `Graphics camera view set to ${action.preset}.`,
           },
         ]),
       }
@@ -885,7 +1213,44 @@ function applyControlValue(
       return { ...state, operatingPressure: str }
     case 'operating-density':
       return { ...state, operatingDensity: str }
+    case 'multiphase-model-select':
+      return {
+        ...state,
+        multiphaseModel: str,
+        ...appendLogs(state, [
+          { kind: 'info', text: `Multiphase model set to ${str}.` },
+        ]),
+      }
+    case 'radiation-model-select':
+      return {
+        ...state,
+        radiationModel: str,
+        ...appendLogs(state, [
+          { kind: 'info', text: `Radiation model set to ${str}.` },
+        ]),
+      }
+    case 'species-model-select':
+      return {
+        ...state,
+        speciesModel: str,
+        ...appendLogs(state, [
+          { kind: 'info', text: `Species model set to ${str}.` },
+        ]),
+      }
+    case 'dpm-interaction':
+      return { ...state, dpmEnabled: bool }
+    case 'hx-model-type':
+      return { ...state, heatExchangerModel: str }
+    case 'solidification-enable':
+      return { ...state, solidificationEnabled: bool }
+    case 'acoustics-model-select':
+      return { ...state, acousticsModel: str }
+    case 'wall-film-enable':
+      return { ...state, wallFilmEnabled: bool }
+    case 'battery-model-select':
+      return { ...state, batteryModel: str }
     case 'energy-enable':
+    case 'eq-energy':
       return fluentSimReducer(state, {
         type: 'SET_ENERGY_ENABLED',
         enabled: bool,
@@ -894,26 +1259,41 @@ function applyControlValue(
       return { ...state, viscousHeating: bool }
     case 'energy-diffusion':
       return { ...state, diffusionEnergySource: bool }
+    case 'viscous-inviscid':
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'inviscid' })
     case 'viscous-laminar':
-      return fluentSimReducer(state, {
-        type: 'SET_VISCOUS_MODEL',
-        model: 'laminar',
-      })
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'laminar' })
+    case 'viscous-sa':
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'spalart-allmaras' })
     case 'viscous-kepsilon':
-      return fluentSimReducer(state, {
-        type: 'SET_VISCOUS_MODEL',
-        model: 'k-epsilon',
-      })
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'k-epsilon' })
     case 'viscous-kw-sst':
-      return fluentSimReducer(state, {
-        type: 'SET_VISCOUS_MODEL',
-        model: 'k-omega-sst',
-      })
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'k-omega-sst' })
+    case 'viscous-transition-sst':
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'transition-sst' })
+    case 'viscous-rsm':
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'rsm' })
+    case 'viscous-les':
+      return fluentSimReducer(state, { type: 'SET_VISCOUS_MODEL', model: 'les' })
+    case 'viscous-ke-submodel':
+      return {
+        ...state,
+        kEpsilonSubModel: str as FluentSimState['kEpsilonSubModel'],
+      }
+    case 'viscous-kw-submodel':
+      return {
+        ...state,
+        kOmegaSubModel: str as FluentSimState['kOmegaSubModel'],
+      }
     case 'viscous-wall-treatment':
       return fluentSimReducer(state, {
         type: 'SET_NEAR_WALL_TREATMENT',
         treatment: str as FluentSimState['nearWallTreatment'],
       })
+    case 'viscous-curvature-correction':
+      return { ...state, curvatureCorrection: bool }
+    case 'viscous-production-limiter':
+      return { ...state, productionLimiter: bool }
     case 'materials-assigned':
       return {
         ...state,
@@ -1162,6 +1542,7 @@ function applyControlValue(
         ...state,
         methods: { ...state.methods, gradient: str },
       }
+    case 'methods-pressure-scheme':
     case 'solution-methods-pressure':
       return {
         ...state,
@@ -1173,27 +1554,71 @@ function applyControlValue(
         ...state,
         methods: { ...state.methods, momentum: str },
       }
+    case 'methods-tke':
+      return { ...state, methods: { ...state.methods, tkeScheme: str } }
+    case 'methods-omega':
+      return { ...state, methods: { ...state.methods, omegaScheme: str } }
+    case 'methods-energy-scheme':
+      return { ...state, methods: { ...state.methods, energyScheme: str } }
+    case 'methods-transient-formulation':
+      return { ...state, methods: { ...state.methods, transientFormulation: str } }
+    case 'methods-warped-face':
+      return { ...state, methods: { ...state.methods, warpedFaceCorrection: bool } }
+    case 'methods-high-order-relax':
+      return { ...state, methods: { ...state.methods, highOrderTermRelaxation: bool } }
+    case 'methods-pseudo-time':
+      return { ...state, methods: { ...state.methods, pseudoTimeMethod: str } }
+    case 'controls-urf-pressure':
     case 'solution-controls-pressure':
       return {
         ...state,
         controls: { ...state.controls, pressureUrf: str },
       }
+    case 'controls-urf-density':
+      return { ...state, controls: { ...state.controls, densityUrf: str } }
+    case 'controls-urf-body-forces':
+      return { ...state, controls: { ...state.controls, bodyForcesUrf: str } }
+    case 'controls-urf-momentum':
     case 'solution-controls-momentum':
       return {
         ...state,
         controls: { ...state.controls, momentumUrf: str },
       }
+    case 'controls-urf-tke':
+      return { ...state, controls: { ...state.controls, tkeUrf: str } }
+    case 'controls-urf-omega':
+      return { ...state, controls: { ...state.controls, omegaUrf: str } }
+    case 'controls-urf-turb-visc':
+      return { ...state, controls: { ...state.controls, turbViscosityUrf: str } }
+    case 'controls-urf-energy':
+      return { ...state, controls: { ...state.controls, energyUrf: str } }
     case 'solution-controls-energy':
       return {
         ...state,
         controls: { ...state.controls, energyEquationEnabled: bool },
       }
+    case 'eq-flow':
+      return { ...state, controls: { ...state.controls, flowEquationEnabled: bool } }
+    case 'eq-turbulence':
+      return { ...state, controls: { ...state.controls, turbulenceEquationEnabled: bool } }
+    case 'limits-min-temp':
+      return { ...state, controls: { ...state.controls, minTempLimit: str } }
+    case 'limits-max-temp':
+      return { ...state, controls: { ...state.controls, maxTempLimit: str } }
+    case 'limits-max-turb-ratio':
+      return { ...state, controls: { ...state.controls, maxTurbViscRatio: str } }
     case 'initialization-method':
       return {
         ...state,
         initialization: { ...state.initialization, method: 'hybrid' },
       }
+    case 'initialization-compute-from':
+      return {
+        ...state,
+        initialization: { ...state.initialization, computeFrom: str },
+      }
     case 'initialization-reference-frame':
+    case 'initialization-ref-frame-inline':
       return {
         ...state,
         initialization: { ...state.initialization, referenceFrame: str },
@@ -1218,6 +1643,16 @@ function applyControlValue(
       return {
         ...state,
         runCalculation: { ...state.runCalculation, iterations: str },
+      }
+    case 'run-reporting-interval':
+      return {
+        ...state,
+        runCalculation: { ...state.runCalculation, reportingInterval: str },
+      }
+    case 'run-profile-interval':
+      return {
+        ...state,
+        runCalculation: { ...state.runCalculation, profileUpdateInterval: str },
       }
     case 'run-transient-steps':
       return {
@@ -1334,7 +1769,13 @@ function applyControlValue(
         selectionFilter: str as FluentSimState['selectionFilter'],
       }
     default:
-      return state
+      return {
+        ...state,
+        controlOverrides: {
+          ...state.controlOverrides,
+          [controlId]: value,
+        },
+      }
   }
 }
 
@@ -1356,10 +1797,26 @@ export function getControlValue(
       return state.operatingPressure
     case 'operating-density':
       return state.operatingDensity
+    case 'multiphase-model-select':
+      return state.multiphaseModel
+    case 'radiation-model-select':
+      return state.radiationModel
+    case 'species-model-select':
+      return state.speciesModel
+    case 'hx-model-type':
+      return state.heatExchangerModel
+    case 'acoustics-model-select':
+      return state.acousticsModel
+    case 'battery-model-select':
+      return state.batteryModel
     case 'solver-velocity-formulation':
       return state.velocityFormulation === 'relative' ? 'Relative' : 'Absolute'
     case 'solver-time-formulation':
       return state.timeFormulation === 'transient' ? 'Transient' : 'Steady'
+    case 'viscous-ke-submodel':
+      return state.kEpsilonSubModel
+    case 'viscous-kw-submodel':
+      return state.kOmegaSubModel
     case 'viscous-wall-treatment':
       return state.nearWallTreatment
     case 'materials-assigned':
@@ -1432,16 +1889,50 @@ export function getControlValue(
       return state.methods.coupling
     case 'methods-gradient':
       return state.methods.gradient
+    case 'methods-pressure-scheme':
     case 'solution-methods-pressure':
       return state.methods.pressure
     case 'methods-momentum':
     case 'solution-methods-momentum':
       return state.methods.momentum
+    case 'methods-tke':
+      return state.methods.tkeScheme
+    case 'methods-omega':
+      return state.methods.omegaScheme
+    case 'methods-energy-scheme':
+      return state.methods.energyScheme
+    case 'methods-transient-formulation':
+      return state.methods.transientFormulation
+    case 'methods-pseudo-time':
+      return state.methods.pseudoTimeMethod
+    case 'controls-urf-pressure':
     case 'solution-controls-pressure':
       return state.controls.pressureUrf
+    case 'controls-urf-density':
+      return state.controls.densityUrf
+    case 'controls-urf-body-forces':
+      return state.controls.bodyForcesUrf
+    case 'controls-urf-momentum':
     case 'solution-controls-momentum':
       return state.controls.momentumUrf
+    case 'controls-urf-tke':
+      return state.controls.tkeUrf
+    case 'controls-urf-omega':
+      return state.controls.omegaUrf
+    case 'controls-urf-turb-visc':
+      return state.controls.turbViscosityUrf
+    case 'controls-urf-energy':
+      return state.controls.energyUrf
+    case 'limits-min-temp':
+      return state.controls.minTempLimit
+    case 'limits-max-temp':
+      return state.controls.maxTempLimit
+    case 'limits-max-turb-ratio':
+      return state.controls.maxTurbViscRatio
+    case 'initialization-compute-from':
+      return state.initialization.computeFrom
     case 'initialization-reference-frame':
+    case 'initialization-ref-frame-inline':
       return state.initialization.referenceFrame
     case 'initialization-patch-region':
       return state.initialization.patchRegion
@@ -1452,6 +1943,10 @@ export function getControlValue(
     case 'run-iterations':
     case 'run-calculation-iterations':
       return state.runCalculation.iterations
+    case 'run-reporting-interval':
+      return state.runCalculation.reportingInterval
+    case 'run-profile-interval':
+      return state.runCalculation.profileUpdateInterval
     case 'run-calculation-time-step':
       return state.runCalculation.timeStepSize
     case 'autosave-frequency':
@@ -1496,8 +1991,10 @@ export function getControlValue(
       return state.meshDisplay.surfaces
     case 'graphics-selection-filter':
       return state.selectionFilter
-    default:
-      return fallback
+    default: {
+      const override = state.controlOverrides[controlId]
+      return typeof override === 'string' ? override : fallback
+    }
   }
 }
 
@@ -1525,17 +2022,46 @@ export function getControlChecked(
     case 'operating-gravity':
       return state.gravityEnabled
     case 'energy-enable':
+    case 'eq-energy':
       return state.energyEnabled
     case 'energy-viscous-heating':
       return state.viscousHeating
     case 'energy-diffusion':
       return state.diffusionEnergySource
+    case 'viscous-inviscid':
+      return state.viscousModel === 'inviscid'
     case 'viscous-laminar':
       return state.viscousModel === 'laminar'
+    case 'viscous-sa':
+      return state.viscousModel === 'spalart-allmaras'
     case 'viscous-kepsilon':
       return state.viscousModel === 'k-epsilon'
     case 'viscous-kw-sst':
       return state.viscousModel === 'k-omega-sst'
+    case 'viscous-transition-sst':
+      return state.viscousModel === 'transition-sst'
+    case 'viscous-rsm':
+      return state.viscousModel === 'rsm'
+    case 'viscous-les':
+      return state.viscousModel === 'les'
+    case 'viscous-curvature-correction':
+      return state.curvatureCorrection
+    case 'viscous-production-limiter':
+      return state.productionLimiter
+    case 'dpm-interaction':
+      return state.dpmEnabled
+    case 'solidification-enable':
+      return state.solidificationEnabled
+    case 'wall-film-enable':
+      return state.wallFilmEnabled
+    case 'methods-warped-face':
+      return state.methods.warpedFaceCorrection
+    case 'methods-high-order-relax':
+      return state.methods.highOrderTermRelaxation
+    case 'eq-flow':
+      return state.controls.flowEquationEnabled
+    case 'eq-turbulence':
+      return state.controls.turbulenceEquationEnabled
     case 'cell-zone-fluid-frame-motion':
       return state.cellZoneFrameMotion
     case 'cell-zone-fluid-porous':
@@ -1576,7 +2102,9 @@ export function getControlChecked(
       return state.boundaries.symmetry.noFlux
     case 'outflow-backflow-warning':
       return state.boundaries.outflow.backflowWarning
-    default:
-      return fallback
+    default: {
+      const override = state.controlOverrides[controlId]
+      return typeof override === 'boolean' ? override : fallback
+    }
   }
 }

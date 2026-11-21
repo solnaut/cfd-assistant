@@ -23,7 +23,7 @@ function selectByLabel(label: string) {
 }
 
 describe('App', () => {
-  it('renders the polished home page with the two primary entries', () => {
+  it('renders the feature-selection home page with four module cards and interactive Fluent Launcher', () => {
     renderApp()
 
     expect(
@@ -32,11 +32,30 @@ describe('App', () => {
       }),
     ).toBeInTheDocument()
     expect(
+      screen.getByRole('heading', { name: 'Fluent Meshing 网格工作台' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Fluent Solution 求解工作台' }),
+    ).toBeInTheDocument()
+    expect(
       screen.getAllByRole('link', { name: '参数计算' }).length,
     ).toBeGreaterThan(0)
     expect(
       screen.getAllByRole('link', { name: 'Fluent 功能导览' }).length,
     ).toBeGreaterThan(0)
+
+    const launcher = within(
+      screen.getByRole('complementary', { name: 'Fluent Launcher 配置器' }),
+    )
+    expect(
+      launcher.getByRole('link', { name: /启动 Fluent Meshing/ }),
+    ).toHaveAttribute('href', '/fluent-meshing?dim=3d&dp=1&np=4')
+
+    fireEvent.click(launcher.getByRole('button', { name: /Solution/ }))
+    fireEvent.click(launcher.getByRole('button', { name: '2D' }))
+    expect(
+      launcher.getByRole('link', { name: /启动 Fluent Solution/ }),
+    ).toHaveAttribute('href', '/fluent-guide?dim=2d&dp=1&np=4')
   })
 
   it('renders calculator categories before individual calculators', () => {

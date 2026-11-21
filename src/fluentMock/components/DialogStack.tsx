@@ -118,7 +118,24 @@ function DraggableDialogWindow({
     ? dialog.controls.filter((control) =>
         activeTab.groups.includes(control.group),
       )
-    : dialog.controls
+    : dialog.id === 'viscous-model-dialog'
+      ? dialog.controls.filter((control) => {
+          if (control.group === 'k-epsilon Options') {
+            return simState.viscousModel === 'k-epsilon'
+          }
+          if (control.group === 'k-omega Options') {
+            return simState.viscousModel === 'k-omega-sst'
+          }
+          if (control.group === 'Near-Wall Treatment') {
+            return (
+              simState.viscousModel === 'k-epsilon' ||
+              simState.viscousModel === 'rsm' ||
+              simState.viscousModel === 'spalart-allmaras'
+            )
+          }
+          return true
+        })
+      : dialog.controls
   const isThermalDisabled =
     activeTab?.id === 'thermal' && !simState.energyEnabled
 
@@ -209,11 +226,21 @@ function DraggableDialogWindow({
 
         {dialog.id === 'viscous-model-dialog' && (
           <div className="fluent-inline-note">
-            {simState.viscousModel === 'laminar'
-              ? '当前选择 Laminar（层流）：不求解湍流输运方程。'
-              : simState.viscousModel === 'k-epsilon'
-                ? '当前选择 k-epsilon：可下方选择 Near-Wall Treatment（如 Enhanced Wall Treatment）。'
-                : '当前选择 k-omega SST：自带近壁 y+ 过渡处理，推荐解析边界层时目标 y+ ≈ 1。'}
+            {simState.viscousModel === 'inviscid'
+              ? '当前选择 Inviscid（无黏）：忽略流体黏性与壁面剪切层。'
+              : simState.viscousModel === 'laminar'
+                ? '当前选择 Laminar（层流）：不求解湍流输运方程。'
+                : simState.viscousModel === 'spalart-allmaras'
+                  ? '当前选择 Spalart-Allmaras：一方程模型，适合航空外流附着边界层。'
+                  : simState.viscousModel === 'k-epsilon'
+                    ? `当前选择 k-epsilon (${simState.kEpsilonSubModel})：下方可切换子模型与 Near-Wall Treatment。`
+                    : simState.viscousModel === 'k-omega-sst'
+                      ? `当前选择 k-omega (${simState.kOmegaSubModel})：自带近壁 y+ 过渡处理，推荐解析边界层时目标 y+ ≈ 1。`
+                      : simState.viscousModel === 'transition-sst'
+                        ? '当前选择 Transition SST：四方程转捩模型，要求近壁 y+ ≤ 1。'
+                        : simState.viscousModel === 'rsm'
+                          ? '当前选择 RSM：七方程雷诺应力模型，适合强旋流各向异性湍流。'
+                          : '当前选择 LES / DES：高精度瞬态大涡/分离涡模拟，需搭配 Transient 小时间步。'}
           </div>
         )}
 

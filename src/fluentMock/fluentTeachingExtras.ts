@@ -1,3 +1,9 @@
+import {
+  extendedControlOptionsById,
+  extendedOptionExplanations,
+  extendedRelatedCalculatorsByControlId,
+} from './data/extendedExplanations'
+
 export interface SelectOptionItem {
   value: string
   label: string
@@ -272,6 +278,7 @@ export const controlOptionsById: Record<string, SelectOptionItem[]> = {
     { value: 'edges', label: 'edges' },
     { value: 'cells', label: 'cells' },
   ],
+  ...extendedControlOptionsById,
 }
 
 export const optionExplanations: Record<string, string> = {
@@ -315,6 +322,7 @@ export const optionExplanations: Record<string, string> = {
     '内部管流、风道入口最常用的湍流给定方式：只需输入估算湍流强度（%）与水力直径 Dh。',
   'Intensity and Viscosity Ratio':
     '外部绕流或几何尺度不易用水力直径定义的入口，常用湍流强度 + 涡黏度比（μt/μ）。',
+  ...extendedOptionExplanations,
 }
 
 const viscousCalculators: RelatedCalculatorLink[] = [
@@ -434,6 +442,7 @@ export const relatedCalculatorsByControlId: Record<string, RelatedCalculatorLink
       note: '计算给定温度下的当地声速',
     },
   ],
+  ...extendedRelatedCalculatorsByControlId,
 }
 
 export const walkthroughSteps: WalkthroughStep[] = [
@@ -592,6 +601,10 @@ export interface DialogTabGroup {
 
 export const dialogTabsByDialogId: Record<string, DialogTabGroup[]> = {
   'velocity-inlet-dialog': [
+    { id: 'momentum', label: 'Momentum', groups: ['Momentum', 'Turbulence'] },
+    { id: 'thermal', label: 'Thermal', groups: ['Thermal'] },
+  ],
+  'pressure-inlet-dialog': [
     { id: 'momentum', label: 'Momentum', groups: ['Momentum', 'Turbulence'] },
     { id: 'thermal', label: 'Thermal', groups: ['Thermal'] },
   ],

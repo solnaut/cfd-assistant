@@ -1,5 +1,6 @@
 import { allDialogControls } from './fluentDialogs'
 import { allMainControls } from './fluentControls'
+import { extendedExplanationOverrides } from './data/extendedExplanations'
 import type { FluentMockControl, FluentMockExplanation } from './fluentTypes'
 
 type ExplanationOverride = Partial<Omit<FluentMockExplanation, 'id'>>
@@ -144,6 +145,102 @@ const moduleProfiles: Record<string, ModuleProfile> = {
     when: '熟悉工作流后快速调用命令时使用。',
     checks: ['当前标签页是否对应目标模块', '命令是否会打开窗口或直接执行操作'],
   },
+  'User-Defined': {
+    what: '用户自定义功能区，支持 C 语言 UDF（解释/编译）、自定义内存/标量（UDM/UDS）、自定义场函数以及无需编程的 Named Expressions。',
+    recommendation: '简单边界函数或变物性先考虑 Named Expressions；复杂源项或自定义物理再使用 Compiled UDF 并统一采用 SI 单位。',
+    when: '标准界面选项无法表达随空间/时间变化的函数、定制物理源项或后处理派生变量时使用。',
+    checks: ['所有公式单位量纲是否采用 SI 国际单位', '自定义函数或表达式是否已在目标边界或区域绑定'],
+  },
+  Parallel: {
+    what: '多核并行与网格分区管理区，用于调整 MPI 进程、自动/手动负载均衡分区（Metis）及 GPU 加速选项。',
+    recommendation: '使用默认 Metis 自动分区即可获得良好负载均衡；分区数应匹配当前分配 CPU 核数。',
+    when: '多核并行求解前核查分区均衡度或网络/计时性能诊断时使用。',
+    checks: ['分区数量与 MPI 核心数匹配', '各分区单元数量均衡且切分面不穿过关键高耦合交界面'],
+  },
+  Design: {
+    what: '伴随求解器（Adjoint Solver）与拓扑/外形优化模块，可直接计算压降、阻力或均匀性目标对几何边界形变的敏感度。',
+    recommendation: '先确保基础稳态流场残差和工程监控量完全收敛，再设定清晰的 Observable 目标执行 Adjoint 迭代与 Morphing。',
+    when: '流道减阻、流动均匀性改善或气动外形局部优化设计时使用。',
+    checks: ['基线流场已高度收敛', '目标 Observable 定义与几何变形边界范围明确'],
+  },
+  Parameters: {
+    what: '参数管理模块，用于把入口速度、温度、几何或物性绑定为 Input Parameter，把压降、温升和换热系数绑定为 Output Parameter。',
+    recommendation: '需要做多工况批处理或优化设计点扫描（Design Points）时使用统一参数命名规范。',
+    when: '多工况敏感性分析、实验设计与 Workbench 参数联动时使用。',
+    checks: ['输入/输出参数单位准确', '确保 Output Parameter 已关联稳定收敛的 Report Definition'],
+  },
+  Help: {
+    what: '教学辅助与工具快捷入口区，可快速呼出 10 步入门引导、常见报错排查、切换 Meshing 以及直达 CFD 参数计算器与公式库。',
+    recommendation: '遇到不确定的网格尺度或发散报错时，善用 Troubleshooting 排查和站内参数计算器联动。',
+    when: '教学演示、排错复盘或核对公式定义时使用。',
+    checks: ['核对工况参数是否与实际模型单位一致'],
+  },
+  'Motion Definitions': {
+    what: '刚体运动定义模块，设定旋转、平动或 6-DOF 运动轨迹，用于参考系运动（MRF）或动态/滑移网格区域。',
+    recommendation: '稳态叶轮机械优先用 MRF 旋转参考系；涉及叶片与导叶真实瞬态扫掠交互时再结合滑移网格与运动定义。',
+    when: '离心泵、风扇、搅拌釜或直线往复运动机构仿真时使用。',
+    checks: ['旋转方向（右手定则）与旋转轴矢量一致', '角速度单位设置正确（rpm vs rad/s）'],
+  },
+  'Mesh Interfaces': {
+    what: '非共节点交界面管理模块，用于连接静止/旋转两个独立网格区并自动插值传递质量、动量与热量。',
+    recommendation: '共轭传热优先用 Meshing Share Topology 共节点；必须采用非共节点时需确保 Paired Zones 命名完整配对。',
+    when: '滑移网格、分段导入的多套网格或局部独立加密体拼装时使用。',
+    checks: ['主从面边界类型为 interface', '导热交界面是否需要开启 Coupled Wall'],
+  },
+  'Auxiliary Geometry': {
+    what: '辅助虚拟几何体定义区，用于辅助标记区域、旋转参考点或后处理空间提取参考体。',
+    recommendation: '在辅助标记或局部可视化参照时创建，不直接修改实际流道体网格。',
+    when: '需要按精确球体/圆柱范围提取单元或辅助参考点时使用。',
+    checks: ['坐标原点和半径/尺寸单位与当前长度单位一致'],
+  },
+  'Reference Frames': {
+    what: '参考坐标系管理区，支持静止绝对系以及平移/旋转参考系（Moving Reference Frame, MRF）定义。',
+    recommendation: '旋转域 MRF 计算需明确角速度方向，并在后处理时区分绝对速度与相对速度。',
+    when: '存在旋转体区域、相对速度边界或嵌套运动坐标系时配置。',
+    checks: ['旋转原点与轴方向矢量准确', '与对应 Cell Zone 绑定无误'],
+  },
+  'Named Expressions': {
+    what: '免写代码的表达式编辑器，直接用数学表达式绑定时变/空变边界条件、源项或输出报告。',
+    recommendation: '尽量优先用 Named Expressions 替代简单 C 语言 UDF，天然支持并行与单位自动校验。',
+    when: '定义抛物线流速入口、正弦脉动压差或自定义物理监控量时使用。',
+    checks: ['表达式变量方括号单位写全', '表达式在物理边界范围内有定义（避免除零）'],
+  },
+  'Curvilinear Coordinates': {
+    what: '贴体曲线坐标系生成器，沿弯曲通道或催化载体计算沿程方向向量，以精确设定各向异性阻力或导热。',
+    recommendation: '弯曲异形催化剂载体或螺旋管道多孔介质需要按流动方向给出主阻力方向时启用。',
+    when: '弯曲多维体区域需要随流向变化的各向异性张量时使用。',
+    checks: ['入口和出口方向指示面无误', '计算完成后在方向矢量图验证生成方向'],
+  },
+  'Cell Registers': {
+    what: '局部单元选择标记器，按坐标范围、物理梯度或等值条件圈选单元子集，供 Patch 初始化与自适应加密调用。',
+    recommendation: '执行局部 Patch 或网格自适应加密前先显示验证选中的单元区域，避免误加密全计算域。',
+    when: '局部高温/射流/多相初始液位 Patch 或梯度自适应加密前使用。',
+    checks: ['圈选的单元数量在合理比例范围', '不会包含边界壁面畸变网格或错选区域'],
+  },
+  Dashboard: {
+    what: '算例全局实时汇总面板，展示计算收敛快照、质量守恒核对和关键后处理快捷入口。',
+    recommendation: '作为收敛排查和快速复核结果的第一视角，配合 Reports -> Fluxes 验证质量守恒。',
+    when: '迭代运行中或求解结束后全局审视算例状态时使用。',
+    checks: ['残差下降且核心物理量趋势平稳', '质量流量净不平衡足够小'],
+  },
+  Animations: {
+    what: '瞬态过程动画录制与回放管理模块，可周期性保存瞬态时间步的云图/矢量画面帧序列。',
+    recommendation: '瞬态求解开始前即设置 Solution Animation，方便会后直观回放涡脱落、液面晃荡或温升过程。',
+    when: '需要直观展示随时间演化的瞬态流场变化视频或连续帧时使用。',
+    checks: ['录制间隔与总步数匹配，避免写入过多大文件', '已先选定待显示的可视化 Scene 或 Contour'],
+  },
+  'Parameters and Controls': {
+    what: 'Workbench 参数与设计点控制中心，统一管理供优化和参数化扫描调用的输入变量与输出目标。',
+    recommendation: '确保所有需要做参数化扫描的边界或尺寸都已正确标记为 Input/Output Parameter。',
+    when: '做变转速、变风速、变热流多工况对比扫描时使用。',
+    checks: ['参数名称无特殊字符或冲突', '输出参数已定义对应 Report Definition'],
+  },
+  'Simulation Report': {
+    what: '自动化计算报告生成模块，一键收集网格概况、求解器设置、边界表与结果图表生成分享报告。',
+    recommendation: '在算例完成验证后导出报告归档，便于团队评审与复现边界设置。',
+    when: '仿真收尾汇报或留存基线版本文档时使用。',
+    checks: ['报告包含所有关键模型、材料与收敛截图说明'],
+  },
 }
 
 const overrides: Record<string, ExplanationOverride> = {
@@ -284,6 +381,7 @@ const overrides: Record<string, ExplanationOverride> = {
     location: '底部控制台',
     relatedControls: ['ribbon-mesh-check', 'run-calculate'],
   },
+  ...extendedExplanationOverrides,
 }
 
 const allControls = [...allMainControls, ...allDialogControls]

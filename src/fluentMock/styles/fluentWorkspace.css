@@ -7,7 +7,7 @@ body:has(.fluent-workbench) {
 .fluent-workbench {
   position: relative;
   display: grid;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   height: 100dvh;
   min-height: 590px;
   background: var(--fl-shell);
@@ -1353,4 +1353,300 @@ body:has(.fluent-workbench) {
     width: auto;
     transform: none !important;
   }
+}
+
+.fluent-mode-switcher {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px;
+  border: 1px solid #496786;
+  border-radius: 3px;
+  background: #14283d;
+  gap: 2px;
+}
+
+.fluent-mode-pill {
+  padding: 2px 9px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  color: #cfe0f1;
+  font-size: 11.5px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.fluent-mode-pill:hover {
+  background: #234263;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.fluent-mode-pill.active {
+  background: #0078d4;
+  color: #ffffff;
+}
+
+.fluent-topbar-actions button.fluent-switch-cta {
+  border-color: #7cc0f8;
+  background: #0078d4;
+  font-weight: 700;
+}
+
+.fluent-topbar-actions button.fluent-switch-cta:hover {
+  background: #106ebe;
+}
+
+.fluent-left-mode-tabs {
+  display: flex;
+  width: 100%;
+  gap: 4px;
+}
+
+.fluent-left-mode-tabs button {
+  flex: 1;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.fluent-left-mode-tabs button.active {
+  border-color: var(--fl-rule);
+  background: var(--fl-surface);
+  color: #0b4a7d;
+}
+
+.fluent-workflow-mode-select {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.fluent-workflow-mode-select label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fl-muted);
+}
+
+.fluent-workflow-mode-select select {
+  padding: 4px 6px;
+  border: 1px solid var(--fl-rule);
+  border-radius: 2px;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.fluent-wf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fluent-wf-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+}
+
+.fluent-wf-item:hover {
+  background: #edf3f9;
+}
+
+.fluent-wf-item.active {
+  border-color: #93c2ea;
+  background: var(--fl-active);
+  font-weight: 700;
+}
+
+.fluent-wf-item.skipped {
+  color: var(--fl-muted);
+  opacity: 0.72;
+}
+
+.fluent-wf-status {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.fluent-wf-status.completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.fluent-wf-status.active {
+  background: #dbeafe;
+  color: #0078d4;
+}
+
+.fluent-wf-status.pending {
+  color: var(--fl-muted);
+}
+
+.fluent-wf-status.skipped {
+  color: var(--fl-muted);
+}
+
+.fluent-wf-label {
+  overflow-wrap: anywhere;
+}
+
+.fluent-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid #d5dce4;
+  border-radius: 2px;
+  background: #ffffff;
+  font-size: 11.5px;
+}
+
+.fluent-table-row button {
+  padding: 1px 7px;
+  border: 1px solid var(--fl-rule);
+  border-radius: 2px;
+  background: #f5f7fa;
+  font-size: 11px;
+}
+
+.fluent-task-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.fluent-task-footer-actions button {
+  padding: 5px 12px;
+  border: 1px solid #aeb8c4;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ffffff, #edf1f6);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.fluent-task-footer-actions button.fluent-primary-btn {
+  border-color: var(--fl-accent);
+  color: #ffffff;
+  background: var(--fl-accent);
+}
+
+.fluent-task-footer-actions button.fluent-primary-btn:hover {
+  background: var(--fl-accent-hover);
+}
+
+.fluent-cutplane-bar {
+  position: absolute;
+  left: 10px;
+  top: 34px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  border: 1px solid rgba(25, 45, 70, 0.25);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+}
+
+.fluent-cutplane-bar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.fluent-cutplane-bar input[type='range'] {
+  width: 90px;
+}
+
+.fluent-mesh-badge-inline {
+  margin-left: auto;
+  color: var(--fl-muted);
+  font: 11px var(--fl-mono);
+}
+
+.fluent-context-menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid #9aa5b4;
+  border-radius: 2px;
+  background: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 25, 38, 0.22);
+}
+
+.fluent-context-menu-title {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--fl-rule);
+  margin-bottom: 3px;
+  color: var(--fl-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fluent-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+}
+
+.fluent-context-menu button:hover {
+  background: var(--fl-active);
+  color: #0b4a7d;
+}
+
+.fluent-statusbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 3px 12px;
+  border-top: 1px solid var(--fl-rule);
+  background: #e6ebf1;
+  color: var(--fl-muted);
+  font: 11px/1.3 var(--fl-mono);
+}
+
+.fluent-status-link {
+  margin-left: auto;
+  padding: 1px 8px;
+  border: 1px solid #84bce8;
+  border-radius: 2px;
+  background: #ffffff;
+  color: #0b4a7d;
+  font: 11px/1.4 var(--fl-ui, 'Segoe UI', sans-serif);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fluent-status-link:hover {
+  background: var(--fl-active);
 }

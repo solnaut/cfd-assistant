@@ -1,24 +1,14 @@
 import type { FluentMockControl, FluentMockDialog } from './fluentTypes'
+import { makeControl, type ControlInput } from './data/controlHelpers'
+import { extendedDialogs } from './data/extendedDialogs'
 
-type DialogControlInput = Omit<
-  FluentMockControl,
-  'enabled' | 'explanationId' | 'label' | 'labelZh' | 'region'
-> & {
-  label: string
-  labelZh?: string
-  region?: string
-  enabled?: boolean
-  explanationId?: string
-}
+type DialogControlInput = Omit<ControlInput, 'region'> & { region?: string }
 
 function dialogControl(input: DialogControlInput): FluentMockControl {
-  return {
+  return makeControl({
     ...input,
-    labelZh: input.labelZh ?? input.label,
     region: input.region ?? '模拟窗口',
-    enabled: input.enabled ?? true,
-    explanationId: input.explanationId ?? `${input.id}-explanation`,
-  }
+  })
 }
 
 function makeDialog(
@@ -304,35 +294,101 @@ export const fluentDialogs: FluentMockDialog[] = [
       controlType: 'checkbox',
     },
   ]),
-  makeDialog('viscous-model-dialog', 'Viscous 模型', 'Models', '选择层流或湍流模型的教学模拟窗口。', [
+  makeDialog('viscous-model-dialog', 'Viscous 模型', 'Models', '选择无黏、层流或 RANS/LES/DES 湍流模型及近壁处理方式的教学模拟窗口。', [
+    {
+      id: 'viscous-inviscid',
+      label: 'Inviscid',
+      module: 'Models',
+      group: 'Model',
+      controlType: 'radio',
+    },
     {
       id: 'viscous-laminar',
       label: 'Laminar',
       module: 'Models',
-      group: 'Viscous',
+      group: 'Model',
+      controlType: 'radio',
+    },
+    {
+      id: 'viscous-sa',
+      label: 'Spalart-Allmaras (1 eqn)',
+      module: 'Models',
+      group: 'Model',
       controlType: 'radio',
     },
     {
       id: 'viscous-kepsilon',
       label: 'k-epsilon',
       module: 'Models',
-      group: 'Viscous',
+      group: 'Model',
       controlType: 'radio',
     },
     {
       id: 'viscous-kw-sst',
       label: 'k-omega SST',
       module: 'Models',
-      group: 'Viscous',
+      group: 'Model',
       controlType: 'radio',
+    },
+    {
+      id: 'viscous-transition-sst',
+      label: 'Transition SST (4 eqn)',
+      module: 'Models',
+      group: 'Model',
+      controlType: 'radio',
+    },
+    {
+      id: 'viscous-rsm',
+      label: 'Reynolds Stress (7 eqn)',
+      module: 'Models',
+      group: 'Model',
+      controlType: 'radio',
+    },
+    {
+      id: 'viscous-les',
+      label: 'Large Eddy Simulation (LES / DES)',
+      module: 'Models',
+      group: 'Model',
+      controlType: 'radio',
+    },
+    {
+      id: 'viscous-ke-submodel',
+      label: 'k-epsilon Model',
+      module: 'Models',
+      group: 'k-epsilon Options',
+      controlType: 'select',
+      value: 'realizable',
+    },
+    {
+      id: 'viscous-kw-submodel',
+      label: 'k-omega Model',
+      module: 'Models',
+      group: 'k-omega Options',
+      controlType: 'select',
+      value: 'sst',
     },
     {
       id: 'viscous-wall-treatment',
       label: 'Near-Wall Treatment',
       module: 'Models',
-      group: 'Viscous',
+      group: 'Near-Wall Treatment',
       controlType: 'select',
       value: 'Enhanced Wall Treatment',
+    },
+    {
+      id: 'viscous-curvature-correction',
+      label: 'Curvature Correction',
+      module: 'Models',
+      group: 'Options',
+      controlType: 'checkbox',
+    },
+    {
+      id: 'viscous-production-limiter',
+      label: 'Production Limiter',
+      module: 'Models',
+      group: 'Options',
+      controlType: 'checkbox',
+      defaultSelected: true,
     },
   ]),
   makeDialog('materials-dialog', 'Materials 主页面', 'Materials', '管理流体、固体材料及其物性来源的教学页面。', [
@@ -1213,6 +1269,7 @@ export const fluentDialogs: FluentMockDialog[] = [
       controlType: 'checkbox',
     },
   ]),
+  ...extendedDialogs,
 ]
 
 export const allDialogControls = fluentDialogs.flatMap((dialog) => dialog.controls)
