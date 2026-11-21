@@ -1,14 +1,16 @@
 .fluent-workbench {
-  --fl-ink: #162d39;
-  --fl-muted: #516a75;
-  --fl-night: #13333d;
-  --fl-accent: #116b6a;
-  --fl-active: #d9eee9;
-  --fl-rule: #cbd9db;
-  --fl-surface: #fff;
-  --fl-panel: #f4f8f8;
-  --fl-shell: #e4eded;
-  --fl-guide: #fcfaf5;
-  --fl-radius: 4px;
-  --fl-mono: 'Cascadia Mono', Consolas, monospace;
+  --fl-ink: #1a232e;
+  --fl-muted: #526071;
+  --fl-night: #1d3550;
+  --fl-accent: #0078d4;
+  --fl-accent-hover: #106ebe;
+  --fl-active: #d9ecfa;
+  --fl-file-tab: #124d78;
+  --fl-rule: #c2cbd5;
+  --fl-surface: #ffffff;
+  --fl-panel: #f1f4f8;
+  --fl-shell: #dfe4ea;
+  --fl-guide: #fcfbf8;
+  --fl-radius: 3px;
+  --fl-mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
 }

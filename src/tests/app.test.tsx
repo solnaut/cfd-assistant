@@ -223,7 +223,7 @@ describe('App', () => {
     const guide = within(screen.getByRole('complementary', { name: '控件说明' }))
 
     fireEvent.click(guide.getByRole('button', { name: 'Pressure-Based' }))
-    expect(task.getByRole('button', { name: 'Pressure-Based' })).toHaveFocus()
+    expect(task.getByRole('radio', { name: 'Pressure-Based' })).toHaveFocus()
 
     const boundary = outline.getByRole('button', { name: 'Boundary Conditions' })
     fireEvent.click(boundary)
@@ -236,7 +236,7 @@ describe('App', () => {
     expect(screen.getByText('Ribbon → 区域 → 网格')).toBeInTheDocument()
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
 
-    fireEvent.click(task.getByRole('button', { name: 'Pressure-Based' }))
+    fireEvent.click(task.getByRole('radio', { name: 'Pressure-Based' }))
     expect(screen.getByRole('heading', { name: '基于压力求解器' })).toBeInTheDocument()
     expect(screen.getByText('任务页面 → 一般 → 求解器 → 类型')).toBeInTheDocument()
 
@@ -258,7 +258,7 @@ describe('App', () => {
     expect(dialog).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '单位设置' })).toBeInTheDocument()
 
-    fireEvent.click(within(dialog).getByRole('button', { name: /Length Unit/ }))
+    fireEvent.click(within(dialog).getByRole('combobox', { name: /Length Unit/ }))
     expect(screen.getByRole('heading', { name: '长度单位' })).toBeInTheDocument()
     expect(screen.getByText('模拟窗口 → 单位设置')).toBeInTheDocument()
 
@@ -268,7 +268,7 @@ describe('App', () => {
 
     fireEvent.click(task.getByRole('button', { name: 'Report Quality' }))
     const quality = screen.getByRole('dialog', { name: 'Mesh Quality Report' })
-    fireEvent.click(within(quality).getByRole('button', { name: /Min. Orthogonal Quality/ }))
+    fireEvent.click(within(quality).getByRole('textbox', { name: /Min. Orthogonal Quality/ }))
     expect(screen.getByRole('heading', { name: '最小正交质量' })).toBeInTheDocument()
   })
 
@@ -283,7 +283,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Energy' }))
     expect(screen.getByRole('dialog', { name: 'Energy Model' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enable Energy' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Enable Energy' }))
     expect(screen.getByRole('heading', { name: '启用 Energy' })).toBeInTheDocument()
     expect(screen.getByText('适合存在热传导、热通量、温度边界或可压缩热效应的算例。')).toBeInTheDocument()
 
@@ -292,9 +292,10 @@ describe('App', () => {
     fireEvent.click(outline.getByRole('button', { name: 'Boundary Conditions' }))
     const task = within(screen.getByRole('region', { name: 'Task Page' }))
     fireEvent.click(task.getByRole('button', { name: 'Velocity Inlet' }))
-    expect(screen.getByRole('dialog', { name: 'Velocity Inlet' })).toBeInTheDocument()
+    const velocityDialog = screen.getByRole('dialog', { name: 'Velocity Inlet' })
+    expect(velocityDialog).toBeInTheDocument()
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Turbulence Specification/ }))
+    fireEvent.click(within(velocityDialog).getByRole('combobox', { name: /Turbulence Specification/ }))
     expect(screen.getByRole('heading', { name: 'Turbulence Specification' })).toBeInTheDocument()
     expect(screen.getByText('检查入口湍流强度、长度尺度或水力直径是否来自工况估算。')).toBeInTheDocument()
   })
@@ -308,14 +309,15 @@ describe('App', () => {
     fireEvent.click(task.getByRole('button', { name: 'Manage Materials' }))
     expect(screen.getByRole('dialog', { name: 'Manage Materials' })).toBeInTheDocument()
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create/Edit' }))
-    expect(screen.getByRole('dialog', { name: 'Create/Edit Materials' })).toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Manage Materials' })).getByRole('button', { name: 'Create/Edit' }))
+    const createEditDialog = screen.getByRole('dialog', { name: 'Create/Edit Materials' })
+    expect(createEditDialog).toBeInTheDocument()
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Density Method/ }))
+    fireEvent.click(within(createEditDialog).getByRole('combobox', { name: /Density Method/ }))
     expect(screen.getByRole('heading', { name: 'Density Method' })).toBeInTheDocument()
     expect(screen.getByText('材料密度方法决定密度是常数、理想气体、分段函数还是其他表达。')).toBeInTheDocument()
 
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.keyDown(createEditDialog, { key: 'Escape' })
     const parent = screen.getByRole('dialog', { name: 'Manage Materials' })
     expect(within(parent).getByRole('button', { name: 'Create/Edit' })).toHaveFocus()
   })
@@ -328,7 +330,7 @@ describe('App', () => {
     fireEvent.change(field, { target: { value: '最小正交质量' } })
     fireEvent.click(search.getByRole('button', { name: /Min. Orthogonal Quality/ }))
     const dialog = screen.getByRole('dialog', { name: 'Mesh Quality Report' })
-    expect(within(dialog).getByRole('button', { name: /Min. Orthogonal Quality/ })).toHaveFocus()
+    expect(within(dialog).getByRole('textbox', { name: /Min. Orthogonal Quality/ })).toHaveFocus()
 
     const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
     fireEvent.click(outline.getByRole('button', { name: 'Collapse all' }))
@@ -339,5 +341,44 @@ describe('App', () => {
     fireEvent.click(search.getByRole('button', { name: 'Run Calculation', description: 'Outline' }))
     expect(outline.getByRole('searchbox')).toHaveValue('')
     expect(outline.getByRole('button', { name: 'Run Calculation' })).toHaveFocus()
+  })
+
+  it('supports cross-module state coupling, calculate warnings, calculator links, and troubleshooting jumps', () => {
+    renderApp('/fluent-guide')
+
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    const consoleRegion = within(screen.getByRole('region', { name: 'Console' }))
+
+    // Switch Steady -> Transient and verify Run Calculation exposes Time Step Size
+    fireEvent.click(task.getByRole('radio', { name: 'Transient' }))
+    fireEvent.click(outline.getByRole('button', { name: 'Run Calculation' }))
+    expect(task.getByRole('textbox', { name: 'Time Step Size' })).toBeInTheDocument()
+
+    // Calculate before Initialize logs a warning
+    fireEvent.click(task.getByRole('button', { name: 'Calculate' }))
+    expect(consoleRegion.getByText(/Flow field is not initialized/i)).toBeInTheDocument()
+
+    // Initialize then Calculate runs and switches viewport to Scaled Residuals
+    fireEvent.click(outline.getByRole('button', { name: 'Initialization' }))
+    fireEvent.click(task.getByRole('button', { name: 'Hybrid Initialization' }))
+    fireEvent.click(outline.getByRole('button', { name: 'Run Calculation' }))
+    fireEvent.click(task.getByRole('button', { name: 'Calculate' }))
+    expect(consoleRegion.getByText(/Teaching Demo converged/i)).toBeInTheDocument()
+
+    // Viscous link shows related y+ calculator
+    fireEvent.click(screen.getByRole('button', { name: 'Physics' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Viscous' }))
+    expect(screen.getByRole('link', { name: /y\+ 与第一层网格高度/ })).toHaveAttribute(
+      'href',
+      '/calculators/near-wall-mesh/y-plus-first-layer-height',
+    )
+
+    // Troubleshooting tab jumps to target control
+    const guide = within(screen.getByRole('complementary', { name: '控件说明' }))
+    fireEvent.click(guide.getByRole('button', { name: 'Troubleshooting' }))
+    expect(guide.getByRole('heading', { name: 'Fluent 常见报错与收敛排查' })).toBeInTheDocument()
+    fireEvent.click(guide.getByRole('button', { name: /定位 Solution Controls/ }))
+    expect(screen.getByRole('dialog', { name: 'Solution Controls' })).toBeInTheDocument()
   })
 })
