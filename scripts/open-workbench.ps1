@@ -16,31 +16,6 @@ $routeMap = @{
     'fluent-guide' = '/fluent-guide'
 }
 
-function Stop-ProjectServers {
-    $connections = Get-NetTCPConnection -State Listen -LocalPort $ports -ErrorAction SilentlyContinue
-    if (!$connections) {
-        Write-Host 'No CFD Assistant workbench server is currently listening on ports 5173 or 5174.'
-        return
-    }
-
-    $stopped = 0
-    $projectLower = $project.ToLowerInvariant()
-    foreach ($pidValue in ($connections.OwningProcess | Select-Object -Unique)) {
-        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $pidValue" -ErrorAction SilentlyContinue
-        if (!$proc) { continue }
-        $cmd = ($proc.CommandLine ?? '').ToLowerInvariant()
-        if ($proc.Name -like 'node*' -and $cmd.Contains($projectLower) -and $cmd.Contains('vite')) {
-            Stop-Process -Id $pidValue -Force -ErrorAction SilentlyContinue
-            $stopped++
-            Write-Host "Stopped CFD Assistant server (PID $pidValue)."
-        }
-    }
-
-    if ($stopped -eq 0) {
-        Write-Host 'Ports 5173/5174 are occupied by other processes; nothing from CFD Assistant was stopped.'
-    }
-}
-
 function Test-Workbench([int]$Port) {
     try {
         $uri = "http://127.0.0.1:$Port/"
@@ -48,6 +23,37 @@ function Test-Workbench([int]$Port) {
         return ($response.StatusCode -eq 200) -and $response.Content.Contains('<title>CFD Assistant</title>')
     } catch {
         return $false
+    }
+}
+
+function Stop-ProjectServers {
+    $connections = @(Get-NetTCPConnection -State Listen -LocalPort $ports -ErrorAction SilentlyContinue)
+    if ($connections.Count -eq 0) {
+        Write-Host 'No CFD Assistant workbench server is currently listening on ports 5173 or 5174.'
+        return
+    }
+
+    $stopped = 0
+    $stoppedPids = New-Object System.Collections.Generic.HashSet[int]
+    $projectLower = $project.ToLowerInvariant()
+    foreach ($conn in $connections) {
+        $pidValue = [int]$conn.OwningProcess
+        if ($stoppedPids.Contains($pidValue)) { continue }
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $pidValue" -ErrorAction SilentlyContinue
+        if (!$proc) { continue }
+        $cmd = if ($proc.CommandLine) { $proc.CommandLine.ToLowerInvariant() } else { '' }
+        $isNodeVite = ($proc.Name -like 'node*') -and $cmd.Contains('vite')
+        $isThisProject = $cmd.Contains($projectLower) -or (Test-Workbench ([int]$conn.LocalPort))
+        if ($isNodeVite -and $isThisProject) {
+            Stop-Process -Id $pidValue -Force -ErrorAction SilentlyContinue
+            [void]$stoppedPids.Add($pidValue)
+            $stopped++
+            Write-Host "Stopped CFD Assistant server (PID $pidValue)."
+        }
+    }
+
+    if ($stopped -eq 0) {
+        Write-Host 'Ports 5173/5174 are occupied by other processes; nothing from CFD Assistant was stopped.'
     }
 }
 
@@ -65,8 +71,8 @@ foreach ($port in $ports) {
     }
 }
 
-$vite = 'node_modules/vite/bin/vite.js'
-if (!(Test-Path -LiteralPath (Join-Path $project $vite))) {
+$vitePath = Join-Path $project 'node_modules\vite\bin\vite.js'
+if (!(Test-Path -LiteralPath $vitePath)) {
     Write-Host 'Project dependencies are missing. Installing via npm.cmd install...'
     Push-Location $project
     try {
@@ -80,17 +86,18 @@ if (!(Test-Path -LiteralPath (Join-Path $project $vite))) {
 }
 
 $node = (Get-Command node.exe).Source
-$occupied = Get-NetTCPConnection -State Listen -LocalPort $ports -ErrorAction SilentlyContinue
-$port = $ports | Where-Object { $_ -notin $occupied.LocalPort } | Select-Object -First 1
+$occupied = @(Get-NetTCPConnection -State Listen -LocalPort $ports -ErrorAction SilentlyContinue)
+$occupiedPorts = @($occupied | ForEach-Object { $_.LocalPort })
+$port = $ports | Where-Object { $_ -notin $occupiedPorts } | Select-Object -First 1
 if (!$port) {
     throw 'Ports 5173 and 5174 are in use by other services.'
 }
 
-$distIndex = Join-Path $project 'dist/index.html'
+$distIndex = Join-Path $project 'dist\index.html'
 $viteArgs = if ($Preview -and (Test-Path -LiteralPath $distIndex)) {
-    @($vite, 'preview', '--host', '127.0.0.1', '--port', $port, '--strictPort')
+    @($vitePath, 'preview', '--host', '127.0.0.1', '--port', $port, '--strictPort')
 } else {
-    @($vite, '--host', '127.0.0.1', '--port', $port, '--strictPort')
+    @($vitePath, '--host', '127.0.0.1', '--port', $port, '--strictPort')
 }
 
 $launch = @{
