@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { NavLink, Route, Routes, useMatch } from 'react-router-dom'
 import CalculatorCategoryPage from './pages/CalculatorCategoryPage'
 import CalculatorDetailPage from './pages/CalculatorDetailPage'
 import CalculatorsPage from './pages/CalculatorsPage'
@@ -8,9 +8,11 @@ import HomePage from './pages/HomePage'
 import './App.css'
 
 function App() {
+  const isWorkbench = useMatch('/fluent-guide')
+
   return (
     <div className="app-shell">
-      <header className="site-header">
+      {!isWorkbench && <header className="site-header">
         <div className="brand-block">
           <NavLink to="/" className="brand">
             CFD Assistant
@@ -22,7 +24,7 @@ function App() {
           <NavLink to="/formulas">CFD 公式库</NavLink>
           <NavLink to="/fluent-guide">Fluent 功能导览</NavLink>
         </nav>
-      </header>
+      </header>}
 
       <main>
         <Routes>
@@ -41,10 +43,10 @@ function App() {
         </Routes>
       </main>
 
-      <footer className="site-footer">
+      {!isWorkbench && <footer className="site-footer">
         <span>CFD Assistant</span>
         <span>Responsive web app · v0.1.0</span>
-      </footer>
+      </footer>}
     </div>
   )
 }

@@ -1,0 +1,14 @@
+.fluent-workbench {
+  --fl-ink: #162d39;
+  --fl-muted: #516a75;
+  --fl-night: #13333d;
+  --fl-accent: #116b6a;
+  --fl-active: #d9eee9;
+  --fl-rule: #cbd9db;
+  --fl-surface: #fff;
+  --fl-panel: #f4f8f8;
+  --fl-shell: #e4eded;
+  --fl-guide: #fcfaf5;
+  --fl-radius: 4px;
+  --fl-mono: 'Cascadia Mono', Consolas, monospace;
+}

@@ -1,0 +1,98 @@
+const paths = {
+  mesh: 'M3 5h18v14H3z M3 5l9 14 9-14 M3 19l9-14 9 14 M3 12h18',
+  read: 'M3 7h7l2 2h9v11H3z M12 3v12m-3-3 3 3 3-3',
+  save: 'M4 3h13l3 3v15H4z M8 3v6h8V3 M8 21v-7h8v7',
+  export: 'M11 7H4v13h13v-7 M12 12l8-8m-6 0h6v6',
+  info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 10v6 M12 7h.01',
+  scale: 'M4 10v10h10 M9 4h11v11 M20 4 4 20',
+  check: 'M12 3l8 4v6c0 3-4 7-8 8-4-1-8-5-8-8V7z M8 12l3 3 5-6',
+  quality: 'M4 19v-5m5 5v-9m5 9V7m5 12V4 M2 21h20',
+  merge: 'M4 4v5q0 3 4 3h12 M4 20v-5q0-3 4-3 M17 9l3 3-3 3',
+  separate: 'M4 12h8q5 0 5-5V4 M12 12q5 0 5 5v3 M14 7l3-3 3 3 M14 17l3 3 3-3',
+  adjacent: 'M3 5h9v14H3z M12 5h9v14h-9 M9 12h6',
+  remove: 'M4 7h16 M9 7V4h6v3 M6 7l1 14h10l1-14 M10 10v7m4-7v7',
+  replace: 'M4 8h15l-4-4 M20 16H5l4 4',
+  interface: 'M3 5h6v14H3z M15 5h6v14h-6z M12 4v2m0 3v2m0 3v2m0 3v2',
+  direction: 'M3 17l7-7 4 4 7-9 M15 5h6v6',
+  dynamic: 'M4 6h11v12H4z M9 3h11v12 M4 6l11 12m0-12L4 18',
+  gap: 'M4 4v16m16-16v16 M9 12h6m-4-2-2 2 2 2m2-4 2 2-2 2',
+  mark: 'M5 21V4h14l-2 5 2 5H5',
+  refine: 'M3 3h18v18H3z M12 3v18M3 12h18M7 3v9m10 0v9 M3 7h9m0 10h9',
+  surface: 'M3 15 15 5l6 4-12 10z M12 9l6 4',
+  layers: 'M3 9l9-5 9 5-9 5z M3 13l9 5 9-5 M3 17l9 5 9-5',
+  energy: 'M14 2 5 14h6l-1 8 9-12h-6z',
+  viscous: 'M3 7c3-4 5 4 9 0s6 4 9 0 M3 12c3-4 5 4 9 0s6 4 9 0 M3 17c3-4 5 4 9 0s6 4 9 0',
+  material: 'M12 3l8 4.5v9L12 21l-8-4.5v-9Z M4 7.5l8 4.5 8-4.5 M12 12v9',
+  methods: 'M4 6h16 M4 12h16 M4 18h16 M8 4v4m8 2v4m-6 2v4',
+  control: 'M7 3v18m10-18v18 M4 8h6m4 8h6',
+  init: 'M19 8a8 8 0 1 0 1 8 M19 3v6h-6 M12 8v5l3 2',
+  run: 'M7 4l13 8-13 8z',
+  residual: 'M3 3v18h18 M6 6l4 8 3-2 3 5 5 1',
+  contour: 'M4 4h16v16H4z M4 14q7 0 7-5t9-3 M7 20q8-3 8-8t5-2',
+  vectors: 'M4 20 19 5m-6 0h6v6 M3 12l7-7 M12 21l7-7',
+  report: 'M5 3h10l4 4v14H5z M14 3v5h5 M8 12h8m-8 4h8',
+  search: 'M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z M14.5 14.5 21 21',
+  pointer: 'M5 3l14 10-7 1-3 6Z',
+  rotate: 'M19 9a8 8 0 1 0 1 6 M19 4v5h-5',
+  pan: 'M12 3v18 M3 12h18 M9 6l3-3 3 3m-6 12 3 3 3-3 M6 9l-3 3 3 3m12-6 3 3-3 3',
+  zoom: 'M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Z M14.5 14.5 21 21 M10 7v6m-3-3h6',
+  fit: 'M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5 M9 9h6v6H9Z',
+  chevron: 'm9 6 6 6-6 6',
+  guide: 'M3 5h6l3 2 3-2h6v14h-6l-3 2-3-2H3z M12 7v14',
+  expand: 'm8 9 4-4 4 4m-8 6 4 4 4-4',
+  collapse: 'm8 5 4 4 4-4m-8 14 4-4 4 4',
+} as const
+
+type IconName = keyof typeof paths
+
+const toolIcons: Record<string, IconName> = {
+  'read-case': 'read',
+  'write-case': 'save',
+  export: 'export',
+  'mesh-display': 'mesh',
+  'mesh-info': 'info',
+  'mesh-scale': 'scale',
+  'mesh-check': 'check',
+  'mesh-quality': 'quality',
+  'zone-merge': 'merge',
+  'zone-separate': 'separate',
+  'zone-adjacency': 'adjacent',
+  'zone-delete': 'remove',
+  'zone-replace': 'replace',
+  'interface-mesh': 'interface',
+  'interface-orient': 'direction',
+  'dynamic-mesh': 'dynamic',
+  'gap-model': 'gap',
+  'adapt-mark': 'mark',
+  'adapt-refine': 'refine',
+  'surface-create': 'surface',
+  'surface-manage': 'layers',
+  'model-energy': 'energy',
+  'model-viscous': 'viscous',
+  materials: 'material',
+  methods: 'methods',
+  controls: 'control',
+  initialize: 'init',
+  run: 'run',
+  residuals: 'residual',
+  contours: 'contour',
+  vectors: 'vectors',
+  reports: 'report',
+  select: 'pointer',
+  rotate: 'rotate',
+  pan: 'pan',
+  zoom: 'zoom',
+  style: 'layers',
+  fit: 'fit',
+}
+
+export function FluentIcon({ name, controlId }: { name?: IconName; controlId?: string }) {
+  const icon = name ?? toolIcons[(controlId ?? '').replace(/^(ribbon|graphics)-/, '')] ?? 'guide'
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={paths[icon]} />
+    </svg>
+  )
+}

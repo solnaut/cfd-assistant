@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import App from '../App'
@@ -191,110 +191,153 @@ describe('App', () => {
     expect(screen.queryByText('注意事项')).not.toBeInTheDocument()
   })
 
-  it('renders the Fluent Solver main interface simulator entry and shell', async () => {
+  it('renders a workbench with the task page, viewport, console and teaching guide', () => {
     renderApp('/fluent-guide')
 
-    expect(
-      await screen.findByRole('button', { name: 'Fluent Solver 主界面模拟器' }),
-    ).toBeInTheDocument()
-    expect(screen.getByText('Ribbon 菜单')).toBeInTheDocument()
-    expect(screen.getByText('案例视图')).toBeInTheDocument()
-    expect(screen.getByText('任务页面')).toBeInTheDocument()
-    expect(screen.getByText('User Window 1')).toBeInTheDocument()
-    expect(screen.getByText('控制台')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '一般' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Fluent Solver Workbench' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Command tabs' })).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: 'Outline' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Task Page' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Graphics' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Console' })).toBeInTheDocument()
+    expect(screen.getByRole('complementary', { name: '控件说明' })).toBeInTheDocument()
+    expect(screen.getByText('X Gravity')).toBeInTheDocument()
+
+    const language = screen.getByRole('combobox', { name: '界面语言' })
+    fireEvent.change(language, { target: { value: 'both' } })
+    expect(screen.getByRole('button', { name: 'File · 文件' })).toBeInTheDocument()
+    fireEvent.change(language, { target: { value: 'zh' } })
+    expect(screen.getByRole('heading', { name: 'Fluent 求解教学工作台' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '任务页' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '文件' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '教学说明' }))
+    expect(screen.queryByRole('complementary', { name: '控件说明' })).not.toBeInTheDocument()
   })
 
-  it('updates the Fluent simulator explanation from tree, ribbon, task controls, graphics tools and console', async () => {
+  it('updates the teaching guide from tree, ribbon, task controls, graphics tools and console', () => {
     renderApp('/fluent-guide')
 
-    await screen.findByText('User Window 1')
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    const ribbon = within(screen.getByRole('navigation', { name: 'Command tabs' }).parentElement!)
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    const guide = within(screen.getByRole('complementary', { name: '控件说明' }))
 
-    fireEvent.click(screen.getByRole('button', { name: '边界条件' }))
-    expect(screen.getByRole('button', { name: '边界条件' })).toHaveClass('active')
-    expect(screen.getByRole('heading', { name: '边界条件' })).toBeInTheDocument()
+    fireEvent.click(guide.getByRole('button', { name: 'Pressure-Based' }))
+    expect(task.getByRole('button', { name: 'Pressure-Based' })).toHaveFocus()
+
+    const boundary = outline.getByRole('button', { name: 'Boundary Conditions' })
+    fireEvent.click(boundary)
+    expect(boundary).toHaveAttribute('aria-current', 'true')
+    expect(guide.getByRole('heading', { name: '边界条件' })).toBeInTheDocument()
     expect(screen.getByText('设置 / 边界条件')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '检查' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Check' }))
     expect(screen.getByRole('heading', { name: '网格检查' })).toBeInTheDocument()
     expect(screen.getByText('Ribbon → 区域 → 网格')).toBeInTheDocument()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
 
-    fireEvent.click(screen.getByRole('button', { name: '基于压力' }))
+    fireEvent.click(task.getByRole('button', { name: 'Pressure-Based' }))
     expect(screen.getByRole('heading', { name: '基于压力求解器' })).toBeInTheDocument()
     expect(screen.getByText('任务页面 → 一般 → 求解器 → 类型')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '选择工具' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Select' }))
     expect(screen.getByRole('heading', { name: '图形窗口选择工具' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '控制台区域' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Console' }))
     expect(screen.getByRole('heading', { name: '控制台' })).toBeInTheDocument()
     expect(screen.getByText('底部控制台')).toBeInTheDocument()
   })
 
-  it('opens and closes Fluent simulator teaching dialogs and updates explanation from dialog controls', async () => {
+  it('opens and closes teaching dialogs and updates the explanation from dialog controls', () => {
     renderApp('/fluent-guide')
 
-    await screen.findByText('User Window 1')
-
-    fireEvent.click(screen.getByRole('button', { name: '单位' }))
-    expect(screen.getByRole('dialog', { name: '单位设置' })).toBeInTheDocument()
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    const units = task.getByRole('button', { name: 'Units' })
+    fireEvent.click(units)
+    const dialog = screen.getByRole('dialog', { name: 'Units' })
+    expect(dialog).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '单位设置' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '长度单位' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /Length Unit/ }))
     expect(screen.getByRole('heading', { name: '长度单位' })).toBeInTheDocument()
     expect(screen.getByText('模拟窗口 → 单位设置')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '关闭单位设置' }))
-    expect(screen.queryByRole('dialog', { name: '单位设置' })).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close Units' }))
+    expect(screen.queryByRole('dialog', { name: 'Units' })).not.toBeInTheDocument()
+    expect(units).toHaveFocus()
 
-    fireEvent.click(screen.getByRole('button', { name: '报告质量' }))
-    expect(screen.getByRole('dialog', { name: '网格质量报告' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '最小正交质量' }))
+    fireEvent.click(task.getByRole('button', { name: 'Report Quality' }))
+    const quality = screen.getByRole('dialog', { name: 'Mesh Quality Report' })
+    fireEvent.click(within(quality).getByRole('button', { name: /Min. Orthogonal Quality/ }))
     expect(screen.getByRole('heading', { name: '最小正交质量' })).toBeInTheDocument()
   })
 
-  it('shows action-oriented Fluent explanations and deeper model dialog options', async () => {
+  it('shows action-oriented Fluent explanations and deeper model dialog options', () => {
     renderApp('/fluent-guide')
-
-    await screen.findByText('User Window 1')
 
     expect(screen.getByText('是什么')).toBeInTheDocument()
     expect(screen.getByText('建议')).toBeInTheDocument()
     expect(screen.getByText('检查要点')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '物理' }))
-    fireEvent.click(screen.getByRole('button', { name: '能量' }))
-    expect(screen.getByRole('dialog', { name: 'Energy 模型' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Physics' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Energy' }))
+    expect(screen.getByRole('dialog', { name: 'Energy Model' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '启用 Energy' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enable Energy' }))
     expect(screen.getByRole('heading', { name: '启用 Energy' })).toBeInTheDocument()
     expect(screen.getByText('适合存在热传导、热通量、温度边界或可压缩热效应的算例。')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '关闭Energy 模型' }))
-    fireEvent.click(screen.getByRole('button', { name: '边界条件' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Velocity Inlet' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close Energy Model' }))
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    fireEvent.click(outline.getByRole('button', { name: 'Boundary Conditions' }))
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    fireEvent.click(task.getByRole('button', { name: 'Velocity Inlet' }))
     expect(screen.getByRole('dialog', { name: 'Velocity Inlet' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Turbulence Specification' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Turbulence Specification/ }))
     expect(screen.getByRole('heading', { name: 'Turbulence Specification' })).toBeInTheDocument()
     expect(screen.getByText('检查入口湍流强度、长度尺度或水力直径是否来自工况估算。')).toBeInTheDocument()
   })
 
-  it('opens nested teaching windows from dialog controls', async () => {
+  it('restores the parent teaching window and focus after closing a nested window', () => {
     renderApp('/fluent-guide')
 
-    await screen.findByText('User Window 1')
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    fireEvent.click(outline.getByRole('button', { name: 'Materials' }))
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    fireEvent.click(task.getByRole('button', { name: 'Manage Materials' }))
+    expect(screen.getByRole('dialog', { name: 'Manage Materials' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '材料' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Materials 主页面' }))
-    expect(screen.getByRole('dialog', { name: 'Materials 主页面' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Create/Edit' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create/Edit' }))
     expect(screen.getByRole('dialog', { name: 'Create/Edit Materials' })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Density Method' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /Density Method/ }))
     expect(screen.getByRole('heading', { name: 'Density Method' })).toBeInTheDocument()
     expect(screen.getByText('材料密度方法决定密度是常数、理想气体、分段函数还是其他表达。')).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    const parent = screen.getByRole('dialog', { name: 'Manage Materials' })
+    expect(within(parent).getByRole('button', { name: 'Create/Edit' })).toHaveFocus()
+  })
+
+  it('locates dialog controls from Chinese search terms and reveals filtered outline nodes', () => {
+    renderApp('/fluent-guide')
+
+    const search = within(screen.getByRole('search'))
+    const field = search.getByRole('searchbox', { name: 'Quick Search' })
+    fireEvent.change(field, { target: { value: '最小正交质量' } })
+    fireEvent.click(search.getByRole('button', { name: /Min. Orthogonal Quality/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Mesh Quality Report' })
+    expect(within(dialog).getByRole('button', { name: /Min. Orthogonal Quality/ })).toHaveFocus()
+
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    fireEvent.click(outline.getByRole('button', { name: 'Collapse all' }))
+    fireEvent.change(outline.getByRole('searchbox'), { target: { value: '边界条件' } })
+    expect(outline.getByRole('button', { name: 'Boundary Conditions' })).toBeInTheDocument()
+    expect(outline.queryByRole('button', { name: 'Materials' })).not.toBeInTheDocument()
+    fireEvent.change(field, { target: { value: 'Run Calculation' } })
+    fireEvent.click(search.getByRole('button', { name: 'Run Calculation', description: 'Outline' }))
+    expect(outline.getByRole('searchbox')).toHaveValue('')
+    expect(outline.getByRole('button', { name: 'Run Calculation' })).toHaveFocus()
   })
 })

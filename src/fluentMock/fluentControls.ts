@@ -46,7 +46,7 @@ function ribbonControl(
 export const ribbonTabs: FluentMockRibbonTab[] = [
   {
     id: 'ribbon-tab-file',
-    label: '与文件',
+    label: '文件',
     groups: [
       {
         id: 'ribbon-file-case',
@@ -144,7 +144,7 @@ export const ribbonTabs: FluentMockRibbonTab[] = [
   },
   {
     id: 'ribbon-tab-solution',
-    label: '解决方案',
+    label: '求解',
     groups: [
       {
         id: 'ribbon-solution-setup',
@@ -272,7 +272,7 @@ export const treeSections: FluentMockTreeSection[] = [
   },
   {
     id: 'tree-section-solution',
-    label: '后台',
+    label: '求解',
     defaultExpanded: true,
     controls: solutionNodes.map(treeNode),
   },
