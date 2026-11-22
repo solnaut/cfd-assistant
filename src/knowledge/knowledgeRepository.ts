@@ -3,7 +3,7 @@ import type {
   FluentKnowledgeFile,
 } from '../models/knowledge'
 
-export const DEFAULT_KNOWLEDGE_URL = '/knowledge/fluent-demo.json'
+export const DEFAULT_KNOWLEDGE_URL = `${import.meta.env.BASE_URL}knowledge/fluent-demo.json`
 
 export async function loadFluentKnowledge(
   url = DEFAULT_KNOWLEDGE_URL,

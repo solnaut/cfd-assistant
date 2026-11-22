@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 正式在 GitHub 公开开源（`solnaut/cfd-assistant`，MIT License），上线 GitHub Pages 在线站点（`https://solnaut.github.io/cfd-assistant/`），支持子路径部署与深链接 SPA 回退。
+- 重写开源 `README.md`，补充完整功能矩阵、界面截图（由 `scripts/capture-screenshots.mjs` 自动采集）、快速开始、目录架构、自动更新与部署说明（含 GitHub Actions 自动部署工作流模板 `docs/github-actions-pages.yml.example` 与一键部署脚本 `scripts/deploy-gh-pages.mjs`）。
+- 新增功能选择式首页、Fluent Launcher 交互配置器及独立启动页（`/fluent-launcher`）、Fluent Meshing 网格工作台（`/fluent-meshing`，覆盖 Watertight / Fault-Tolerant / Multizone 工作流并支持流转到 Solution）。
+- 新增“热流体工程图解”（`/knowledge`，4 门能源动力核心课程、36 节专题、知识框架图谱、刷题自测与本地进度/收藏）、“热工交互实验室”（`/thermal-lab`，布雷顿循环、R134a 压焓图、换热器 LMTD/ε-NTU）、“CFD 实战向导”（`/cfd-practice`）、“工程单位换算器”（`/unit-converter`）及全站检索（`Ctrl+K`）。
+- 新增 `Fluent 入口湍流参数换算` 与 `三网格收敛指数 GCI` 正式计算器及对应研究记录；新增 Windows Cloudflare Quick Tunnel 一键公网分享脚本（`公开分享 CFD Assistant.cmd`）。
 - 继续扩展 Fluent Solver 教学模拟器：新增 Case/Data 文件、General Solver、Operating Conditions、Create/Edit Materials、Mass-Flow Inlet、Symmetry、Outflow、Patch、Automatic Saving、Display Options 等常用窗口和控件说明。
 - Fluent 模拟窗口内部按钮支持继续打开下一层教学窗口，例如 Materials 主页面中的 Create/Edit 可以打开材料创建/编辑窗口并解释 Density Method 等物性选项。
 - 升级 Fluent Solver 教学模拟器右侧说明面板，改为“是什么 / 建议 / 适用场景 / 检查要点 / 常见误区”的操作建议型结构，去除面向用户的“后续补充”式说明。

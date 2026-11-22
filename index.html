@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -9,6 +9,21 @@
       content="CFD Assistant is an independent learning and calculation aid for CFD engineers and Ansys Fluent beginners."
     />
     <title>CFD Assistant</title>
+    <script>
+      ;(function () {
+        try {
+          var key = 'cfd-assistant:spa-redirect'
+          var redirect = window.sessionStorage.getItem(key)
+          if (!redirect) return
+          window.sessionStorage.removeItem(key)
+          if (redirect.startsWith('/') && !redirect.startsWith('//')) {
+            window.history.replaceState(null, '', redirect)
+          }
+        } catch {
+          // Ignore storage restrictions.
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
