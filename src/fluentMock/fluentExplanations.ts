@@ -1,6 +1,13 @@
 import { allDialogControls } from './fluentDialogs'
 import { allMainControls } from './fluentControls'
 import { extendedExplanationOverrides } from './data/extendedExplanations'
+import { solutionWorkflowExplanations } from './data/solutionWorkflowExplanations'
+import { modelDocumentationExplanations } from './data/modelDocumentationExplanations'
+import { fluentOperationExplanations } from './data/fluentOperationExplanations'
+import { generalAndMeshExplanations } from './data/generalAndMeshExplanations'
+import { physicsAndBoundaryExplanations } from './data/physicsAndBoundaryExplanations'
+import { solutionAndResultsExplanations } from './data/solutionAndResultsExplanations'
+import { synthesizeControlExplanation } from './data/dialogTeachingProfiles'
 import type { FluentMockControl, FluentMockExplanation } from './fluentTypes'
 
 type ExplanationOverride = Partial<Omit<FluentMockExplanation, 'id'>>
@@ -243,7 +250,7 @@ const moduleProfiles: Record<string, ModuleProfile> = {
   },
 }
 
-const overrides: Record<string, ExplanationOverride> = {
+const baseOverrides: Record<string, ExplanationOverride> = {
   'tree-general-explanation': {
     title: '一般',
     location: '设置 / 一般',
@@ -381,13 +388,47 @@ const overrides: Record<string, ExplanationOverride> = {
     location: '底部控制台',
     relatedControls: ['ribbon-mesh-check', 'run-calculate'],
   },
+}
+
+const mergedModuleOverrides: Record<string, ExplanationOverride> = {
   ...extendedExplanationOverrides,
+  ...generalAndMeshExplanations,
+  ...physicsAndBoundaryExplanations,
+  ...solutionAndResultsExplanations,
+}
+
+const overrides: Record<string, ExplanationOverride> = {
+  ...mergedModuleOverrides,
+  ...Object.fromEntries(
+    Object.entries(baseOverrides).map(([id, entry]) => [
+      id,
+      { ...mergedModuleOverrides[id], ...entry },
+    ]),
+  ),
+  ...Object.fromEntries(
+    Object.entries(modelDocumentationExplanations).map(([id, source]) => [
+      id,
+      { ...extendedExplanationOverrides[id], ...source },
+    ]),
+  ),
+  ...solutionWorkflowExplanations,
 }
 
 const allControls = [...allMainControls, ...allDialogControls]
 
 export const fluentExplanations: FluentMockExplanation[] = allControls.map(
-  (control) => createExplanation(control, overrides[control.explanationId]),
+  (control) => {
+    const prior = overrides[control.explanationId]
+    const expanded = fluentOperationExplanations[control.explanationId]
+    return createExplanation(control, {
+      ...prior,
+      ...expanded,
+      ...(!control.dialogId && prior?.sourceStatus === 'source-checked' && {
+        whatItIs: prior.whatItIs,
+        sourceUrl: prior.sourceUrl,
+      }),
+    })
+  },
 )
 
 export const fluentExplanationById = new Map(
@@ -401,19 +442,13 @@ function createExplanation(
   const title = override.title ?? control.labelZh
   const profile = moduleProfiles[control.module] ?? moduleProfiles[control.region] ?? moduleProfiles.General
   const typeName = controlTypeName(control.controlType)
-  const defaultWhat = `${control.labelZh} 是 ${control.module} 中的${typeName}，用于学习该位置对应的 Fluent 设置含义。`
-  const defaultRecommendation = `${profile.recommendation} 当前控件被点击时，重点理解它会影响哪些输入、方程或后处理对象。`
-  const defaultChecks = [
-    ...profile.checks.slice(0, 2),
-    control.value ? `当前示例值为 ${control.value}，真实算例需按工况修改` : `确认 ${control.labelZh} 是否需要在当前算例中设置`,
-  ]
+  const fallback = synthesizeControlExplanation(control, profile)
 
-  const whatItIs = override.whatItIs ?? defaultWhat
-  const recommendation = override.recommendation ?? defaultRecommendation
-  const whenToUse = override.whenToUse ?? profile.when
-  const commonMistakes =
-    override.commonMistakes ??
-    `不要只按默认值继续；${control.labelZh} 的含义需要结合模型、材料、边界条件和求解目标一起判断。`
+  const whatItIs = override.whatItIs ?? fallback.whatItIs
+  const recommendation = override.recommendation ?? fallback.recommendation
+  const whenToUse = override.whenToUse ?? fallback.whenToUse
+  const checkItems = override.checkItems ?? fallback.checkItems
+  const commonMistakes = override.commonMistakes ?? fallback.commonMistakes
 
   return {
     id: control.explanationId,
@@ -424,13 +459,15 @@ function createExplanation(
     controlType: override.controlType ?? typeName,
     whatItIs,
     recommendation,
-    checkItems: override.checkItems ?? defaultChecks,
+    checkItems,
     summary: override.summary ?? whatItIs,
     purpose: override.purpose ?? recommendation,
     whenToUse,
     commonMistakes,
     relatedControls: override.relatedControls ?? [],
     sourceStatus: override.sourceStatus ?? 'draft-public-sources',
+    sourceUrl: override.sourceUrl,
+    operation: override.operation,
   }
 }
 

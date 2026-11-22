@@ -11,6 +11,31 @@
   --fl-panel: #f1f4f8;
   --fl-shell: #dfe4ea;
   --fl-guide: #fcfbf8;
-  --fl-radius: 3px;
+  --fl-titlebar-bg: linear-gradient(180deg, #f8fafc, #e6ecf2);
+  --fl-pane-header-bg: linear-gradient(180deg, #f8fafc, #e6ecf2);
+  --fl-ribbon-tabs-bg: #e4e9ef;
+  --fl-fieldset-bg: #fafbfd;
+  --fl-input-border: #aeb8c4;
+  --fl-radius: 2px;
   --fl-mono: 'Cascadia Mono', Consolas, 'Courier New', monospace;
+}
+
+.fluent-workbench[data-theme='dark'] {
+  --fl-ink: #e5ebf3;
+  --fl-muted: #9aa9ba;
+  --fl-night: #141921;
+  --fl-accent: #3b97e8;
+  --fl-accent-hover: #53a6ef;
+  --fl-active: #203d5c;
+  --fl-file-tab: #1a5b8d;
+  --fl-rule: #3a424f;
+  --fl-surface: #252a32;
+  --fl-panel: #1e2228;
+  --fl-shell: #171a20;
+  --fl-guide: #21252d;
+  --fl-titlebar-bg: linear-gradient(180deg, #2b313a, #22272f);
+  --fl-pane-header-bg: linear-gradient(180deg, #2d333d, #232830);
+  --fl-ribbon-tabs-bg: #1c2026;
+  --fl-fieldset-bg: #20252d;
+  --fl-input-border: #485262;
 }

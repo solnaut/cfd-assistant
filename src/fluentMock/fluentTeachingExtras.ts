@@ -3,10 +3,16 @@ import {
   extendedOptionExplanations,
   extendedRelatedCalculatorsByControlId,
 } from './data/extendedExplanations'
+import type { FluentVisibilityCondition } from './fluentTypes'
+import { multiphaseDialogId, multiphaseTabs } from './data/multiphaseDialogs'
+import { physicsModelTabs } from './data/physicsModelBranches'
+import { extendedWorkflowDialogTabs } from './data/extendedWorkflowDialogs'
 
 export interface SelectOptionItem {
   value: string
   label: string
+  disabled?: boolean
+  reason?: string
 }
 
 export interface RelatedCalculatorLink {
@@ -115,10 +121,14 @@ export const controlOptionsById: Record<string, SelectOptionItem[]> = {
     { value: 'constant', label: 'constant' },
     { value: 'ideal-gas', label: 'ideal-gas' },
     { value: 'incompressible-ideal-gas', label: 'incompressible-ideal-gas' },
+    { value: 'boussinesq', label: 'boussinesq' },
+    { value: 'polynomial', label: 'polynomial' },
   ],
   'material-viscosity-method': [
     { value: 'constant', label: 'constant' },
     { value: 'sutherland', label: 'sutherland' },
+    { value: 'power-law', label: 'power-law' },
+    { value: 'piecewise-linear', label: 'piecewise-linear' },
   ],
   'wall-motion': [
     { value: 'Stationary Wall', label: 'Stationary Wall' },
@@ -163,6 +173,8 @@ export const controlOptionsById: Record<string, SelectOptionItem[]> = {
   'display-options-colormap': [
     { value: 'Rainbow', label: 'Rainbow' },
     { value: 'Blue to Red', label: 'Blue to Red' },
+    { value: 'Turbo', label: 'Turbo' },
+    { value: 'Viridis', label: 'Viridis' },
     { value: 'Grayscale', label: 'Grayscale' },
   ],
   'solver-velocity-formulation': [
@@ -223,6 +235,7 @@ export const controlOptionsById: Record<string, SelectOptionItem[]> = {
   'report-definition-type': [
     { value: 'Force', label: 'Force' },
     { value: 'Area-Weighted Average', label: 'Area-Weighted Average' },
+    { value: 'Volume-Average', label: 'Volume-Average' },
     { value: 'Mass Flow Rate', label: 'Mass Flow Rate' },
   ],
   'report-definition-surfaces': [
@@ -248,6 +261,7 @@ export const controlOptionsById: Record<string, SelectOptionItem[]> = {
   'plane-surface-method': [
     { value: 'Point and Normal', label: 'Point and Normal' },
     { value: 'YZ Plane', label: 'YZ Plane' },
+    { value: 'XZ Plane', label: 'XZ Plane' },
     { value: 'XY Plane', label: 'XY Plane' },
   ],
   'xy-plot-x-axis': [
@@ -372,6 +386,7 @@ const transientCalculators: RelatedCalculatorLink[] = [
 export const relatedCalculatorsByControlId: Record<string, RelatedCalculatorLink[]> = {
   'models-viscous': viscousCalculators,
   'ribbon-model-viscous': viscousCalculators,
+  'velocity-inlet-turbulence': [{ label: '入口湍流参数换算', to: '/calculators/flow-piping/inlet-turbulence', note: '按强度、水力直径或黏度比换算 k、ε、ω。' }],
   'viscous-kepsilon': [
     {
       label: 'y+ 与第一层网格高度',
@@ -426,6 +441,7 @@ export const relatedCalculatorsByControlId: Record<string, RelatedCalculatorLink
   ],
   'general-transient': transientCalculators,
   'run-calculation-time-step': transientCalculators,
+  'run-time-step-inline': transientCalculators,
   'ribbon-run': transientCalculators,
   'models-energy': energyCalculators,
   'ribbon-model-energy': energyCalculators,
@@ -497,13 +513,13 @@ export const walkthroughSteps: WalkthroughStep[] = [
   {
     id: 8,
     title: '9. 初始化流场 (Initialization)',
-    instruction: '必须先执行 Hybrid 或 Standard Initialization，再启动计算。',
-    controlId: 'initialization-hybrid',
+    instruction: '选择 Hybrid 或 Standard 后点击 Initialize，再启动计算。',
+    controlId: 'initialization-run-inline',
   },
   {
     id: 9,
     title: '10. 运行计算与查看云图 (Run & Results)',
-    instruction: '点击 Calculate 观察残差收敛曲线，再到 Contours/Vectors 检查结果。',
+    instruction: '点击 Calculate 查看示例残差，再到 Contours 或 Vectors 查看演示结果。',
     controlId: 'run-calculate',
   },
 ]
@@ -597,23 +613,43 @@ export interface DialogTabGroup {
   id: string
   label: string
   groups: string[]
+  parentId?: string
+  visibleWhen?: FluentVisibilityCondition[]
+  enabledWhen?: FluentVisibilityCondition[]
+  requires?: 'radiation' | 'species' | 'dpm' | 'multiphase'
 }
 
+const momentumTab: DialogTabGroup = { id: 'momentum', label: 'Momentum', groups: ['Momentum', 'Turbulence'] }
+const thermalTab: DialogTabGroup = { id: 'thermal', label: 'Thermal', groups: ['Thermal'] }
+const radiationTab: DialogTabGroup = { id: 'radiation', label: 'Radiation', groups: ['Radiation'], requires: 'radiation' }
+const speciesTab: DialogTabGroup = { id: 'species', label: 'Species', groups: ['Species'], requires: 'species' }
+const dpmTab: DialogTabGroup = { id: 'dpm', label: 'DPM', groups: ['DPM'], requires: 'dpm' }
+const multiphaseTab: DialogTabGroup = { id: 'multiphase', label: 'Multiphase', groups: ['Multiphase'], requires: 'multiphase' }
+const flowTabs = [momentumTab, thermalTab, radiationTab, speciesTab, dpmTab]
+
 export const dialogTabsByDialogId: Record<string, DialogTabGroup[]> = {
-  'velocity-inlet-dialog': [
-    { id: 'momentum', label: 'Momentum', groups: ['Momentum', 'Turbulence'] },
-    { id: 'thermal', label: 'Thermal', groups: ['Thermal'] },
+  ...physicsModelTabs,
+  ...extendedWorkflowDialogTabs,
+  'velocity-inlet-dialog': [...flowTabs, multiphaseTab],
+  'pressure-inlet-dialog': [...flowTabs, multiphaseTab],
+  'pressure-far-field-dialog': flowTabs,
+  'pressure-outlet-dialog': [...flowTabs, multiphaseTab],
+  'mass-flow-inlet-dialog': [...flowTabs, multiphaseTab],
+  'mass-flow-outlet-dialog': [
+    { ...momentumTab, groups: ['Zone', 'Momentum'] },
+    radiationTab,
+    dpmTab,
   ],
-  'pressure-inlet-dialog': [
-    { id: 'momentum', label: 'Momentum', groups: ['Momentum', 'Turbulence'] },
-    { id: 'thermal', label: 'Thermal', groups: ['Thermal'] },
-  ],
-  'mass-flow-inlet-dialog': [
-    { id: 'momentum', label: 'Momentum', groups: ['Momentum', 'Turbulence'] },
-    { id: 'thermal', label: 'Thermal', groups: ['Thermal'] },
-  ],
-  'wall-dialog': [
-    { id: 'momentum', label: 'Momentum', groups: ['Momentum'] },
-    { id: 'thermal', label: 'Thermal', groups: ['Thermal'] },
+  'wall-dialog': [momentumTab, thermalTab, radiationTab, dpmTab, {
+    id: 'potential', label: 'Potential', groups: ['Potential'],
+    visibleWhen: [{ controlId: 'electric-potential-enable', values: [true] }],
+  }],
+  [multiphaseDialogId]: multiphaseTabs,
+  'dpm-model-dialog': [
+    { id: 'tracking', label: 'Tracking', groups: ['Discrete Phase', 'Tracking'] },
+    { id: 'physical-models', label: 'Physical Models', groups: ['Physical Models'], requires: 'dpm' },
+    { id: 'udf', label: 'UDF', groups: ['UDF'], requires: 'dpm' },
+    { id: 'numerics', label: 'Numerics', groups: ['Numerics'], requires: 'dpm' },
+    { id: 'parallel', label: 'Parallel', groups: ['Parallel'], requires: 'dpm' },
   ],
 }

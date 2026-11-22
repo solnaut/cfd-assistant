@@ -1,5 +1,8 @@
 import type { FluentMockTaskPanel } from '../fluentTypes'
 import { makePanelControl } from './controlHelpers'
+import { extraBoundaryControls } from './boundaryBranches'
+import { directStepMethods, timeAdvancementControls } from './timeAdvancement'
+import { volumeFractionSchemeCondition } from './multiphaseDialogs'
 
 export const extendedTaskPanels: FluentMockTaskPanel[] = [
   {
@@ -64,7 +67,7 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
     id: 'boundary-panel',
     title: '边界条件',
     module: 'Boundary Conditions',
-    subtitle: '按 Inlet / Outlet / Wall / Internal 分组查看并编辑 12 类 Fluent 经典边界条件。',
+    subtitle: '按入口、出口、壁面和内部边界查看教学类型。可用类型随启用的物理模型变化。',
     groups: [
       {
         id: 'boundary-inlet-group',
@@ -79,6 +82,7 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('bc-mass-flow-inlet', 'Mass-Flow Inlet', 'Boundary Conditions', 'Inlet', 'button', {
             dialogId: 'mass-flow-inlet-dialog',
           }),
+          ...extraBoundaryControls.filter((control) => control.group === 'Inlet'),
         ],
       },
       {
@@ -94,6 +98,7 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('bc-pressure-far-field', 'Pressure Far-Field', 'Boundary Conditions', 'Outlet', 'button', {
             dialogId: 'pressure-far-field-dialog',
           }),
+          ...extraBoundaryControls.filter((control) => control.group === 'Outlet'),
         ],
       },
       {
@@ -102,6 +107,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
         controls: [
           makePanelControl('bc-wall', 'Wall', 'Boundary Conditions', 'Wall', 'button', {
             dialogId: 'wall-dialog',
+          }),
+          makePanelControl('bc-perforated-walls', 'Perforated Walls…', 'Boundary Conditions', 'Wall', 'button', {
+            dialogId: 'perforated-walls-dialog',
           }),
         ],
       },
@@ -118,12 +126,16 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('bc-periodic', 'Periodic', 'Boundary Conditions', 'Internal & Symmetry', 'button', {
             dialogId: 'periodic-dialog',
           }),
+          makePanelControl('bc-periodic-conditions', 'Periodic Conditions…', 'Boundary Conditions', 'Internal & Symmetry', 'button', {
+            dialogId: 'periodic-conditions-dialog',
+          }),
           makePanelControl('bc-interface', 'Interface', 'Boundary Conditions', 'Internal & Symmetry', 'button', {
             dialogId: 'interface-bc-dialog',
           }),
           makePanelControl('bc-interior', 'Interior', 'Boundary Conditions', 'Internal & Symmetry', 'button', {
             dialogId: 'interior-dialog',
           }),
+          ...extraBoundaryControls.filter((control) => control.group === 'Internal & Symmetry'),
         ],
       },
     ],
@@ -141,6 +153,28 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('methods-pressure-velocity', 'Pressure-Velocity Coupling', 'Solution Methods', 'Pressure-Velocity Coupling', 'select', {
             value: 'SIMPLE',
             dialogId: 'solution-methods-dialog',
+            visibleWhen: [{ controlId: 'general-pressure-based', values: [true] }],
+          }),
+          makePanelControl('methods-coupled-courant', 'Courant Number (Coupled)', 'Solution Methods', 'Pressure-Velocity Coupling', 'field', {
+            value: '200',
+            visibleWhen: [
+              { controlId: 'general-pressure-based', values: [true] },
+              { controlId: 'methods-pressure-velocity', values: ['Coupled'] },
+            ],
+          }),
+          makePanelControl('methods-dbns-formulation', 'Formulation', 'Solution Methods', 'Pressure-Velocity Coupling', 'select', {
+            value: 'Implicit',
+            options: ['Implicit', 'Explicit'],
+            visibleWhen: [{ controlId: 'general-density-based', values: [true] }],
+          }),
+          makePanelControl('methods-dbns-flux', 'Flux Type', 'Solution Methods', 'Pressure-Velocity Coupling', 'select', {
+            value: 'Roe-FDS',
+            options: ['Roe-FDS', 'AUSM'],
+            visibleWhen: [{ controlId: 'general-density-based', values: [true] }],
+          }),
+          makePanelControl('methods-dbns-courant', 'Solver Courant Number', 'Solution Methods', 'Pressure-Velocity Coupling', 'field', {
+            value: '5.0',
+            visibleWhen: [{ controlId: 'general-density-based', values: [true] }],
           }),
         ],
       },
@@ -153,18 +187,41 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           }),
           makePanelControl('methods-pressure-scheme', 'Pressure', 'Solution Methods', 'Spatial Discretization', 'select', {
             value: 'Second Order',
+            visibleWhen: [{ controlId: 'general-pressure-based', values: [true] }],
           }),
           makePanelControl('methods-momentum', 'Momentum', 'Solution Methods', 'Spatial Discretization', 'select', {
             value: 'Second Order Upwind',
           }),
           makePanelControl('methods-tke', 'Turbulent Kinetic Energy', 'Solution Methods', 'Spatial Discretization', 'select', {
             value: 'Second Order Upwind',
+            visibleWhen: [{ controlId: 'viscous-has-tke', values: [true] }],
+          }),
+          makePanelControl('methods-epsilon', 'Turbulent Dissipation Rate', 'Solution Methods', 'Spatial Discretization', 'select', {
+            value: 'Second Order Upwind',
+            options: ['First Order Upwind', 'Second Order Upwind', 'QUICK'],
+            visibleWhen: [{ controlId: 'viscous-has-epsilon', values: [true] }],
           }),
           makePanelControl('methods-omega', 'Specific Dissipation Rate', 'Solution Methods', 'Spatial Discretization', 'select', {
             value: 'Second Order Upwind',
+            visibleWhen: [{ controlId: 'viscous-has-omega', values: [true] }],
+          }),
+          makePanelControl('methods-nut', 'Modified Turbulent Viscosity', 'Solution Methods', 'Spatial Discretization', 'select', {
+            value: 'Second Order Upwind',
+            options: ['First Order Upwind', 'Second Order Upwind', 'QUICK'],
+            visibleWhen: [{ controlId: 'viscous-has-nut', values: [true] }],
           }),
           makePanelControl('methods-energy-scheme', 'Energy', 'Solution Methods', 'Spatial Discretization', 'select', {
             value: 'Second Order Upwind',
+            visibleWhen: [{ controlId: 'energy-enable', values: [true] }],
+          }),
+          makePanelControl('methods-do-scheme', 'Discrete Ordinates', 'Solution Methods', 'Spatial Discretization', 'select', {
+            value: 'First Order Upwind',
+            options: ['First Order Upwind', 'Second Order Upwind'],
+            visibleWhen: [{ controlId: 'radiation-model-select', values: ['Discrete Ordinates (DO)'] }],
+          }),
+          makePanelControl('methods-volume-fraction', 'Volume Fraction', 'Solution Methods', 'Spatial Discretization', 'select', {
+            valueId: 'multiphase-volume-fraction-scheme',
+            visibleWhen: volumeFractionSchemeCondition,
           }),
         ],
       },
@@ -174,11 +231,16 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
         controls: [
           makePanelControl('methods-transient-formulation', 'Transient Formulation', 'Solution Methods', 'Options', 'select', {
             value: 'First Order Implicit',
+            visibleWhen: [{ controlId: 'general-transient', values: [true] }],
+          }),
+          makePanelControl('methods-nita', 'Non-Iterative Time Advancement', 'Solution Methods', 'Options', 'checkbox', {
+            visibleWhen: [{ controlId: 'general-transient', values: [true] }],
           }),
           makePanelControl('methods-warped-face', 'Warped-Face Gradient Correction', 'Solution Methods', 'Options', 'checkbox'),
           makePanelControl('methods-high-order-relax', 'High Order Term Relaxation', 'Solution Methods', 'Options', 'checkbox'),
           makePanelControl('methods-pseudo-time', 'Pseudo Time Method', 'Solution Methods', 'Options', 'select', {
             value: 'Global Time Step',
+            visibleWhen: [{ controlId: 'general-steady', values: [true] }],
           }),
         ],
       },
@@ -194,8 +256,21 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
         id: 'controls-urf-group',
         title: 'Under-Relaxation Factors',
         controls: [
+          makePanelControl('controls-coupled-courant', 'Flow Courant Number', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
+            value: '200',
+            visibleWhen: [{ controlId: 'methods-is-coupled', values: [true] }],
+          }),
+          makePanelControl('controls-exp-momentum', 'Momentum Explicit Relaxation Factor', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
+            value: '0.5',
+            visibleWhen: [{ controlId: 'methods-is-coupled', values: [true] }],
+          }),
+          makePanelControl('controls-exp-pressure', 'Pressure Explicit Relaxation Factor', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
+            value: '0.5',
+            visibleWhen: [{ controlId: 'methods-is-coupled', values: [true] }],
+          }),
           makePanelControl('controls-urf-pressure', 'Pressure', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '0.3',
+            visibleWhen: [{ controlId: 'methods-is-coupled', values: [false] }],
           }),
           makePanelControl('controls-urf-density', 'Density', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '1.0',
@@ -205,18 +280,30 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           }),
           makePanelControl('controls-urf-momentum', 'Momentum', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '0.7',
+            visibleWhen: [{ controlId: 'methods-is-coupled', values: [false] }],
           }),
           makePanelControl('controls-urf-tke', 'Turbulent Kinetic Energy', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '0.8',
+            visibleWhen: [{ controlId: 'viscous-has-tke', values: [true] }],
+          }),
+          makePanelControl('controls-urf-epsilon', 'Turbulent Dissipation Rate', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
+            value: '0.8',
+            visibleWhen: [{ controlId: 'viscous-has-epsilon', values: [true] }],
           }),
           makePanelControl('controls-urf-omega', 'Specific Dissipation Rate', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '0.8',
+            visibleWhen: [{ controlId: 'viscous-has-omega', values: [true] }],
+          }),
+          makePanelControl('controls-urf-nut', 'Modified Turbulent Viscosity', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
+            value: '0.8',
+            visibleWhen: [{ controlId: 'viscous-has-nut', values: [true] }],
           }),
           makePanelControl('controls-urf-turb-visc', 'Turbulent Viscosity', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '1.0',
           }),
           makePanelControl('controls-urf-energy', 'Energy', 'Solution Controls', 'Under-Relaxation Factors', 'field', {
             value: '1.0',
+            visibleWhen: [{ controlId: 'energy-enable', values: [true] }],
           }),
         ],
       },
@@ -242,22 +329,68 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
     id: 'initialization-panel',
     title: '初始化',
     module: 'Initialization',
-    subtitle: '选择 Hybrid / Standard / FMG 初始化或 Patch 局部区域初值。',
+    subtitle: '先选择 Hybrid 或 Standard，再执行 Initialize。已有初始流场时可以继续使用 FMG 或 Patch。',
     groups: [
       {
         id: 'init-methods-group',
         title: 'Initialization Methods',
         controls: [
-          makePanelControl('initialization-hybrid', 'Hybrid Initialization', 'Initialization', 'Initialization Methods', 'button', {
-            dialogId: 'initialization-dialog',
+          makePanelControl('initialization-hybrid', 'Hybrid Initialization', 'Initialization', 'Initialization Methods', 'radio', {
+            defaultSelected: true,
           }),
-          makePanelControl('initialization-standard', 'Standard Initialization', 'Initialization', 'Initialization Methods', 'button'),
+          makePanelControl('initialization-hybrid-settings', 'More Settings…', 'Initialization', 'Initialization Methods', 'button', {
+            dialogId: 'hybrid-init-settings-dialog',
+            visibleWhen: [{ controlId: 'initialization-hybrid', values: [true] }],
+          }),
+          makePanelControl('initialization-standard', 'Standard Initialization', 'Initialization', 'Initialization Methods', 'radio'),
           makePanelControl('initialization-compute-from', 'Compute From', 'Initialization', 'Initialization Methods', 'select', {
             value: 'inlet',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }],
           }),
           makePanelControl('initialization-ref-frame-inline', 'Reference Frame', 'Initialization', 'Initialization Methods', 'select', {
             value: 'Relative to Cell Zone',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }],
           }),
+          makePanelControl('initialization-std-pressure', 'Gauge Pressure (Pa)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '0',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }],
+          }),
+          makePanelControl('initialization-std-xvel', 'Initial X Velocity (m/s)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '2.5',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }],
+          }),
+          makePanelControl('initialization-std-yvel', 'Y Velocity (m/s)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '0',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }],
+          }),
+          makePanelControl('initialization-std-zvel', 'Z Velocity (m/s)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '0',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }],
+          }),
+          makePanelControl('initialization-std-k', 'Turbulent Kinetic Energy (m²/s²)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '0.023',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }, { controlId: 'viscous-has-tke', values: [true] }],
+          }),
+          makePanelControl('initialization-std-epsilon', 'Turbulent Dissipation Rate (m²/s³)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '0.08',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }, { controlId: 'viscous-has-epsilon', values: [true] }],
+          }),
+          makePanelControl('initialization-std-omega', 'Specific Dissipation Rate (1/s)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '38.4',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }, { controlId: 'viscous-has-omega', values: [true] }],
+          }),
+          makePanelControl('initialization-std-nut', 'Modified Turbulent Viscosity (m²/s)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '0.0006',
+            visibleWhen: [{ controlId: 'initialization-standard', values: [true] }, { controlId: 'viscous-has-nut', values: [true] }],
+          }),
+          makePanelControl('initialization-std-temp', 'Initial Temperature (K)', 'Initialization', 'Initialization Methods', 'field', {
+            value: '300',
+            visibleWhen: [
+              { controlId: 'initialization-standard', values: [true] },
+              { controlId: 'energy-enable', values: [true] },
+            ],
+          }),
+          makePanelControl('initialization-run-inline', 'Initialize', 'Initialization', 'Initialization Methods'),
         ],
       },
       {
@@ -267,7 +400,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('initialization-patch', 'Patch', 'Initialization', 'Patch & Advanced', 'button', {
             dialogId: 'patch-initialization-dialog',
           }),
-          makePanelControl('initialization-fmg', 'FMG Initialization', 'Initialization', 'Patch & Advanced', 'button'),
+          makePanelControl('initialization-fmg', 'FMG Initialization', 'Initialization', 'Patch & Advanced', 'button', {
+            dialogId: 'fmg-initialization-dialog',
+          }),
           makePanelControl('initialization-reset', 'Reset Initialization', 'Initialization', 'Patch & Advanced', 'button'),
         ],
       },
@@ -290,21 +425,31 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
         id: 'run-parameters-group',
         title: 'Parameters',
         controls: [
+          ...timeAdvancementControls(),
           makePanelControl('run-iterations', 'No. of Iterations', 'Run Calculation', 'Parameters', 'field', {
             value: '250',
+            visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Steady'] }],
+          }),
+          makePanelControl('run-time-step-inline', 'Time Step Size', 'Run Calculation', 'Parameters', 'field', {
+            visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Transient'] }, { controlId: 'run-effective-time-method', values: ['User-Specified'] }],
+          }),
+          makePanelControl('run-transient-steps', 'Number of Time Steps', 'Run Calculation', 'Parameters', 'field', {
+            visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Transient'] }, { controlId: 'run-effective-time-method', values: directStepMethods }],
+          }),
+          makePanelControl('run-max-iterations-inline', 'Max Iterations/Time Step', 'Run Calculation', 'Parameters', 'field', {
+            visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Transient'] }],
           }),
           makePanelControl('run-reporting-interval', 'Reporting Interval', 'Run Calculation', 'Parameters', 'field', {
             value: '1',
+            visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Steady'] }],
           }),
           makePanelControl('run-profile-interval', 'Profile Update Interval', 'Run Calculation', 'Parameters', 'field', {
             value: '1',
           }),
           makePanelControl('run-data-quantities', 'Data File Quantities', 'Run Calculation', 'Parameters', 'button', {
-            dialogId: 'autosave-dialog',
+            dialogId: 'data-file-quantities-dialog',
           }),
-          makePanelControl('run-calculate', 'Calculate', 'Run Calculation', 'Parameters', 'button', {
-            dialogId: 'run-calculation-dialog',
-          }),
+          makePanelControl('run-calculate', 'Calculate', 'Run Calculation', 'Parameters'),
         ],
       },
     ],
@@ -326,12 +471,14 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             dialogId: 'convergence-conditions-dialog',
           }),
           makePanelControl('monitors-report-plots', 'Report Plots', 'Monitors', 'Monitors', 'button', {
-            dialogId: 'report-definition-dialog',
+            dialogId: 'report-plots-dialog',
           }),
           makePanelControl('monitors-report-files', 'Report Files', 'Monitors', 'Monitors', 'button', {
-            dialogId: 'report-definition-dialog',
+            dialogId: 'report-files-dialog',
           }),
-          makePanelControl('monitors-statistics', 'Statistics', 'Monitors', 'Monitors', 'button'),
+          makePanelControl('monitors-statistics', 'Statistics', 'Monitors', 'Monitors', 'button', {
+            dialogId: 'statistics-dialog',
+          }),
         ],
       },
     ],
@@ -347,10 +494,10 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
         title: 'Create Surfaces',
         controls: [
           makePanelControl('surface-point', 'Point Surface', 'Results', 'Create Surfaces', 'button', {
-            dialogId: 'plane-surface-dialog',
+            dialogId: 'point-surface-dialog',
           }),
           makePanelControl('surface-line-rake', 'Line/Rake', 'Results', 'Create Surfaces', 'button', {
-            dialogId: 'plane-surface-dialog',
+            dialogId: 'line-rake-dialog',
           }),
           makePanelControl('surface-plane', 'Plane Surface', 'Results', 'Create Surfaces', 'button', {
             dialogId: 'plane-surface-dialog',
@@ -359,7 +506,7 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             dialogId: 'iso-surface-dialog',
           }),
           makePanelControl('surface-iso-clip', 'Iso-Clip', 'Results', 'Create Surfaces', 'button', {
-            dialogId: 'iso-surface-dialog',
+            dialogId: 'iso-clip-dialog',
           }),
         ],
       },
@@ -388,10 +535,10 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             dialogId: 'pathlines-dialog',
           }),
           makePanelControl('results-particle-tracks', 'Particle Tracks', 'Results', 'Graphics Objects', 'button', {
-            dialogId: 'pathlines-dialog',
+            dialogId: 'particle-tracks-dialog',
           }),
           makePanelControl('results-scene', 'Scene', 'Results', 'Graphics Objects', 'button', {
-            dialogId: 'display-options-dialog',
+            dialogId: 'scene-dialog',
           }),
           makePanelControl('results-display-options', 'Display Options', 'Results', 'Graphics Objects', 'button', {
             dialogId: 'display-options-dialog',
@@ -413,8 +560,12 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('plot-xy', 'XY Plot', 'Results', 'Plots', 'button', {
             dialogId: 'xy-plot-dialog',
           }),
-          makePanelControl('plot-histogram', 'Histogram', 'Results', 'Plots', 'button'),
-          makePanelControl('plot-fft', 'FFT', 'Results', 'Plots', 'button'),
+          makePanelControl('plot-histogram', 'Histogram', 'Results', 'Plots', 'button', {
+            dialogId: 'histogram-dialog',
+          }),
+          makePanelControl('plot-fft', 'FFT', 'Results', 'Plots', 'button', {
+            dialogId: 'fft-dialog',
+          }),
           makePanelControl('plot-residuals', 'Residual Plot', 'Results', 'Plots', 'button'),
         ],
       },
@@ -559,7 +710,7 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             value: 'inlet_profile',
           }),
           makePanelControl('expr-definition', 'Definition', 'Named Expressions', 'Expression Editor', 'field', {
-            value: '2.5 [m s^-1] * (1 - (r / 0.05 [m])^2)',
+            value: '2.5 [m s^-1] * (1 - (sqrt(x**2 + y**2) / 0.05 [m])**2)',
           }),
           makePanelControl('expr-use-in-bc', 'Use as Velocity Inlet', 'Named Expressions', 'Expression Editor', 'button', {
             dialogId: 'velocity-inlet-dialog',

@@ -32,6 +32,7 @@ export function MeshingViewport({
   const [rotation, setRotation] = useState(0)
   const [pan, setPan] = useState(0)
   const [activeTool, setActiveTool] = useState('select')
+  const [cutAxis, setCutAxis] = useState<'X' | 'Y' | 'Z'>('X')
 
   const activeTab = state.viewportTab
   const isHistogram = activeTab === 'quality'
@@ -120,6 +121,7 @@ export function MeshingViewport({
           ) : (
             <MeshingGeometryCanvas
               activeTab={activeTab}
+              cutAxis={cutAxis}
               pan={pan}
               rotation={rotation}
               state={state}
@@ -137,6 +139,16 @@ export function MeshingViewport({
                 />
                 <span>{label('Cut Plane')}</span>
               </label>
+              <select
+                aria-label="Cut Plane Axis"
+                value={cutAxis}
+                disabled={!state.cutPlaneEnabled}
+                onChange={(event) => setCutAxis(event.target.value as 'X' | 'Y' | 'Z')}
+              >
+                <option value="X">X</option>
+                <option value="Y">Y</option>
+                <option value="Z">Z</option>
+              </select>
               <input
                 type="range"
                 aria-label="Cut Plane Position"
@@ -148,7 +160,7 @@ export function MeshingViewport({
                   onSetCutPlanePosition(Number.parseInt(event.target.value, 10))
                 }
               />
-              <span>{state.cutPlanePosition}%</span>
+              <span>{cutAxis}: {state.cutPlanePosition}%</span>
             </div>
           )}
 
@@ -227,12 +239,14 @@ function captionForMeshingTab(
 
 function MeshingGeometryCanvas({
   activeTab,
+  cutAxis,
   pan,
   rotation,
   state,
   zoom,
 }: {
   activeTab: MeshingViewportTab
+  cutAxis: 'X' | 'Y' | 'Z'
   pan: number
   rotation: number
   state: FluentMeshingState
@@ -244,6 +258,7 @@ function MeshingGeometryCanvas({
   const hasBoi = state.localSizings.length > 0
   const fillMode = state.volumeMesh.fillWith
   const cutClipX = 48 + (state.cutPlanePosition / 100) * 320
+  const cutClipY = 40 + (state.cutPlanePosition / 100) * 180
 
   return (
     <svg className="fluent-elbow" viewBox="0 0 430 285" aria-hidden="true">
@@ -371,15 +386,38 @@ function MeshingGeometryCanvas({
             </g>
 
             {/* Cut Plane marker line */}
-            <line
-              x1={cutClipX}
-              y1="30"
-              x2={cutClipX}
-              y2="232"
-              stroke="#c9302c"
-              strokeWidth="1.2"
-              strokeDasharray="4 3"
-            />
+            {cutAxis === 'Y' ? (
+              <line
+                x1="40"
+                y1={cutClipY}
+                x2="386"
+                y2={cutClipY}
+                stroke="#c9302c"
+                strokeWidth="1.4"
+                strokeDasharray="4 3"
+              />
+            ) : cutAxis === 'Z' ? (
+              <rect
+                x={cutClipX - 24}
+                y="40"
+                width="48"
+                height="182"
+                fill="rgba(201, 48, 44, 0.14)"
+                stroke="#c9302c"
+                strokeWidth="1.2"
+                strokeDasharray="4 3"
+              />
+            ) : (
+              <line
+                x1={cutClipX}
+                y1="30"
+                x2={cutClipX}
+                y2="232"
+                stroke="#c9302c"
+                strokeWidth="1.4"
+                strokeDasharray="4 3"
+              />
+            )}
           </g>
         )}
 

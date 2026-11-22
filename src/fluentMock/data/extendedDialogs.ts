@@ -25,39 +25,6 @@ function makeDialog(
 
 export const extendedDialogs: FluentMockDialog[] = [
   // New Physics Models
-  makeDialog('multiphase-model-dialog', 'Multiphase Model', 'Models', '配置 VOF、Mixture 或 Eulerian 多相流模型与相间作用机制。', [
-    {
-      id: 'multiphase-model-select',
-      label: 'Model',
-      module: 'Models',
-      group: 'Multiphase',
-      controlType: 'select',
-      value: 'Off',
-    },
-    {
-      id: 'multiphase-num-phases',
-      label: 'Number of Eulerian Phases',
-      module: 'Models',
-      group: 'Multiphase',
-      controlType: 'field',
-      value: '2',
-    },
-    {
-      id: 'multiphase-vof-formulation',
-      label: 'Volume Fraction Formulation',
-      module: 'Models',
-      group: 'Multiphase',
-      controlType: 'select',
-      value: 'Explicit',
-    },
-    {
-      id: 'multiphase-surface-tension',
-      label: 'Surface Tension Force Modeling',
-      module: 'Models',
-      group: 'Phase Interaction',
-      controlType: 'checkbox',
-    },
-  ]),
   makeDialog('radiation-model-dialog', 'Radiation Model', 'Models', '选择参与热辐射传热的模型（DO / S2S / P1 / Rosseland）。', [
     {
       id: 'radiation-model-select',
@@ -74,6 +41,7 @@ export const extendedDialogs: FluentMockDialog[] = [
       group: 'Angular Discretization',
       controlType: 'field',
       value: '2',
+      visibleWhen: [{ controlId: 'radiation-model-select', values: ['Discrete Ordinates (DO)'] }],
     },
     {
       id: 'radiation-phi-divisions',
@@ -82,6 +50,15 @@ export const extendedDialogs: FluentMockDialog[] = [
       group: 'Angular Discretization',
       controlType: 'field',
       value: '2',
+      visibleWhen: [{ controlId: 'radiation-model-select', values: ['Discrete Ordinates (DO)'] }],
+    },
+    {
+      id: 'radiation-s2s-faces-per-cluster',
+      label: 'Faces Per Surface Cluster',
+      module: 'Models',
+      group: 'View Factors and Clustering',
+      controlType: 'field',
+      visibleWhen: [{ controlId: 'radiation-model-select', values: ['Surface to Surface (S2S)'] }],
     },
   ]),
   makeDialog('species-model-dialog', 'Species Model', 'Models', '设置多组分输运、化学反应、燃烧或湿空气混合。', [
@@ -100,6 +77,7 @@ export const extendedDialogs: FluentMockDialog[] = [
       group: 'Species',
       controlType: 'select',
       value: 'mixture-template',
+      visibleWhen: [{ controlId: 'species-model-select', values: ['Species Transport'] }],
     },
     {
       id: 'species-volumetric-reactions',
@@ -107,15 +85,24 @@ export const extendedDialogs: FluentMockDialog[] = [
       module: 'Models',
       group: 'Reactions',
       controlType: 'checkbox',
+      visibleWhen: [{ controlId: 'species-model-select', values: ['Species Transport'] }],
     },
   ]),
   makeDialog('dpm-model-dialog', 'Discrete Phase Model', 'Models', '拉格朗日离散相颗粒/液滴追踪（Injection、双向耦合与碰撞）。', [
+    {
+      id: 'dpm-enable',
+      label: 'Enable Discrete Phase Model',
+      module: 'Models',
+      group: 'Discrete Phase',
+      controlType: 'checkbox',
+    },
     {
       id: 'dpm-interaction',
       label: 'Interaction with Continuous Phase',
       module: 'Models',
       group: 'Discrete Phase',
       controlType: 'checkbox',
+      visibleWhen: [{ controlId: 'dpm-enable', values: [true] }],
     },
     {
       id: 'dpm-unsteady-tracking',
@@ -123,6 +110,7 @@ export const extendedDialogs: FluentMockDialog[] = [
       module: 'Models',
       group: 'Discrete Phase',
       controlType: 'checkbox',
+      visibleWhen: [{ controlId: 'dpm-enable', values: [true] }],
     },
     {
       id: 'dpm-max-steps',
@@ -131,6 +119,7 @@ export const extendedDialogs: FluentMockDialog[] = [
       group: 'Tracking',
       controlType: 'field',
       value: '500',
+      visibleWhen: [{ controlId: 'dpm-enable', values: [true] }],
     },
   ]),
   makeDialog('heat-exchanger-dialog', 'Heat Exchanger Model', 'Models', '设置宏观换热器核心压降与换热量经验模型（Dual Cell / Macro）。', [

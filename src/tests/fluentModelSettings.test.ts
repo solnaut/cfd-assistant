@@ -1,0 +1,195 @@
+import { describe, expect, it } from 'vitest'
+import { fluentDialogs } from '../fluentMock/fluentDialogs'
+import { availableDialogTabs, dialogTabRows, isDialogControlVisible } from '../fluentMock/state/fluentDialogView'
+import { createInitialFluentSimState, fluentSimReducer, getControlChecked, getControlValue } from '../fluentMock/state/fluentSimState'
+import { validateModelSettings } from '../fluentMock/state/fluentModelValidation'
+
+function modelSession() {
+  let state = createInitialFluentSimState()
+  return {
+    set(controlId: string, value: string | boolean) {
+      state = fluentSimReducer(state, { type: 'SET_CONTROL_VALUE', controlId, value })
+    },
+    get state() { return state },
+    tabs(id: string) {
+      return availableDialogTabs(fluentDialogs.find((dialog) => dialog.id === id)!, state).map((tab) => tab.id)
+    },
+    controls(id: string, tabId?: string) {
+      const dialog = fluentDialogs.find((item) => item.id === id)!
+      const active = dialogTabRows(availableDialogTabs(dialog, state), tabId).at(-1)?.active
+      return dialog.controls.filter((control) =>
+        (!active || active.groups.includes(control.group)) && isDialogControlVisible(control, dialog, state))
+    },
+  }
+}
+
+describe('Fluent 2024 R2 model settings', () => {
+  it('honors Energy and solver type in the Viscous and Energy branches', () => {
+    const session = modelSession()
+    const fields = (id: string, tabId?: string) => session.controls(id, tabId).map((control) => control.id)
+    session.set('viscous-kepsilon', true)
+    expect(fields('viscous-model-dialog', 'wall-treatment')).toContain('viscous-ewt-pressure-gradient')
+    expect(fields('viscous-model-dialog', 'wall-treatment')).not.toContain('viscous-ewt-thermal')
+    expect(fields('energy-model-dialog')).not.toContain('energy-viscous-heating')
+    session.set('energy-enable', true)
+    expect(fields('viscous-model-dialog', 'wall-treatment')).toContain('viscous-ewt-thermal')
+    session.set('viscous-wall-treatment', 'Standard Wall Functions')
+    expect(fields('viscous-model-dialog', 'wall-treatment')).not.toContain('viscous-ewt-pressure-gradient')
+    session.set('viscous-sa', true)
+    expect(fields('viscous-model-dialog')).not.toContain('viscous-wall-treatment')
+    session.set('general-density-based', true)
+    session.set('energy-viscous-heating', false)
+    expect(fields('energy-model-dialog')).toContain('energy-two-temperature')
+    expect(getControlChecked(session.state, 'energy-viscous-heating')).toBe(true)
+  })
+
+  it('validates radiation bands and gates DPM radiation and parallel controls', () => {
+    const session = modelSession()
+    session.set('dpm-enable', true)
+    const dpm = (tabId: string) => session.controls('dpm-model-dialog', tabId).map((control) => control.id)
+    expect(dpm('physical-models')).not.toContain('dpm-particle-radiation')
+    session.set('radiation-model-select', 'P1')
+    expect(dpm('physical-models')).toContain('dpm-particle-radiation')
+    session.set('dpm-parallel-method', 'Shared Memory')
+    expect(dpm('parallel')).not.toContain('dpm-parallel-threads')
+    session.set('dpm-workpile', true)
+    expect(dpm('parallel')).toContain('dpm-parallel-threads')
+    session.set('dpm-parallel-method', 'Hybrid')
+    expect(dpm('parallel')).not.toContain('dpm-parallel-threads')
+    expect(dpm('parallel')).toContain('dpm-domain')
+    session.set('dpm-unsteady-tracking', true)
+    expect(dpm('tracking')).toContain('dpm-particle-steps')
+    session.set('general-transient', true)
+    expect(dpm('tracking')).toContain('dpm-fluid-timestep')
+    expect(dpm('tracking')).not.toContain('dpm-particle-timestep')
+    session.set('dpm-fluid-timestep', false)
+    expect(dpm('tracking')).toContain('dpm-particle-timestep')
+    expect(dpm('tracking')).toContain('dpm-inject-at')
+    session.set('dpm-interaction', true)
+    expect(dpm('numerics')).toContain('dpm-linearize-sources')
+    session.set('dpm-node-averaging', true)
+    expect(dpm('numerics')).not.toContain('dpm-linearize-sources')
+
+    session.set('radiation-number-of-bands', '2')
+    session.set('radiation-band-2-start', '2e-6')
+    session.set('radiation-band-2-end', '1e-6')
+    const validation = () => validateModelSettings(session.controls('radiation-model-dialog', 'non-gray'), session.state)
+    expect(validation()).toMatch(/Band 2 wavelengths/)
+    session.set('radiation-band-2-end', '3e-6')
+    expect(validation()).toBeUndefined()
+  })
+
+  it('keeps the selected VOF numerics independent of Eulerian settings and rejects same-phase mass transfer', () => {
+    const session = modelSession()
+    expect(session.tabs('multiphase-model-dialog')).toEqual(['model'])
+    session.set('general-transient', true)
+    session.set('multiphase-model-select', 'Volume of Fluid (VOF)')
+    session.set('multiphase-volume-fraction-scheme', 'CICSAM')
+    session.set('multiphase-model-select', 'Eulerian')
+    session.set('multiphase-vof-formulation', 'Implicit')
+    session.set('multiphase-model-select', 'Volume of Fluid (VOF)')
+    expect(getControlValue(session.state, 'multiphase-vof-formulation')).toBe('Explicit')
+    expect(getControlValue(session.state, 'multiphase-volume-fraction-scheme')).toBe('CICSAM')
+    session.set('multiphase-mass-count', '1')
+    session.set('multiphase-mass-mechanism-function', 'constant-rate')
+    session.set('multiphase-mass-mechanism-to', '2')
+    const validation = () => validateModelSettings(session.controls('multiphase-model-dialog', 'mass'), session.state)
+    expect(validation()).toBe('Mass transfer requires two different phases.')
+    session.set('multiphase-mass-count', '2')
+    session.set('multiphase-mass-index', '2')
+    expect(validation()).toBe('Mechanism 1: Mass transfer requires two different phases.')
+    session.set('multiphase-mass-index', '1')
+    session.set('multiphase-mass-mechanism-from', '1')
+    expect(validation()).toBeUndefined()
+
+    session.set('multiphase-num-phases', '3')
+    session.set('multiphase-surface-tension', true)
+    session.set('multiphase-wall-adhesion', true)
+    expect(session.controls('wall-dialog', 'momentum').map((control) => control.id)).toContain('wall-contact-angle')
+    session.set('wall-contact-angle', '90')
+    session.set('wall-contact-angle-pair', '1/3')
+    session.set('wall-contact-angle', '120')
+    session.set('wall-contact-angle-pair', '1/2')
+    expect(getControlValue(session.state, 'wall-contact-angle')).toBe('90')
+  })
+
+  it('separates the wall-film species and secondary-phase paths', () => {
+    const session = modelSession()
+    const dialog = 'wall-film-model-dialog'
+    const fields = (tabId?: string) => session.controls(dialog, tabId).map((control) => control.id)
+    session.set('wall-film-enable', true)
+    session.set('multiphase-model-select', 'Mixture')
+    session.set('mixture-slip', false)
+    expect(fields()).not.toContain('wall-film-phase-coupling')
+    session.set('species-model-select', 'Species Transport')
+    expect(fields()).toContain('wall-film-phase-coupling')
+    session.set('wall-film-phase-coupling', true)
+    expect(fields('phase-interaction')).toContain('wall-film-phase-change')
+    expect(fields('phase-interaction')).not.toContain('wall-film-phase-accretion')
+    session.set('species-model-select', 'Off')
+    session.set('mixture-slip', true)
+    expect(fields('phase-interaction')).not.toContain('wall-film-phase-change')
+    expect(fields('phase-interaction')).toContain('wall-film-phase-accretion')
+  })
+
+  it('shows chemistry, back diffusion, acoustics and battery controls only in their selected branches', () => {
+    const session = modelSession()
+    const fields = (id: string, tabId?: string) => session.controls(id, tabId).map((control) => control.id)
+    session.set('species-model-select', 'Species Transport')
+    session.set('species-volumetric-reactions', true)
+    expect(fields('species-model-dialog', 'model')).not.toContain('species-integration')
+    session.set('species-tci', 'Eddy-Dissipation Concept')
+    expect(fields('species-model-dialog', 'model')).toContain('species-integration')
+    session.set('species-model-select', 'Composition PDF Transport')
+    expect(session.tabs('species-model-dialog')).toContain('pdf-control')
+    session.set('species-pdf-transport', 'Eulerian')
+    expect(session.tabs('species-model-dialog')).not.toContain('pdf-control')
+    session.set('species-model-select', 'Species Transport')
+
+    session.set('solidification-enable', true)
+    session.set('solidification-rule', 'Scheil Rule')
+    session.set('solidification-back-diffusion', true)
+    expect(fields('solidification-model-dialog')).toContain('solidification-back-value')
+    session.set('solidification-back-method', 'user-defined')
+    expect(fields('solidification-model-dialog')).not.toContain('solidification-back-value')
+    expect(fields('solidification-model-dialog')).toContain('solidification-back-udf')
+
+    session.set('acoustics-model-select', 'Wave Equation')
+    expect(getControlValue(session.state, 'acoustics-model-select')).toBe('Off')
+    session.set('general-transient', true)
+    session.set('methods-transient-formulation', 'Second Order Implicit')
+    session.set('acoustics-model-select', 'Wave Equation')
+    expect(fields('acoustics-model-dialog')).not.toContain('acoustics-wave-receivers')
+    session.set('acoustics-remote-receivers', true)
+    expect(fields('acoustics-model-dialog')).toContain('acoustics-wave-receivers')
+    expect(fields('acoustics-model-dialog')).toContain('acoustics-sponge-viscosity')
+    session.set('acoustics-model-select', 'Ffowcs-Williams & Hawkings')
+    expect(fields('acoustics-model-dialog')).toContain('acoustics-compute-simultaneously')
+    expect(fields('acoustics-model-dialog')).not.toContain('acoustics-sponge-viscosity')
+    session.set('acoustics-model-select', 'Broadband Noise Sources')
+    expect(fields('acoustics-model-dialog')).toContain('acoustics-reference-power')
+    expect(fields('acoustics-model-dialog')).not.toContain('acoustics-compute-simultaneously')
+
+    expect(fields('battery-model-dialog')).not.toContain('battery-c-rate')
+    session.set('battery-enable', true)
+    expect(fields('battery-model-dialog')).toContain('battery-c-rate')
+    session.set('battery-electrical-control', 'Specified System Voltage')
+    expect(fields('battery-model-dialog')).not.toContain('battery-c-rate')
+    expect(fields('battery-model-dialog')).toContain('battery-system-voltage')
+    session.set('battery-solution-method', 'CHT Coupling')
+    expect(fields('battery-model-dialog')).not.toContain('battery-model-select')
+
+    expect(session.tabs('wall-dialog')).not.toContain('potential')
+    session.set('electric-potential-enable', true)
+    expect(session.tabs('wall-dialog')).toContain('potential')
+    expect(fields('wall-dialog', 'potential')).toContain('wall-current-density')
+    session.set('wall-potential-condition', 'Specified Value')
+    expect(fields('wall-dialog', 'potential')).toContain('wall-electric-potential')
+    expect(fields('material-create-edit-dialog')).toContain('material-electric-conductivity')
+    session.set('material-electric-conductivity', '0.01')
+    session.set('material-name', 'custom-conductor')
+    session.set('material-electric-conductivity', '12')
+    session.set('material-name', 'air')
+    expect(getControlValue(session.state, 'material-electric-conductivity')).toBe('0.01')
+  })
+})

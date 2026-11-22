@@ -1,7 +1,7 @@
 import type {
-  FaultTolerantStep,
   MeshingControlMeta,
   MeshingRibbonTab,
+  MeshingTaskId,
   MeshingWorkflowStep,
 } from './meshingTypes'
 
@@ -44,37 +44,61 @@ export const watertightWorkflowSteps: MeshingWorkflowStep[] = [
     optional: true,
   },
   {
-    id: 'wm-update-boundaries',
+    id: 'wm-capping',
     order: 6,
+    label: 'Enclose Fluid Regions (Capping)',
+    labelZh: '封盖流体区域',
+    explanationId: 'meshing-watertight-capping',
+    requiresCapping: true,
+  },
+  {
+    id: 'wm-update-boundaries',
+    order: 7,
     label: 'Update Boundaries',
     labelZh: '更新边界条件',
     explanationId: 'meshing-update-boundaries',
   },
   {
     id: 'wm-update-regions',
-    order: 7,
+    order: 8,
     label: 'Update Regions',
     labelZh: '更新体区域',
     explanationId: 'meshing-update-regions',
   },
   {
     id: 'wm-boundary-layers',
-    order: 8,
+    order: 9,
     label: 'Add Boundary Layers',
     labelZh: '添加边界层',
     explanationId: 'meshing-boundary-layers',
     optional: true,
   },
   {
+    id: 'wm-multizone-controls',
+    order: 10,
+    label: 'Add Multizone Controls',
+    labelZh: '添加多区域网格控制',
+    explanationId: 'meshing-multizone-controls',
+    requiresMultizone: true,
+  },
+  {
+    id: 'wm-multizone-mesh',
+    order: 11,
+    label: 'Generate the Multizone Mesh',
+    labelZh: '生成多区域网格',
+    explanationId: 'meshing-multizone-mesh',
+    requiresMultizone: true,
+  },
+  {
     id: 'wm-volume-mesh',
-    order: 9,
+    order: 12,
     label: 'Generate the Volume Mesh',
     labelZh: '生成体网格',
     explanationId: 'meshing-volume-mesh',
   },
   {
     id: 'wm-improve-mesh',
-    order: 10,
+    order: 13,
     label: 'Improve Volume Mesh',
     labelZh: '改善体网格质量',
     explanationId: 'meshing-improve-mesh',
@@ -82,48 +106,37 @@ export const watertightWorkflowSteps: MeshingWorkflowStep[] = [
   },
 ]
 
-export const faultTolerantReferenceSteps: FaultTolerantStep[] = [
-  {
-    id: 'ft-import-cad',
-    order: 1,
-    label: 'Import CAD & Part Management',
-    labelZh: '导入含缝隙/重叠的原始 CAD',
-    summary: '适用于未做完美修复的复杂装配体（如整车机舱、散热器、多零件重叠几何）。',
-    explanationId: 'meshing-ft-overview',
-  },
-  {
-    id: 'ft-local-sizing',
-    order: 2,
-    label: 'Create Local Sizing & Material Points',
-    labelZh: '定义局部加密与材料点',
-    summary: '通过内部 Material Point 指定流体/固体域位置，用于后续包面与泄漏检测。',
-    explanationId: 'meshing-ft-overview',
-  },
-  {
-    id: 'ft-surface-mesh',
-    order: 3,
-    label: 'Generate Surface Mesh (Wrapper)',
-    labelZh: '包面重构封闭面网格',
-    summary: '利用 Shrink-Wrap 包面跨越微小缝隙、台阶与非流形边，生成水密包络。',
-    explanationId: 'meshing-ft-overview',
-  },
-  {
-    id: 'ft-leak-detection',
-    order: 4,
-    label: 'Leak Detection & Enclosures',
-    labelZh: '泄漏路径检查与封堵',
-    summary: '在体网格前自动追踪孔洞泄漏路径，快速添加虚拟封堵面。',
-    explanationId: 'meshing-ft-overview',
-  },
-  {
-    id: 'ft-boundary-layers',
-    order: 5,
-    label: 'Add Boundary Layers & Generate Volume Mesh',
-    labelZh: '生成边界层与 Poly-Hexcore 体网格',
-    summary: '完成区域识别与边界层参数后生成体网格并 Switch to Solution。',
-    explanationId: 'meshing-ft-overview',
-  },
-]
+export function visibleWatertightSteps(multizone: boolean, replaceVolumeTask: boolean, capping = false) {
+  return watertightWorkflowSteps
+    .filter((step) => (multizone || !step.requiresMultizone) && (capping || !step.requiresCapping) &&
+      (!replaceVolumeTask || step.id !== 'wm-volume-mesh'))
+    .map((step, index) => ({ ...step, order: index + 1 }))
+}
+
+const watertightStepById = new Map(watertightWorkflowSteps.map((step) => [step.id, step]))
+
+// The tutorial follows the internal-flow branch of the 2024 R2 guided workflow.
+export const faultTolerantWorkflowSteps: MeshingWorkflowStep[] = ([
+  { ...watertightStepById.get('wm-import-geometry')!, label: 'Import Geometry and Part Management', labelZh: '导入几何与部件管理' },
+  { id: 'ft-describe', label: 'Describe Geometry and Flow', labelZh: '描述几何与流动', explanationId: 'meshing-ft-describe' },
+  { id: 'ft-capping', label: 'Enclose Fluid Regions (Capping)', labelZh: '封盖流体区域', explanationId: 'meshing-ft-capping', optional: true },
+  { id: 'ft-identify', label: 'Identify Regions', labelZh: '识别区域', explanationId: 'meshing-ft-identify' },
+  { id: 'ft-leakage', label: 'Define Leakage Threshold', labelZh: '定义泄漏阈值', explanationId: 'meshing-ft-leakage', optional: true },
+  watertightStepById.get('wm-update-regions')!,
+  { ...watertightStepById.get('wm-local-sizing')!, label: 'Add Local Size Controls' },
+  watertightStepById.get('wm-surface-mesh')!,
+  watertightStepById.get('wm-update-boundaries')!,
+  watertightStepById.get('wm-boundary-layers')!,
+  watertightStepById.get('wm-volume-mesh')!,
+  watertightStepById.get('wm-improve-mesh')!,
+] satisfies Array<Omit<MeshingWorkflowStep, 'order'>>).map((step, index) => ({ ...step, order: index + 1 }))
+
+export function taskForMode(taskId: MeshingTaskId, faultTolerant: boolean): MeshingTaskId {
+  if (!faultTolerant) return taskId
+  if (taskId === 'wm-describe-geometry') return 'ft-describe'
+  if (taskId === 'wm-share-topology') return 'ft-capping'
+  return taskId
+}
 
 export const meshingRibbonTabs: MeshingRibbonTab[] = [
   {
@@ -456,6 +469,14 @@ export const meshingRibbonTabs: MeshingRibbonTab[] = [
 ]
 
 export const meshingControlCatalog: MeshingControlMeta[] = [
+  ...faultTolerantWorkflowSteps.filter((step) => step.id.startsWith('ft-')).map((step) => ({
+    id: step.id,
+    label: step.label,
+    labelZh: step.labelZh,
+    location: 'Fault-Tolerant Meshing → ' + step.label,
+    explanationId: step.explanationId,
+    taskId: step.id,
+  })),
   ...watertightWorkflowSteps.map((step) => ({
     id: step.id,
     label: step.label,

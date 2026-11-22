@@ -8,6 +8,12 @@ npm.cmd run build
 
 构建输出目录为 `dist`。
 
+## 临时公网链接
+
+在 Windows 上双击 [公开分享 CFD Assistant.cmd](../公开分享%20CFD%20Assistant.cmd)。窗口会构建当前版本，并通过 Cloudflare Quick Tunnel 显示一个临时的 `https://…trycloudflare.com` 地址。第一次运行会下载并校验 Cloudflare 工具。访客用浏览器打开该地址即可。
+
+分享期间保持本机联网、开机和窗口运行。按 `Ctrl+C` 结束分享，下次启动会生成新的地址。当前链接也会写到项目内的 `.share-runtime/public-url.txt`。持有链接的人可以访问分享的网页。 [Cloudflare Quick Tunnel 文档](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/)
+
 ## Cloudflare Pages 计划
 
 暂不执行部署。后续流程：

@@ -1,0 +1,239 @@
+.page.home-page {
+  padding-top: 24px;
+}
+
+.cover {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.06fr);
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #091923;
+  box-shadow: 0 20px 55px #09263326;
+  color: #ebf7fa;
+}
+
+.cover-copy {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  padding: clamp(24px, 4.6vw, 64px);
+}
+
+.cover-kicker {
+  margin: 0 0 20px;
+  color: #9fe1d6;
+  font: 700 .81rem var(--mono);
+  letter-spacing: .14em;
+}
+
+.cover h1 {
+  margin: 0;
+  color: #f5fbfa;
+  font-size: clamp(2rem, 4.2vw, 3.45rem);
+  line-height: 1.17;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.cover-copy > p:not(.cover-kicker) {
+  max-width: 28em;
+  margin: 20px 0 24px;
+  color: #b6ced5;
+  font-size: 1.04rem;
+}
+
+.cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cover-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: .65em;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #60808a;
+  border-radius: 8px;
+  color: #e7f6f7;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cover-actions a:first-child {
+  border-color: #a7e6d7;
+  background: #a7e6d7;
+  color: #0a2b2d;
+}
+
+.cover-actions a:hover {
+  border-color: #f1fffb;
+  box-shadow: 0 0 0 1px #f1fffb;
+}
+
+.cover-figure {
+  position: relative;
+  min-height: 390px;
+  margin: 0;
+  overflow: hidden;
+}
+
+.cover-figure img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-figure::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #091923, transparent 20%);
+  content: '';
+  pointer-events: none;
+}
+
+.cover-figure figcaption {
+  position: absolute;
+  z-index: 1;
+  right: 16px;
+  bottom: 16px;
+  padding: 6px 10px;
+  background: #081922eb;
+  border: 1px solid #78b0b960;
+  border-radius: 6px;
+  color: #daecec;
+  font-size: .78rem;
+}
+
+.cover-workspaces {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  margin: 18px 0 32px;
+  border: 1px solid #d0dfe2;
+  border-radius: 17px;
+  background: #fff;
+}
+
+.cover-workspace {
+  position: relative;
+  min-width: 0;
+  padding: 22px 38px 20px 22px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.cover-workspace + .cover-workspace {
+  border-inline-start: 1px solid #d0dfe2;
+}
+
+.cover-workspace:hover,
+.cover-workspace:focus-visible {
+  background: #eff8f7;
+  color: var(--text-strong);
+}
+
+.cover-workspace-type {
+  color: #246a69;
+  font-size: .8rem;
+  font-weight: 750;
+}
+
+.cover-workspace h2 {
+  margin: 5px 0 7px;
+  color: #102d3c;
+  font-size: 1.17rem;
+  line-height: 1.33;
+}
+
+.cover-workspace p {
+  margin: 0;
+  font-size: .9rem;
+}
+
+.cover-workspace-arrow {
+  position: absolute;
+  top: 20px;
+  right: 18px;
+  color: #246a69;
+  font-size: 1.25rem;
+}
+
+.cover-resources {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 26px;
+}
+
+.cover-toolbox {
+  padding: 24px;
+  border: 1px solid #d0dfe2;
+  border-radius: 17px;
+  background: #fff;
+}
+
+.cover-toolbox h2 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+}
+
+.cover-tool {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 8px;
+  border-top: 1px solid #e0eaed;
+  color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.cover-tool:hover,
+.cover-tool:focus-visible {
+  background: var(--accent-soft);
+}
+
+.cover-tool small {
+  display: block;
+  color: var(--text);
+}
+
+@media (max-width: 860px) {
+  .cover,
+  .cover-resources {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cover-figure {
+    min-height: 0;
+    aspect-ratio: 2 / 1;
+  }
+
+  .cover-figure::after {
+    background: linear-gradient(180deg, #091923, transparent 26%);
+  }
+}
+
+@media (max-width: 650px) {
+  .cover-workspaces {
+    grid-template-columns: minmax(0, 1fr);
+    margin-bottom: 20px;
+  }
+
+  .cover-workspace + .cover-workspace {
+    border-inline-start: 0;
+    border-top: 1px solid #d0dfe2;
+  }
+
+  .cover-figure {
+    aspect-ratio: 1.8;
+  }
+
+  .cover-copy {
+    padding: 24px 20px 14px;
+  }
+}

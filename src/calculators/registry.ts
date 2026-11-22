@@ -3,6 +3,7 @@ import type {
   CalculatorDefinition,
   CalculatorSourceDefinition,
 } from '../models/calculator'
+import { cfdEngineeringCatalog } from './cfdEngineeringCatalog'
 
 const accessedAt = '2026-06-18'
 const accessedAtLatest = '2026-06-21'
@@ -158,6 +159,7 @@ export const calculatorCategories: CalculatorCategory[] = [
 ]
 
 export const calculatorCatalog: CalculatorDefinition[] = [
+  ...cfdEngineeringCatalog,
   {
     id: 'y-plus-first-layer-height',
     name: 'y+ 与第一层网格高度',

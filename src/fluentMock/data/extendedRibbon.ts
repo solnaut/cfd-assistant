@@ -1,5 +1,7 @@
 import type { FluentMockRibbonTab } from '../fluentTypes'
 import { makeRibbonControl } from './controlHelpers'
+import { solutionFileMenus } from './fileMenus'
+import { surfaceMenu } from './resultBranches'
 
 export const extendedRibbonTabs: FluentMockRibbonTab[] = [
   {
@@ -9,25 +11,15 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
       {
         id: 'ribbon-file-case',
         label: '案例',
-        controls: [
-          makeRibbonControl('ribbon-read-case', '读取', '案例', 'case-file-dialog', {
-            module: 'File',
-          }),
-          makeRibbonControl('ribbon-write-case', '保存', '案例', 'case-file-dialog', {
-            module: 'File',
-          }),
-          makeRibbonControl('ribbon-import', 'Import', '案例', 'case-file-dialog', {
-            module: 'File',
-          }),
-          makeRibbonControl('ribbon-export', '导出', '案例', 'case-file-dialog', {
-            module: 'File',
-          }),
-        ],
+        controls: solutionFileMenus,
       },
       {
         id: 'ribbon-file-session',
         label: 'Session',
         controls: [
+          makeRibbonControl('ribbon-file-data-quantities', 'Data File Quantities', 'Session', 'data-file-quantities-dialog', {
+            module: 'Calculation Activities',
+          }),
           makeRibbonControl('ribbon-preferences', 'Preferences', 'Session', 'preferences-dialog', {
             module: 'File',
           }),
@@ -53,22 +45,40 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             panelId: 'general-panel',
           }),
           makeRibbonControl('ribbon-mesh-quality', '质量统计', '网格', 'mesh-quality-dialog'),
-          makeRibbonControl('ribbon-mesh-reorder', 'Reorder', '网格'),
-          makeRibbonControl('ribbon-mesh-smooth', 'Smooth/Swap', '网格'),
-          makeRibbonControl('ribbon-mesh-polyhedra', 'Make Polyhedra', '网格'),
+          makeRibbonControl('ribbon-mesh-reorder', 'Reorder', '网格', undefined, {
+            children: [
+              makeRibbonControl('ribbon-mesh-reorder-domain', 'Reorder Domain', 'Reorder', 'mesh-reorder-dialog'),
+              makeRibbonControl('ribbon-mesh-reorder-zones', 'Reorder Zones', 'Reorder', 'mesh-reorder-dialog'),
+              makeRibbonControl('ribbon-mesh-reorder-bandwidth', 'Print Bandwidth', 'Reorder'),
+            ],
+          }),
+          makeRibbonControl('ribbon-mesh-smooth', 'Smooth/Swap', '网格', 'mesh-smooth-swap-dialog'),
+          makeRibbonControl('ribbon-mesh-polyhedra', 'Make Polyhedra', '网格', 'make-polyhedra-dialog'),
         ],
       },
       {
         id: 'ribbon-zone',
         label: 'Zones',
         controls: [
-          makeRibbonControl('ribbon-zone-merge', '组合', 'Zones'),
-          makeRibbonControl('ribbon-zone-separate', '分离', 'Zones'),
+          makeRibbonControl('ribbon-zone-merge', '组合', 'Zones', 'zone-merge-dialog'),
+          makeRibbonControl('ribbon-zone-separate', '分离', 'Zones', 'zone-separate-dialog'),
           makeRibbonControl('ribbon-zone-adjacency', '邻接', 'Zones'),
-          makeRibbonControl('ribbon-zone-delete', '删除', 'Zones'),
-          makeRibbonControl('ribbon-zone-replace', '替换区域', 'Zones'),
-          makeRibbonControl('ribbon-zone-append', 'Append', 'Zones'),
-          makeRibbonControl('ribbon-zone-transform', 'Transform', 'Zones', 'mesh-scale-dialog'),
+          makeRibbonControl('ribbon-zone-delete', '删除', 'Zones', 'zone-delete-dialog'),
+          makeRibbonControl('ribbon-zone-replace', '替换区域', 'Zones', 'zone-replace-dialog'),
+          makeRibbonControl('ribbon-zone-append', 'Append', 'Zones', 'zone-append-dialog'),
+          makeRibbonControl('ribbon-zone-transform', 'Transform', 'Zones', undefined, {
+            children: [
+              makeRibbonControl('ribbon-zone-transform-scale', 'Scale…', 'Transform', 'mesh-scale-dialog', {
+                dialogTab: 'scale',
+              }),
+              makeRibbonControl('ribbon-zone-transform-translate', 'Translate…', 'Transform', 'mesh-scale-dialog', {
+                dialogTab: 'translate',
+              }),
+              makeRibbonControl('ribbon-zone-transform-rotate', 'Rotate…', 'Transform', 'mesh-scale-dialog', {
+                dialogTab: 'rotate',
+              }),
+            ],
+          }),
         ],
       },
       {
@@ -79,7 +89,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             panelId: 'mesh-interface-panel',
           }),
           makeRibbonControl('ribbon-interface-orient', '方向检查', '界面'),
-          makeRibbonControl('ribbon-interface-overset', 'Overset', '界面', undefined, {
+          makeRibbonControl('ribbon-interface-overset', 'Overset', '界面', 'overset-interface-dialog', {
             panelId: 'mesh-interface-panel',
           }),
         ],
@@ -92,7 +102,9 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Dynamic Mesh',
             panelId: 'dynamic-mesh-panel',
           }),
-          makeRibbonControl('ribbon-gap-model', '间隙模型', '网格模型'),
+          makeRibbonControl('ribbon-gap-model', '间隙模型', '网格模型', 'gap-model-dialog', {
+            module: 'Dynamic Mesh',
+          }),
         ],
       },
       {
@@ -109,6 +121,11 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           }),
           makeRibbonControl('ribbon-adapt-controls', 'Adapt Controls', '适应', 'mesh-adaptation-dialog', {
             module: 'Mesh Adaptation',
+            dialogTab: 'adapt-controls',
+          }),
+          makeRibbonControl('ribbon-domain-registers', 'Cell Registers', '适应', undefined, {
+            module: 'Cell Registers',
+            panelId: 'cell-registers-panel',
           }),
         ],
       },
@@ -116,11 +133,8 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         id: 'ribbon-surface',
         label: '表面',
         controls: [
-          makeRibbonControl('ribbon-surface-create', '创建表面', '表面', 'plane-surface-dialog', {
-            module: 'Results',
-            panelId: 'surfaces-panel',
-          }),
-          makeRibbonControl('ribbon-surface-manage', '管理表面', '表面', undefined, {
+          surfaceMenu,
+          makeRibbonControl('ribbon-surface-manage', '管理表面', '表面', 'manage-surfaces-dialog', {
             module: 'Results',
             panelId: 'surfaces-panel',
           }),
@@ -145,6 +159,10 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           }),
           makeRibbonControl('ribbon-physics-operating', 'Operating Conditions', 'Solver', 'operating-conditions-dialog', {
             module: 'General',
+          }),
+          makeRibbonControl('ribbon-physics-gravity', 'Gravity', 'Solver', undefined, {
+            module: 'General',
+            panelId: 'general-panel',
           }),
           makeRibbonControl('ribbon-physics-reference', 'Reference Values', 'Solver', 'reference-values-dialog', {
             module: 'Reference Values',
@@ -187,6 +205,9 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           makeRibbonControl('ribbon-model-battery', 'Potential / Battery', '模型', 'battery-model-dialog', {
             module: 'Models',
           }),
+          makeRibbonControl('ribbon-model-heat-exchanger', 'Heat Exchanger', '模型', 'heat-exchanger-dialog', {
+            module: 'Models',
+          }),
         ],
       },
       {
@@ -197,6 +218,9 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Materials',
           }),
           makeRibbonControl('ribbon-materials-database', 'Create/Edit', '材料', 'material-create-edit-dialog', {
+            module: 'Materials',
+          }),
+          makeRibbonControl('ribbon-materials-fluent-db', 'Fluent Database…', '材料', 'fluent-database-materials-dialog', {
             module: 'Materials',
           }),
         ],
@@ -227,15 +251,19 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-udf-interpreted', 'Interpreted UDF', 'Functions', 'udf-dialog', {
             module: 'User-Defined',
+            dialogTab: 'interpreted',
           }),
           makeRibbonControl('ribbon-udf-compiled', 'Compiled UDF', 'Functions', 'udf-dialog', {
             module: 'User-Defined',
+            dialogTab: 'compiled',
           }),
           makeRibbonControl('ribbon-udf-hooks', 'Function Hooks', 'Functions', 'udf-dialog', {
             module: 'User-Defined',
+            dialogTab: 'hooks',
           }),
           makeRibbonControl('ribbon-udf-demand', 'Execute On Demand', 'Functions', 'udf-dialog', {
             module: 'User-Defined',
+            dialogTab: 'demand',
           }),
         ],
       },
@@ -283,11 +311,33 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Report Definitions',
             panelId: 'report-definitions-panel',
           }),
-          makeRibbonControl('ribbon-report-plots', 'Report Plots', 'Reports', undefined, {
+          makeRibbonControl('ribbon-report-new-menu', 'New Report', 'Reports', undefined, {
+            module: 'Report Definitions',
+            panelId: 'report-definitions-panel',
+            children: [
+              makeRibbonControl('ribbon-report-new-force', 'Force Report…', 'New Report', 'report-definition-dialog', {
+                module: 'Report Definitions',
+                panelId: 'report-definitions-panel',
+              }),
+              makeRibbonControl('ribbon-report-new-surface', 'Surface Report…', 'New Report', 'report-definition-dialog', {
+                module: 'Report Definitions',
+                panelId: 'report-definitions-panel',
+              }),
+              makeRibbonControl('ribbon-report-new-volume', 'Volume Report…', 'New Report', 'report-definition-dialog', {
+                module: 'Report Definitions',
+                panelId: 'report-definitions-panel',
+              }),
+              makeRibbonControl('ribbon-report-new-flux', 'Flux Report…', 'New Report', 'report-definition-dialog', {
+                module: 'Report Definitions',
+                panelId: 'report-definitions-panel',
+              }),
+            ],
+          }),
+          makeRibbonControl('ribbon-report-plots', 'Report Plots', 'Reports', 'report-plots-dialog', {
             module: 'Monitors',
             panelId: 'monitors-panel',
           }),
-          makeRibbonControl('ribbon-report-files', 'Report Files', 'Reports', undefined, {
+          makeRibbonControl('ribbon-report-files', 'Report Files', 'Reports', 'report-files-dialog', {
             module: 'Monitors',
             panelId: 'monitors-panel',
           }),
@@ -340,7 +390,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           makeRibbonControl('ribbon-patch', 'Patch', 'Initialization', 'patch-initialization-dialog', {
             module: 'Initialization',
           }),
-          makeRibbonControl('ribbon-initialize-fmg', 'FMG Initialization', 'Initialization', 'initialization-dialog', {
+          makeRibbonControl('ribbon-initialize-fmg', 'FMG Initialization', 'Initialization', 'fmg-initialization-dialog', {
             module: 'Initialization',
           }),
         ],
@@ -353,11 +403,11 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Calculation Activities',
             panelId: 'calculation-activities-panel',
           }),
-          makeRibbonControl('ribbon-execute-commands', 'Execute Commands', 'Activities', undefined, {
+          makeRibbonControl('ribbon-execute-commands', 'Execute Commands', 'Activities', 'execute-commands-dialog', {
             module: 'Calculation Activities',
             panelId: 'calculation-activities-panel',
           }),
-          makeRibbonControl('ribbon-data-sampling', 'Data Sampling', 'Activities', undefined, {
+          makeRibbonControl('ribbon-data-sampling', 'Data Sampling', 'Activities', 'data-sampling-dialog', {
             module: 'Calculation Activities',
             panelId: 'calculation-activities-panel',
           }),
@@ -387,6 +437,9 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         id: 'ribbon-results-graphics',
         label: '图形对象',
         controls: [
+          makeRibbonControl('ribbon-results-mesh', 'Mesh', '图形对象', 'mesh-display-dialog', {
+            module: 'Results',
+          }),
           makeRibbonControl('ribbon-contours', '云图', '图形对象', 'contours-dialog', {
             module: 'Results',
           }),
@@ -396,10 +449,10 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           makeRibbonControl('ribbon-pathlines', 'Pathlines', '图形对象', 'pathlines-dialog', {
             module: 'Results',
           }),
-          makeRibbonControl('ribbon-particle-tracks', 'Particle Tracks', '图形对象', 'pathlines-dialog', {
+          makeRibbonControl('ribbon-particle-tracks', 'Particle Tracks', '图形对象', 'particle-tracks-dialog', {
             module: 'Results',
           }),
-          makeRibbonControl('ribbon-scene', 'Scene', '图形对象', 'display-options-dialog', {
+          makeRibbonControl('ribbon-scene', 'Scene', '图形对象', 'scene-dialog', {
             module: 'Results',
             panelId: 'graphics-panel',
           }),
@@ -413,11 +466,11 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Results',
             panelId: 'plots-panel',
           }),
-          makeRibbonControl('ribbon-histogram', 'Histogram', 'Plots', undefined, {
+          makeRibbonControl('ribbon-histogram', 'Histogram', 'Plots', 'histogram-dialog', {
             module: 'Results',
             panelId: 'plots-panel',
           }),
-          makeRibbonControl('ribbon-fft', 'FFT', 'Plots', undefined, {
+          makeRibbonControl('ribbon-fft', 'FFT', 'Plots', 'fft-dialog', {
             module: 'Results',
             panelId: 'plots-panel',
           }),
@@ -432,6 +485,28 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             panelId: 'surfaces-panel',
           }),
           makeRibbonControl('ribbon-iso-surface', 'Iso-Surface', 'Surfaces', 'iso-surface-dialog', {
+            module: 'Results',
+            panelId: 'surfaces-panel',
+          }),
+          makeRibbonControl('ribbon-results-surface-create', 'Create', 'Surfaces', undefined, {
+            module: 'Results',
+            panelId: 'surfaces-panel',
+            children: [
+              makeRibbonControl('ribbon-results-point-surface', 'Point…', 'Create', 'point-surface-dialog', {
+                module: 'Results',
+                panelId: 'surfaces-panel',
+              }),
+              makeRibbonControl('ribbon-results-line-rake', 'Line/Rake…', 'Create', 'line-rake-dialog', {
+                module: 'Results',
+                panelId: 'surfaces-panel',
+              }),
+              makeRibbonControl('ribbon-results-iso-clip', 'Iso-Clip…', 'Create', 'iso-clip-dialog', {
+                module: 'Results',
+                panelId: 'surfaces-panel',
+              }),
+            ],
+          }),
+          makeRibbonControl('ribbon-results-surface-manage', 'Manage…', 'Surfaces', 'manage-surfaces-dialog', {
             module: 'Results',
             panelId: 'surfaces-panel',
           }),
@@ -478,10 +553,19 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           makeRibbonControl('ribbon-view-front', 'Front', 'Views', undefined, {
             module: 'Graphics Window',
           }),
+          makeRibbonControl('ribbon-view-back', 'Back', 'Views', undefined, {
+            module: 'Graphics Window',
+          }),
           makeRibbonControl('ribbon-view-top', 'Top', 'Views', undefined, {
             module: 'Graphics Window',
           }),
+          makeRibbonControl('ribbon-view-bottom', 'Bottom', 'Views', undefined, {
+            module: 'Graphics Window',
+          }),
           makeRibbonControl('ribbon-view-left', 'Left', 'Views', undefined, {
+            module: 'Graphics Window',
+          }),
+          makeRibbonControl('ribbon-view-right', 'Right', 'Views', undefined, {
             module: 'Graphics Window',
           }),
           makeRibbonControl('ribbon-view-fit', 'Fit View', 'Views', undefined, {
@@ -495,12 +579,15 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-view-display', 'Display Options', 'Display', 'display-options-dialog', {
             module: 'Results',
+            dialogTab: 'rendering',
           }),
           makeRibbonControl('ribbon-view-lights', 'Lights', 'Display', 'display-options-dialog', {
             module: 'Graphics Window',
+            dialogTab: 'lights',
           }),
           makeRibbonControl('ribbon-view-colormap', 'Colormap', 'Display', 'display-options-dialog', {
             module: 'Results',
+            dialogTab: 'colormap',
           }),
           makeRibbonControl('ribbon-view-reset', 'Reset Layout', 'Display', undefined, {
             module: 'Graphics Window',
@@ -519,6 +606,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-parallel-processes', 'Show Processes', 'Network', 'parallel-partition-dialog', {
             module: 'Parallel',
+            dialogTab: 'network-load',
           }),
           makeRibbonControl('ribbon-parallel-network', 'Network Check', 'Network', undefined, {
             module: 'Parallel',
@@ -534,12 +622,15 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-parallel-auto-partition', 'Auto Partition', 'Load Balancing', 'parallel-partition-dialog', {
             module: 'Parallel',
+            dialogTab: 'auto-partition',
           }),
           makeRibbonControl('ribbon-parallel-manual-partition', 'Manual Partition', 'Load Balancing', 'parallel-partition-dialog', {
             module: 'Parallel',
+            dialogTab: 'manual-partition',
           }),
           makeRibbonControl('ribbon-parallel-check-partition', 'Check Partition', 'Load Balancing', 'parallel-partition-dialog', {
             module: 'Parallel',
+            dialogTab: 'network-load',
           }),
           makeRibbonControl('ribbon-parallel-gpu', 'GPU Solver', 'Load Balancing', 'preferences-dialog', {
             module: 'Parallel',
@@ -558,12 +649,15 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-design-adjoint-obs', 'Adjoint Observables', 'Adjoint Solver', 'adjoint-solver-dialog', {
             module: 'Design',
+            dialogTab: 'observables',
           }),
           makeRibbonControl('ribbon-design-adjoint-methods', 'Adjoint Methods', 'Adjoint Solver', 'adjoint-solver-dialog', {
             module: 'Design',
+            dialogTab: 'methods',
           }),
           makeRibbonControl('ribbon-design-adjoint-run', 'Adjoint Solver', 'Adjoint Solver', 'adjoint-solver-dialog', {
             module: 'Design',
+            dialogTab: 'controls',
           }),
         ],
       },
@@ -573,9 +667,11 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-design-morphing', 'Mesh Morphing', 'Optimization', 'adjoint-solver-dialog', {
             module: 'Design',
+            dialogTab: 'morphing',
           }),
           makeRibbonControl('ribbon-design-points', 'Design Points', 'Optimization', 'parameters-table-dialog', {
             module: 'Design',
+            dialogTab: 'design-points',
             panelId: 'parameters-controls-panel',
           }),
         ],
@@ -592,14 +688,17 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-param-input', 'Input Parameters', 'Parameters', 'parameters-table-dialog', {
             module: 'Parameters',
+            dialogTab: 'input-params',
             panelId: 'parameters-controls-panel',
           }),
           makeRibbonControl('ribbon-param-output', 'Output Parameters', 'Parameters', 'parameters-table-dialog', {
             module: 'Parameters',
+            dialogTab: 'output-params',
             panelId: 'parameters-controls-panel',
           }),
           makeRibbonControl('ribbon-param-table', 'Parameter Table', 'Parameters', 'parameters-table-dialog', {
             module: 'Parameters',
+            dialogTab: 'design-points',
           }),
           makeRibbonControl('ribbon-param-expressions', 'Named Expressions', 'Parameters', undefined, {
             module: 'Parameters',

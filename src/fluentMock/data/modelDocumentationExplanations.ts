@@ -1,0 +1,97 @@
+import type { FluentMockExplanation } from '../fluentTypes'
+
+const guide = 'https://ansyshelp.ansys.com/public/Views/Secured/corp/v242/en/flu_ug/'
+const models = 'flu_ug_models_task_page.html'
+const vof = 'flu_ug_sec_mphase_using_steps_vof.html'
+const mixture = 'flu_ug_sec_mphase_using_steps_mixture.html'
+const eulerian = 'flu_ug_sec_mphase_using_steps_eulerian.html'
+const mass = 'flu_ug_sec_multiphase_setup.html#flu_ug_sec_mphase_massxfr'
+const pb = 'flu_ug_models_popbal.html'
+
+type Description = [controlId: string, page: string, text: string]
+
+const descriptions: Description[] = [
+  ['models-multiphase', models, 'Fluent 的多相设置包括模型选择、相定义和相间作用。湿蒸汽使用独立的配置流程。'],
+  ['ribbon-model-multiphase', models, '从 Physics Ribbon 打开与 Setup → Models → Multiphase 对应的多相设置窗口。'],
+  ['multiphase-model-select', models, '流体多相模型包括 VOF、Mixture 和 Eulerian，三者要求压力基求解器。Wet Steam 用于湿蒸汽凝结，有独立的设置流程。'],
+  ['multiphase-num-phases', models, '设置连续介质相的数量。Fluent 2024 R2 文档列出的上限为 20；主相身份固定，可以重新分配名称和材料。'],
+  ['multiphase-vof-formulation', 'flu_ug_sec_multiphase_setup.html', '稳态使用隐式公式，瞬态可以选择显式或隐式。显式分支会显示 Courant Number、体积分数截断值和子时间步设置。'],
+  ['multiphase-volume-cutoff', models, '显式体积分数分支中，小于截断值的体积分数被置为零，大于 1 减截断值的被置为一。'],
+  ['vof-courant', vof, '指定显式体积分数推进在自由界面附近的 Courant 数上限，影响体积分数计算的子时间步。'],
+  ['vof-sub-time-step', vof, '选择显式 VOF 子时间步的计算方法。2024 R2 文档列出了 Flux Based、Flux Averaged、Hybrid 和 Velocity Based。'],
+  ['multiphase-mixture-flow-regime', mixture, '在 Mixture 的 Slip Velocity 分支中启用流型建模，相关相对可以使用 drag-hybrid 处理相间曳力。'],
+  ['multiphase-eulerian-regime', eulerian, 'Eulerian 的流型转变模型包含 AIAD 和 GENTOP。官方手册分别列出了相定义、相间曳力和质量传递等配套设置。'],
+  ['multiphase-aiad-secondary-role', eulerian + '#flu_multiphase_AIAD_use', '先分配次级连续相。需要卷吸时，再为第三相指定 Entrained Phase Treatment。两个次相应使用同一种材料。'],
+  ['multiphase-aiad-drag-options', eulerian + '#flu_multiphase_AIAD_use', '主相与 AIAD 次级连续相的 drag-aiad 参数在同一窗口中按液滴场和气泡场分别设置。'],
+  ['multiphase-aiad-entrainment-options', eulerian + '#flu_multiphase_AIAD_use', '选择卷吸相后，AIAD 为次级连续相和卷吸相建立卷吸–吸收传质机制。此处编辑卷吸相生成系数。'],
+  ['multiphase-phase-gentop-hybrid', eulerian + '#flu_ug_multiphase_gentop_usability', '在 GENTOP 中标记一个次相为混合相。次相应采用相同材料，主相采用不同材料。'],
+  ['viscous-aiad-damping', eulerian + '#flu_multiphase_AIAD_use', '应用 AIAD 后在默认的 k-ω SST 模型中开启湍流阻尼，作用于主相与 AIAD 次级连续相。'],
+  ['viscous-aiad-subgrid', eulerian + '#flu_multiphase_AIAD_use', '亚网格波动湍流项为湍动能方程添加源项。应用 AIAD 后 Fluent 默认开启该选项。'],
+  ['multiphase-ddpm', eulerian, 'Dense Discrete Phase Model 将 Eulerian 连续相与离散粒子模型耦合。启用时 Fluent 同时启用 DPM。'],
+  ['multiphase-boiling-options', eulerian + '#flu_ug_sec_use_bm', '进入 Eulerian 壁面沸腾选项，选择 RPI、非平衡沸腾或临界热流模型。具体配置需要同时核对能量方程和相间传递。'],
+  ['multiphase-interface-type', models, '指定界面建模类型为 Sharp、Dispersed 或 Sharp/Dispersed。Eulerian 需要启用 Multi-Fluid VOF 才进入这一组设置。'],
+  ['multiphase-interface-localized', models, '控制相对上的界面离散处理。启用后，可在离散设置中针对各相对选择压缩离散的斜率限制器。'],
+  ['multiphase-volume-fraction-scheme', 'flu_ug_sec_multiphase_setup.html', '体积分数离散格式随多相模型、显式或隐式公式及界面类型改变。此处和 Solution Methods 共用所选格式。'],
+  ['methods-volume-fraction', 'flu_ug_solution_methods_task_page.html', '设置体积分数的空间离散格式。该入口和 Multiphase Model 中的体积分数格式读取同一项设置。'],
+  ['solution-methods-volume-fraction', 'flu_ug_solution_methods_task_page.html', '设置体积分数的空间离散格式。该入口和 Multiphase Model 中的体积分数格式读取同一项设置。'],
+  ['multiphase-pair-slope-limiter', models, '相局部压缩格式的斜率限制器范围为 0 到 2。它控制每一相对的界面扩散或锐化程度。'],
+  ['multiphase-phase-granular', models, '将 Eulerian 次相按颗粒相处理。启用后可在该相中设置颗粒黏度、固相压力、径向分布和堆积极限等属性。'],
+  ['multiphase-phase-granular-temperature-model', models, '选择颗粒温度的相属性处理方式或偏微分方程，描述颗粒速度波动相关的量。'],
+  ['multiphase-phase-iac', eulerian, '对非颗粒次相设置界面面积浓度。它参与相间动量、传热和传质闭合关系。'],
+  ['multiphase-pair-list', models, '选择设置相间作用的相对。作用力、传热系数、界面面积及适用的离散参数按相对区分。'],
+  ['multiphase-pair-drag', eulerian + '#flu_ug_sec_eulermp_using_drag', '选择相间曳力闭合关系。可选关联式与多相模型、所选相对和已开启的模型有关。'],
+  ['multiphase-pair-drag-modification', eulerian, '对选定相对的曳力关联式添加乘子，可选常数、文档中的修正模型或用户定义函数。'],
+  ['multiphase-pair-lift', eulerian, '为 Eulerian 相对定义升力系数或关联式。选择 constant 后需要给出系数。'],
+  ['multiphase-pair-heat', eulerian + '#flu_ug_sec_mphase_euler_heatxfr', 'Eulerian 开启能量方程后，可在 Heat 页签为每对相选择传热关联式。双阻力模型对界面两侧分别设置。'],
+  ['multiphase-mass-mechanism-function', mass, '从液相到气相等有方向的相间传质可按机制定义。所用模型和已打开的物理选项决定可选机制。'],
+  ['multiphase-mass-mechanism-cavitation', mass, '为配置的相间空化机制选择空化模型。蒸气压应按流体性质及实际压力基准核对。'],
+  ['multiphase-pair-area', eulerian + '#flu_ug_sec_mphase_euler_iac', '按相对选择界面面积代数模型。它用于需要界面面积的相间交换机制。'],
+  ['multiphase-transition-count', vof + '#flu_ug_sec_vof_dpm_using', '在已配置离散相喷射的 VOF 算例中设置模型转换机制。需指定转换相及用于体积平衡的另一相。'],
+  ['multiphase-pb-method', pb, 'Population Balance 用于定义粒径等内坐标的分布演化。不同离散或矩方法使用不同的分箱、矩或相设置。'],
+  ['multiphase-wet-steam-options', 'flu_ug_sec_wet_steam_using.html', 'Wet Steam 的液滴增长率与维里状态方程在原版通过 TUI 配置。工作台提供对应选项的表单演示。'],
+  ['energy-two-temperature', models, '密度基求解器的 Energy Modes 提供 Two-Temperature Model 选项。'],
+  ['radiation-view-factor-settings', models, 'S2S 模型的表面聚类设置会影响计算视角系数的粒度。该窗口也用于选择视角系数计算方法。'],
+  ['radiation-do-energy-coupling', models, 'DO 辐射模型可选择与能量方程耦合求解；辐射空间角度划分在 Angular Discretization 配置。'],
+  ['radiation-mc-history', models, 'Monte Carlo 辐射模型使用目标历史数来控制采样。'],
+  ['radiation-number-of-bands', models, 'P1、DO 和 Monte Carlo 可以设置非灰辐射波段。波段起止值使用真空中的波长，单位为米。'],
+  ['radiation-solar-calculator', models, '用地理位置、日期、时刻和日照方法配置太阳载荷计算所需的输入。'],
+  ['radiation-solar-spectral-fraction', models + '#flu_ug_Radiation_Model', '定义入射太阳辐照中可见部分的比例。此参数用于 Solar Ray Tracing。'],
+  ['radiation-solar-update-steps', models + '#flu_ug_Radiation_Model', '指定瞬态计算中两次太阳载荷更新之间的流动时间步数。'],
+  ['species-tci', models, '在组分输运启用体积反应时选择湍流和化学反应的耦合模型。应结合湍流模型和反应机理核对适用的组合。'],
+  ['species-integration-method', models, '配置化学反应积分方法。ISAT 参数与直接积分的误差容限需按反应机理和算例核对。'],
+  ['species-edc-model', models + '#flu_ug_Species_Model', 'EDC 可切换标准常系数模型与部分搅拌反应器。前者设置体积分数及时间尺度常数，后者选择混合模型。'],
+  ['species-chemistry-solver', models + '#flu_ug_Species_Model', '选用组分体积反应的化学求解器，可用组合随湍流–化学相互作用模型而变。Stiff Chemistry Solver 可打开积分参数窗口。'],
+  ['viscous-rsm-model', models, '在 Reynolds Stress 下选择压力应变模型或应力输运模型。只有线性压力应变分支显示 Wall Reflection Effects 的示例设置。'],
+  ['viscous-des-model', models, '在独立的 DES 分支选择所用的 RANS 基模型。'],
+  ['viscous-les-model', models, '为 LES 选择亚格子尺度模型，相关选项随模型分支变化。'],
+  ['viscous-ewt-thermal', models, '采用 Enhanced Wall Treatment 并开启能量方程时，可以包括近壁热效应。'],
+  ['viscous-kw-shear-flow', models + '#flu_ug_Viscous_Model', '剪切流修正用于预测自由剪切流。k-ω 分支只在 Standard 子模型中提供此项。'],
+  ['viscous-heating', models, '在能量方程中考虑黏性耗散。密度基求解器始终包含黏性加热。'],
+  ['dpm-automated-tracking-scheme', models, '自动跟踪格式选项关闭后，可分别选择高阶与低阶粒子积分格式。'],
+  ['dpm-particle-radiation', models, 'P1 或 DO 辐射模型启用后，可以设置粒子辐射换热。实际计算还需核对粒子材料的发射率和散射因子。'],
+  ['dpm-high-res-tracking', models + '#flu_ug_Discrete_Phase_Model', '在将单元细分成子四面体的表示上积分粒子轨迹。'],
+  ['dpm-inject-at', models + '#flu_ug_Discrete_Phase_Model', '粒子与连续相采用不同时间步时，可以按颗粒步或流体步安排喷射。'],
+  ['solidification-rule', models, '组分输运耦合下可选 Lever Rule 或 Scheil Rule；选择 Scheil Rule 后还可设置回扩散。'],
+  ['wall-film-time-scheme', models, '设置欧拉壁面液膜的时间离散格式。液膜还有独立的连续性、时间步和耦合参数。'],
+  ['wall-film-phase-coupling', models, '组分模型、Eulerian 多相流或开启滑移速度的 Mixture 模型可启用壁膜相耦合。子页按条件显示液膜与气相组分间的相变，以及次相在壁膜上的沉积。'],
+  ['hx-dual-performance-data', 'flu_ug_models_task_page.html#flu_ug_Set_Dual_Cell_Heat_Exchanger', 'Raw Data 使用换热量数据和换热器关联形式计算 NTU。已有 NTU 数据时选择 NTU Data 并录入 NTU。界面各提供一个示例工况点。'],
+  ['acoustics-define-sources', models, '为 FW-H 计算指定声源区域和数据记录参数，接收点在对应的 Receivers 窗口设置。'],
+  ['acoustics-source-correlation-length', models + '#flu_ug_Acoustics_Model', '二维流场用于 FW–H 时，相关长度给出沿深度方向重复采用同一声源数据的积分长度。'],
+  ['acoustics-model-select', 'section_nqp_jv4_x2b.html', 'Wave Equation 需要瞬态流动，以及 Second Order Implicit 或 Bounded Second Order Implicit 时间格式。选用 FW-H 或宽频噪声时，应根据分析目标核对相应模型说明。'],
+  ['battery-solution-method', 'flu_bat_MSMD_sec_use_battery_model.html#flu_bat_MSMD_sec_battery_model_options', '先选择电池求解方法。MSMD 方法再选择电化学子模型，并指定 C-Rate、电流、电压或功率等电气运行条件。'],
+  ['electric-potential-enable', 'flu_ug_potential_sec_use.html#flu_ug_potential_sec_options', '电位方程可独立启用。导电材料需要电导率，导电边界需要电势或电流密度。开启能量方程后可选择计入焦耳热。'],
+  ['material-electric-conductivity', 'flu_ug_potential_sec_use.html#flu_ug_potential_sec_options', '按材料指定电导率。实际输入需结合材料、温度和使用的电位模型核对。'],
+  ['wall-contact-angle', 'flu_ug_sec_mphase_using_steps_vof.html', 'VOF 开启壁面附着后，按相对设置接触角。测角所用的相顺序需要参照 Fluent 文档。'],
+  ['bc-periodic-conditions', 'flu_ug_boundary_conditions_task_page.html#flu_ug_Periodic_Conditions', '在平移周期流动中选择指定质量流量或压力梯度，随后填写对应的驱动参数。'],
+  ['bc-perforated-walls', 'flu_ug_boundary_conditions_task_page.html#flu_ug_Perforated_Walls', '为注入壁与抽取壁建立穿孔壁模型，可走手动输入或文件导入的流程。离散注入需要定义孔位置和尺寸。'],
+  ['dynamic-mesh-zone-type', 'flu_ug_dynamic_mesh_task_page.html#flu_ug_Dynamic_Mesh_Zones', '指定区域的运动或变形类型。刚体和变形区域需要不同的运动属性或几何定义。'],
+]
+
+export const modelDocumentationExplanations = Object.fromEntries(descriptions.map(([id, page, whatItIs]) => [
+  id + '-explanation',
+  {
+    whatItIs,
+    sourceUrl: guide + page,
+    sourceStatus: 'source-checked',
+  } satisfies Partial<FluentMockExplanation>,
+]))

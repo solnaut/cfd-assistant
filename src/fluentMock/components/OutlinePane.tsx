@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import { FluentIcon } from '../FluentIcons'
 import type { FluentLabel } from '../fluentLanguage'
 import {
+  formatBatteryBadge,
   formatViscousBadge,
+  getControlValue,
   type FluentSimState,
   type HighlightedBoundary,
 } from '../state/fluentSimState'
 import type { FluentMockControl, FluentMockTreeSection } from '../fluentTypes'
+import { extraBoundaryControls } from '../data/boundaryBranches'
+import { isDialogControlVisible } from '../state/fluentDialogView'
 
 interface TreeSubNode {
   id: string
@@ -14,6 +18,7 @@ interface TreeSubNode {
   badge?: string
   targetControlId: string
   boundary?: HighlightedBoundary
+  surfaceName?: string
 }
 
 interface ContextMenuState {
@@ -21,8 +26,7 @@ interface ContextMenuState {
   y: number
   title: string
   control?: FluentMockControl
-  targetControlId?: string
-  boundary?: HighlightedBoundary
+  sub?: TreeSubNode
 }
 
 function getTreeSubNodes(
@@ -68,6 +72,36 @@ function getTreeSubNodes(
           label: label('Discrete Phase'),
           badge: simState.dpmEnabled ? 'On' : 'Off',
           targetControlId: 'models-dpm',
+        },
+        {
+          id: 'sub-model-heat-exchanger',
+          label: label('Heat Exchanger'),
+          badge: simState.heatExchangerModel,
+          targetControlId: 'models-heat-exchanger',
+        },
+        {
+          id: 'sub-model-solidification',
+          label: label('Solidification & Melting'),
+          badge: simState.solidificationEnabled ? 'On' : 'Off',
+          targetControlId: 'models-solidification',
+        },
+        {
+          id: 'sub-model-acoustics',
+          label: label('Acoustics'),
+          badge: getControlValue(simState, 'acoustics-model-select'),
+          targetControlId: 'models-acoustics',
+        },
+        {
+          id: 'sub-model-wall-film',
+          label: label('Eulerian Wall Film'),
+          badge: simState.wallFilmEnabled ? 'On' : 'Off',
+          targetControlId: 'models-wall-film',
+        },
+        {
+          id: 'sub-model-battery',
+          label: label('Potential / Battery'),
+          badge: formatBatteryBadge(simState),
+          targetControlId: 'models-battery',
         },
       ]
     case 'tree-materials':
@@ -144,6 +178,22 @@ function getTreeSubNodes(
           badge: 'interface',
           targetControlId: 'bc-interface',
         },
+        ...(['outflow', 'pressure-far-field', 'axis', 'periodic', 'interior'] as const).map((type) => ({
+          id: 'sub-bc-' + type,
+          label: type,
+          badge: type,
+          targetControlId: 'bc-' + type,
+          boundary: type === 'outflow' || type === 'pressure-far-field' ? 'outlet' as const
+            : type === 'axis' ? 'symmetry' as const : null,
+        })),
+        ...extraBoundaryControls.filter((control) => isDialogControlVisible(control, {
+          id: 'boundary-panel', controls: extraBoundaryControls,
+        }, simState)).map((control) => ({
+          id: 'sub-' + control.id,
+          label: label(control.label),
+          targetControlId: control.id,
+          boundary: control.group === 'Inlet' ? 'inlet' as const : control.group === 'Outlet' ? 'outlet' as const : null,
+        })),
       ]
     case 'tree-monitors':
       return [
@@ -173,6 +223,15 @@ function getTreeSubNodes(
           badge: 'Iso',
           targetControlId: 'surface-iso-surface',
         },
+        ...simState.createdSurfaces.map((surface) => ({
+          id: 'sub-surface-' + surface.name,
+          label: surface.name,
+          badge: surface.kind,
+          surfaceName: surface.name,
+          targetControlId: surface.kind === 'point-surface' ? 'surface-point'
+            : surface.kind === 'plane-surface' ? 'surface-plane'
+              : 'surface-' + surface.kind,
+        })),
       ]
     case 'tree-graphics':
       return [
@@ -278,11 +337,23 @@ export function OutlinePane({
   onToggleNode: (id: string) => void
   onActivateNode: (control: FluentMockControl) => void
   onSubNodeClick: (targetControlId: string, boundary?: HighlightedBoundary) => void
-  onSubNodeDoubleClick: (targetControlId: string, boundary?: HighlightedBoundary) => void
-  onDisplayMesh?: () => void
+  onSubNodeDoubleClick: (sub: TreeSubNode) => void
+  onDisplayMesh?: (surfaceName?: string) => void
 }) {
   const outlineQuery = filterText.trim().toLowerCase()
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [selectedSubNodeId, setSelectedSubNodeId] = useState('')
+  const visibleSections = sections.map((section) => ({
+    ...section,
+    nodes: section.controls.flatMap((control) => {
+      const subNodes = getTreeSubNodes(control.id, simState, label)
+      if (!outlineQuery || matchesControl(control, outlineQuery)) return [{ control, subNodes }]
+      const matching = subNodes.filter((sub) =>
+        [sub.label, sub.badge ?? ''].some((text) => text.toLowerCase().includes(outlineQuery)),
+      )
+      return matching.length ? [{ control, subNodes: matching }] : []
+    }),
+  })).filter((section) => section.nodes.length > 0)
 
   useEffect(() => {
     if (!contextMenu) return
@@ -335,11 +406,7 @@ export function OutlinePane({
       />
 
       <div className="fluent-tree-scroll">
-        {sections.map((section) => {
-          const nodes = section.controls.filter((control) =>
-            matchesControl(control, outlineQuery),
-          )
-          if (!nodes.length) return null
+        {visibleSections.map((section) => {
           const expanded =
             Boolean(outlineQuery) || expandedSections.includes(section.id)
 
@@ -356,8 +423,7 @@ export function OutlinePane({
 
               {expanded && (
                 <div className="fluent-tree-node-list">
-                  {nodes.map((control) => {
-                    const subNodes = getTreeSubNodes(control.id, simState, label)
+                  {section.nodes.map(({ control, subNodes }) => {
                     const hasChildren = subNodes.length > 0
                     const nodeExpanded =
                       Boolean(outlineQuery) || expandedNodeIds.includes(control.id)
@@ -410,7 +476,10 @@ export function OutlinePane({
                               })
                             }}
                           >
-                            <span>{label(control.label)}</span>
+                            <span className="fluent-tree-node-main">
+                              <FluentIcon controlId={control.id} />
+                              <span>{label(control.label)}</span>
+                            </span>
                           </button>
                         </div>
 
@@ -420,32 +489,35 @@ export function OutlinePane({
                               <button
                                 key={sub.id}
                                 type="button"
+                                data-fluent-control={sub.id}
                                 className={
                                   'fluent-tree-subnode' +
-                                  (activeControlId === sub.targetControlId
+                                  (activeControlId === sub.targetControlId && selectedSubNodeId === sub.id
                                     ? ' active'
                                     : '')
                                 }
-                                onClick={() =>
-                                  onSubNodeClick(
-                                    sub.targetControlId,
-                                    sub.boundary,
-                                  )
-                                }
-                                onDoubleClick={() =>
-                                  onSubNodeDoubleClick(
-                                    sub.targetControlId,
-                                    sub.boundary,
-                                  )
-                                }
+                                onClick={(event) => {
+                                  setSelectedSubNodeId(sub.id)
+                                  if ('pointerType' in event.nativeEvent && event.nativeEvent.pointerType === 'touch' &&
+                                    window.matchMedia('(pointer: coarse) and (max-width: 1100px)').matches) {
+                                    onSubNodeDoubleClick(sub)
+                                  } else {
+                                    onSubNodeClick(sub.targetControlId, sub.boundary)
+                                  }
+                                }}
+                                onDoubleClick={() => onSubNodeDoubleClick(sub)}
+                                onKeyDown={(event) => {
+                                  if (event.key !== 'F2') return
+                                  event.preventDefault()
+                                  onSubNodeDoubleClick(sub)
+                                }}
                                 onContextMenu={(event) => {
                                   event.preventDefault()
                                   setContextMenu({
                                     x: event.clientX,
                                     y: event.clientY,
                                     title: sub.label,
-                                    targetControlId: sub.targetControlId,
-                                    boundary: sub.boundary,
+                                    sub,
                                   })
                                 }}
                               >
@@ -468,12 +540,9 @@ export function OutlinePane({
           )
         })}
 
-        {outlineQuery &&
-          !sections.some((section) =>
-            section.controls.some((control) =>
-              matchesControl(control, outlineQuery),
-            ),
-          ) && <p className="fluent-tree-empty">{label('No matching nodes')}</p>}
+        {outlineQuery && !visibleSections.length && (
+          <p className="fluent-tree-empty">{label('No matching nodes')}</p>
+        )}
       </div>
 
       {contextMenu && (
@@ -490,43 +559,40 @@ export function OutlinePane({
             onClick={() => {
               if (contextMenu.control) {
                 onActivateNode(contextMenu.control)
-              } else if (contextMenu.targetControlId) {
-                onSubNodeDoubleClick(
-                  contextMenu.targetControlId,
-                  contextMenu.boundary,
-                )
+              } else if (contextMenu.sub) {
+                onSubNodeDoubleClick(contextMenu.sub)
               }
               setContextMenu(null)
             }}
           >
             Edit...
           </button>
-          <button
+          {(contextMenu.sub?.boundary || contextMenu.sub?.surfaceName) && <button
             type="button"
             role="menuitem"
             onClick={() => {
-              if (contextMenu.targetControlId) {
+              if (contextMenu.sub) {
                 onSubNodeClick(
-                  contextMenu.targetControlId,
-                  contextMenu.boundary,
+                  contextMenu.sub.targetControlId,
+                  contextMenu.sub.boundary,
                 )
               }
-              onDisplayMesh?.()
+              onDisplayMesh?.(contextMenu.sub?.surfaceName)
               setContextMenu(null)
             }}
           >
             Display
-          </button>
+          </button>}
           <button
             type="button"
             role="menuitem"
             onClick={() => {
               if (contextMenu.control) {
                 onActivateNode(contextMenu.control)
-              } else if (contextMenu.targetControlId) {
+              } else if (contextMenu.sub) {
                 onSubNodeClick(
-                  contextMenu.targetControlId,
-                  contextMenu.boundary,
+                  contextMenu.sub.targetControlId,
+                  contextMenu.sub.boundary,
                 )
               }
               setContextMenu(null)

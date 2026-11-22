@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { FluentLabel } from '../fluentLanguage'
 import type { ConsoleEntry } from '../state/fluentSimState'
 import { tuiPresetCommands } from '../state/fluentTuiCommands'
@@ -22,14 +23,28 @@ export function ConsolePane({
   onClear: () => void
   onRunCommand: (command: string) => void
 }) {
+  const [commandText, setCommandText] = useState('')
+  const [history, setHistory] = useState<string[]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const logRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight
+    }
+  }, [logs.length])
+
   function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (!commandText.trim()) return
-    onRunCommand(commandText)
+    const trimmed = commandText.trim()
+    if (!trimmed) return
+    onRunCommand(trimmed)
+    setHistory((prev) =>
+      prev[prev.length - 1] === trimmed ? prev : [...prev, trimmed],
+    )
+    setHistoryIndex(-1)
     setCommandText('')
   }
-
-  const [commandText, setCommandText] = useState('')
 
   return (
     <section className="fluent-console-pane" aria-label={label('Console')}>
@@ -51,7 +66,7 @@ export function ConsolePane({
       </div>
 
       <div className="fluent-console-body">
-        <div className="fluent-console-log" role="log" aria-live="polite">
+        <div ref={logRef} className="fluent-console-log" role="log" aria-live="polite">
           {logs.map((entry) => (
             <div
               key={entry.id}
@@ -79,15 +94,37 @@ export function ConsolePane({
           <input
             type="text"
             aria-label="TUI 命令输入"
-            placeholder="输入命令，例如 /mesh/check 或 help"
+            placeholder="输入命令，例如 /mesh/check 或 help（↑↓ 翻阅历史）"
             value={commandText}
             onFocus={() => onInspect(consoleControl)}
-            onChange={(event) => setCommandText(event.target.value)}
+            onChange={(event) => {
+              setCommandText(event.target.value)
+              setHistoryIndex(-1)
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowUp' && history.length > 0) {
+                event.preventDefault()
+                const nextIndex =
+                  historyIndex === -1
+                    ? history.length - 1
+                    : Math.max(0, historyIndex - 1)
+                setHistoryIndex(nextIndex)
+                setCommandText(history[nextIndex])
+              } else if (event.key === 'ArrowDown' && historyIndex !== -1) {
+                event.preventDefault()
+                if (historyIndex >= history.length - 1) {
+                  setHistoryIndex(-1)
+                  setCommandText('')
+                } else {
+                  const nextIndex = historyIndex + 1
+                  setHistoryIndex(nextIndex)
+                  setCommandText(history[nextIndex])
+                }
+              }
+            }}
           />
         </form>
       </div>
     </section>
   )
 }
-
-import { useState } from 'react'

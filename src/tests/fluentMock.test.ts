@@ -6,8 +6,60 @@ import {
   ribbonTabs,
 } from '../fluentMock/fluentControls'
 import { fluentExplanationById } from '../fluentMock/fluentExplanations'
+import { dialogTabsByDialogId } from '../fluentMock/fluentTeachingExtras'
+import { derivedMultiphaseControls } from '../fluentMock/state/fluentMultiphaseState'
+import { derivedModelControls } from '../fluentMock/data/physicsModelBranches'
+import { fluentOperationExplanations } from '../fluentMock/data/fluentOperationExplanations'
 
 describe('Fluent mock data', () => {
+  it('keeps dialog links, panel links, visibility dependencies and tab groups valid', () => {
+    const controls = [...allMainControls, ...allDialogControls]
+    const controlIds = new Set([...controls.map((control) => control.id), 'run-effective-time-method', 'solver-dimension', 'cell-zone-laminar-available', ...derivedMultiphaseControls, ...derivedModelControls])
+    const dialogs = new Map(fluentDialogs.map((dialog) => [dialog.id, dialog]))
+    const panelIds = new Set(allTaskPanels.map((panel) => panel.id))
+    expect(dialogs.size).toBe(fluentDialogs.length)
+    for (const control of controls) {
+      if (control.dialogId) expect(dialogs.has(control.dialogId), control.id).toBe(true)
+      for (const [value, child] of Object.entries(control.optionDialogs ?? {})) {
+        expect(control.options, control.id).toContain(value)
+        expect(dialogs.has(child), control.id).toBe(true)
+      }
+      if (control.panelId) expect(panelIds.has(control.panelId), control.id).toBe(true)
+      if (control.valueId) expect(controlIds.has(control.valueId), control.id).toBe(true)
+      for (const condition of control.visibleWhen ?? []) {
+        expect(controlIds.has(condition.controlId), control.id).toBe(true)
+      }
+    }
+    for (const [id, tabs] of Object.entries(dialogTabsByDialogId)) {
+      const dialog = dialogs.get(id)
+      expect(dialog, id).toBeDefined()
+      expect(tabs.map((tab) => tab.id)).toHaveLength(new Set(tabs.map((tab) => tab.id)).size)
+      for (const tab of tabs) {
+        if (tab.parentId) expect(tabs.some((parent) => parent.id === tab.parentId), tab.id).toBe(true)
+        for (const condition of [...(tab.visibleWhen ?? []), ...(tab.enabledWhen ?? [])]) expect(controlIds.has(condition.controlId), tab.id).toBe(true)
+      }
+      for (const control of dialog!.controls) {
+        expect(dialog!.sharedGroups?.includes(control.group) || tabs.some((tab) => tab.groups.includes(control.group)), control.id).toBe(true)
+      }
+    }
+  })
+
+  it('includes a Fluent documentation link on source-checked control explanations', () => {
+    const checked = [...fluentExplanationById.values()].filter((entry) => entry.sourceStatus === 'source-checked')
+    expect(checked.length).toBeGreaterThan(50)
+    for (const entry of checked) expect(entry.sourceUrl, entry.id).toMatch(/^https:\/\/ansyshelp\.ansys\.com\//)
+  })
+
+  it('attaches every expanded guide and covers all eleven model entries', () => {
+    const controls = new Set([...allMainControls, ...allDialogControls].map(({ id }) => id))
+    for (const [id, guide] of Object.entries(fluentOperationExplanations)) {
+      expect(fluentExplanationById.get(id)?.operation?.steps.length, id).toBeGreaterThan(1)
+      for (const control of guide.relatedControls ?? []) expect(controls.has(control), control).toBe(true)
+    }
+    const modelEntries = allTaskPanels.find(({ id }) => id === 'models-panel')?.groups.flatMap(({ controls }) => controls) ?? []
+    expect(modelEntries).toHaveLength(11)
+    for (const entry of modelEntries) expect(fluentExplanationById.get(entry.explanationId)?.operation?.choices?.length, entry.id).toBeGreaterThan(1)
+  })
   it('does not contain duplicate control ids', () => {
     const ids = [...allMainControls, ...allDialogControls].map((control) => control.id)
     const uniqueIds = new Set(ids)
@@ -145,10 +197,27 @@ describe('Fluent mock data', () => {
       expect(explanation?.checkItems.length).toBeGreaterThan(0)
       expect(explanation?.sourceStatus).not.toBe('natural-placeholder')
       expect('futureWindowNotes' in explanation!).toBe(false)
+      expect(explanation?.whatItIs).not.toContain('，控件类型为')
+      expect(explanation?.whatItIs).not.toContain('用于学习该位置对应的 Fluent 设置含义')
+      expect(explanation?.commonMistakes).not.toContain('不要只按默认值继续')
     }
   })
 
-  it('populates all 11 solver ribbon tabs, 11 models, 12 boundary types, and replaces stub panels', () => {
+  it('provides deep conceptual comparisons and parameter effects on core steady/transient controls', () => {
+    for (const id of [
+      'general-steady-explanation',
+      'general-transient-explanation',
+      'general-pressure-based-explanation',
+      'solution-methods-coupling-explanation',
+    ]) {
+      const entry = fluentExplanationById.get(id)
+      expect(entry?.operation?.coreConcept).toBeTruthy()
+      expect(entry?.operation?.choices?.length).toBeGreaterThanOrEqual(2)
+      expect(entry?.operation?.parameterEffects?.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('populates the solver ribbon, eleven model entries and the boundary workflows', () => {
     expect(ribbonTabs).toHaveLength(11)
     for (const tab of ribbonTabs) {
       const controlCount = tab.groups.reduce(
@@ -170,12 +239,40 @@ describe('Fluent mock data', () => {
     const boundaryIds = boundaryPanel!.groups.flatMap((g) =>
       g.controls.map((c) => c.id),
     )
-    expect(boundaryIds).toHaveLength(12)
+    expect(boundaryIds).toHaveLength(25)
+    expect(boundaryIds).toContain('bc-periodic-conditions')
+    expect(boundaryIds).toContain('bc-perforated-walls')
 
     const allLabels = allTaskPanels.flatMap((p) =>
       p.groups.flatMap((g) => g.controls.map((c) => c.label)),
     )
     expect(allLabels).not.toContain('打开设置')
     expect(allLabels).not.toContain('查看说明')
+
+    const pendingOrDisabledRibbon = [...allMainControls, ...allDialogControls].filter(
+      (c) => Boolean(c.unavailableReason) || (c.controlType === 'ribbon-button' && !c.enabled),
+    )
+    expect(pendingOrDisabledRibbon).toEqual([])
+
+    for (const id of [
+      'mesh-scale-dialog',
+      'mesh-smooth-swap-dialog',
+      'dynamic-mesh-dialog',
+      'mesh-adaptation-dialog',
+      'pressure-far-field-dialog',
+      'zone-separate-dialog',
+      'cell-zone-fluid-dialog',
+      'cell-zone-solid-dialog',
+      'udf-dialog',
+      'solution-controls-dialog',
+      'residual-monitors-dialog',
+      'xy-plot-dialog',
+      'display-options-dialog',
+      'parallel-partition-dialog',
+      'adjoint-solver-dialog',
+      'parameters-table-dialog',
+    ]) {
+      expect(dialogTabsByDialogId[id]?.length ?? 0, id).toBeGreaterThanOrEqual(2)
+    }
   })
 })

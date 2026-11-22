@@ -14,13 +14,28 @@ export async function loadFluentKnowledge(
     throw new Error(`Knowledge file request failed: ${response.status}`)
   }
 
-  const data = (await response.json()) as FluentKnowledgeFile
-
-  if (!Array.isArray(data.entries)) {
+  const data = (await response.json()) as Partial<FluentKnowledgeFile> | null
+  if (!data || !Array.isArray(data.entries)) {
     throw new Error('Knowledge file is missing an entries array.')
   }
+  if (typeof data.contentVersion !== 'string' || typeof data.updatedAt !== 'string') {
+    throw new Error('Knowledge file is missing version or update metadata.')
+  }
 
-  return data
+  const ids = new Set<string>()
+  for (const entry of data.entries) {
+    if (!entry || typeof entry.id !== 'string' || !entry.id.trim() || ids.has(entry.id) ||
+      typeof entry.module !== 'string' || typeof entry.englishName !== 'string' || typeof entry.chineseName !== 'string' ||
+      typeof entry.oneLineSummary !== 'string' || !isStringList(entry.menuPath) || !isStringList(entry.searchKeywords)) {
+      throw new Error('Knowledge file contains a duplicate ID or invalid searchable entry.')
+    }
+    ids.add(entry.id)
+  }
+  return { contentVersion: data.contentVersion, updatedAt: data.updatedAt, entries: data.entries }
+}
+
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
 export function groupKnowledgeByModule(entries: FluentKnowledgeEntry[]) {
@@ -28,7 +43,7 @@ export function groupKnowledgeByModule(entries: FluentKnowledgeEntry[]) {
     groups[entry.module] = groups[entry.module] ?? []
     groups[entry.module].push(entry)
     return groups
-  }, {})
+  }, Object.create(null) as Record<string, FluentKnowledgeEntry[]>)
 }
 
 export function findKnowledgeEntry(

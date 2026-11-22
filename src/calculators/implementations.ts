@@ -5,11 +5,12 @@ import type {
   CalculatorModeDefinition,
 } from '../models/calculator'
 import type { UnitCategory } from '../units/conversions'
-import { fromBaseValue, getUnitDisplaySymbol, toBaseValue } from '../units/conversions'
+import { convertValue, fromBaseValue, getUnitDisplaySymbol, toBaseValue } from '../units/conversions'
 import {
   createBoundaryLayerPlan,
   type BoundaryLayerPlan,
 } from './boundaryLayerPlan'
+import { gridConvergence, inletTurbulence } from './cfdEngineering'
 
 export interface CalculatorInputValue {
   value: number | string
@@ -57,9 +58,11 @@ const implementations: Record<CalculatorImplementationId, CalculatorImplementati
   'convective-heat-transfer': calculateConvectiveHeatTransfer,
   'fourier-number': calculateFourier,
   'grashof-number': calculateGrashof,
+  'grid-convergence-gci': calculateGridConvergence,
   'heat-flux': calculateHeatFlux,
   'hydraulic-diameter': calculateHydraulicDiameter,
   'ideal-gas-speed-of-sound': calculateIdealGasSpeedOfSound,
+  'inlet-turbulence': calculateInletTurbulence,
   'laminar-pipe-pressure-drop': calculateLaminarPipePressureDrop,
   'mass-flow-rate': calculateMassFlowRate,
   'mean-velocity': calculateMeanVelocity,
@@ -161,7 +164,7 @@ function toBaseInputs(
   return definitions.reduce<BaseInputs>((accumulator, definition) => {
     const input = values[definition.id]
 
-    if (!input || input.value === undefined || input.value === '') {
+    if (!input || input.value === undefined || (typeof input.value === 'string' && !input.value.trim())) {
       if (definition.required) {
         throw new Error(`请填写${definition.label}。`)
       }
@@ -191,18 +194,23 @@ function toBaseInputs(
       throw new Error(`${definition.label}必须是有限数值。`)
     }
 
-    if (definition.integer && !Number.isInteger(numericValue)) {
+    if (definition.integer && !Number.isSafeInteger(numericValue)) {
       throw new Error(`${definition.label}必须是整数。`)
     }
 
-    if (definition.min !== undefined && numericValue < definition.min) {
-      throw new Error(`${definition.label}不能小于 ${definition.min}。`)
+    const defaultUnit = definition.defaultUnit ?? '1'
+    const unitId = input.unitId ?? defaultUnit
+    if (definition.min !== undefined) {
+      const minimum = definition.unitCategory
+        ? convertValue(definition.min, defaultUnit, unitId, definition.unitCategory)
+        : definition.min
+      if (numericValue < minimum) throw new Error(`${definition.label}不能小于 ${minimum}。`)
     }
 
     accumulator[definition.id] = definition.unitCategory
       ? toBaseValue(
           numericValue,
-          input.unitId ?? definition.defaultUnit ?? '1',
+          unitId,
           definition.unitCategory,
         )
       : numericValue
@@ -414,14 +422,14 @@ function calculateBoundaryLayerMesh(
   const firstLayerHeight = positive(inputs['first-layer-height'], '第一层高度')
   const growthRate = positive(inputs['growth-rate'], '增长率')
   const layerCount = positiveInteger(inputs['layer-count'], '层数')
-  const layerHeights = Array.from({ length: layerCount }, (_, index) => (
+  const previewHeights = Array.from({ length: Math.min(layerCount, 20) }, (_, index) => (
     firstLayerHeight * growthRate ** index
   ))
   const totalThickness =
     growthRate === 1
       ? layerCount * firstLayerHeight
-      : firstLayerHeight * (growthRate ** layerCount - 1) / (growthRate - 1)
-  const lastLayerHeight = layerHeights[layerHeights.length - 1]
+      : firstLayerHeight * (Math.expm1(layerCount * Math.log(growthRate)) / (growthRate - 1))
+  const lastLayerHeight = firstLayerHeight * growthRate ** (layerCount - 1)
   const output = definition.outputs[0]
 
   return {
@@ -447,8 +455,7 @@ function calculateBoundaryLayerMesh(
       {
         id: 'layer-heights',
         label: '层高序列',
-        text: layerHeights
-          .slice(0, 20)
+        text: previewHeights
           .map((height, index) => {
             const value = fromBaseValue(height, output.defaultUnit ?? 'm', 'length')
             return `h${index + 1}=${formatNumber(value, 6)} ${getUnitDisplaySymbol('length', output.defaultUnit ?? 'm')}`
@@ -941,6 +948,32 @@ function result(
     ],
     intermediates,
     summary: definition.notes?.slice(0, 2) ?? [],
+  }
+}
+
+function calculateInletTurbulence(inputs: BaseInputs, definition: CalculatorDefinition, { modeId }: CalculatorContext): CalculationResult {
+  const results = inletTurbulence(
+    positive(inputs.speed, '入口平均速度'), positive(inputs.intensity, '湍流强度'),
+    positive(inputs.density, '流体密度'), positive(inputs.viscosity, '动力黏度'),
+    modeId === 'ratio'
+      ? { viscosityRatio: positive(inputs['viscosity-ratio'], '湍流黏度比') }
+      : { diameter: positive(inputs.diameter, '水力直径') },
+  )
+  return {
+    outputs: definition.outputs.map(({ id, label, unitCategory, defaultUnit }) => item(id, label, results[id as keyof typeof results], unitCategory, defaultUnit)),
+    intermediates: [],
+    summary: definition.notes ?? [],
+  }
+}
+
+function calculateGridConvergence(inputs: BaseInputs, definition: CalculatorDefinition): CalculationResult {
+  const results = gridConvergence(Number(inputs.dimension), [Number(inputs.n1), Number(inputs.n2), Number(inputs.n3)],
+    [Number(inputs.phi1), Number(inputs.phi2), Number(inputs.phi3)])
+  return {
+    outputs: definition.outputs.map(({ id, label }) => item(id, label, results[id as keyof typeof results])),
+    intermediates: [item('r21', '细/中网格细化比 r₂₁', results.ratio21), item('r32', '中/粗网格细化比 r₃₂', results.ratio32),
+      item('error', '细/中网格相对差 (%)', results.approximateError)],
+    summary: definition.notes ?? [],
   }
 }
 

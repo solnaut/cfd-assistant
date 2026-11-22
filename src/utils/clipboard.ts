@@ -12,8 +12,8 @@ export async function copyToClipboard(text: string) {
     // Fall back below when the browser blocks async clipboard access.
   }
 
+  const textArea = document.createElement('textarea')
   try {
-    const textArea = document.createElement('textarea')
     textArea.value = text
     textArea.setAttribute('readonly', '')
     textArea.style.position = 'fixed'
@@ -21,10 +21,10 @@ export async function copyToClipboard(text: string) {
     textArea.style.top = '0'
     document.body.append(textArea)
     textArea.select()
-    const copied = document.execCommand('copy')
-    textArea.remove()
-    return copied
+    return document.execCommand('copy')
   } catch {
     return false
+  } finally {
+    textArea.remove()
   }
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   findKnowledgeEntry,
   groupKnowledgeByModule,
@@ -32,6 +32,16 @@ const sampleEntry: FluentKnowledgeEntry = {
 }
 
 describe('knowledge repository helpers', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('rejects malformed search fields before returning an entry', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
+      contentVersion: '0.1.0-todo',
+      updatedAt: '2026-06-18',
+      entries: [{ ...sampleEntry, menuPath: null }],
+    }))))
+    await expect(loadFluentKnowledge()).rejects.toThrow(/invalid searchable entry/)
+  })
   it('groups knowledge entries by module', () => {
     const grouped = groupKnowledgeByModule([sampleEntry])
 

@@ -1,6 +1,16 @@
 import type { FluentMockControl, FluentMockDialog } from './fluentTypes'
 import { makeControl, type ControlInput } from './data/controlHelpers'
 import { extendedDialogs } from './data/extendedDialogs'
+import { fileDialogs } from './data/fileMenus'
+import { addBoundaryBranches, boundaryChildDialogs, boundaryWorkflowDialogs, extraBoundaryDialogs } from './data/boundaryBranches'
+import { addResultBranches, surfaceChildDialogs } from './data/resultBranches'
+import { addModelBranches, modelChildDialogs } from './data/modelBranches'
+import { multiphaseDialogs, volumeFractionSchemeCondition } from './data/multiphaseDialogs'
+import { addPhysicsModelBranches, physicsModelChildDialogs } from './data/physicsModelBranches'
+import { dynamicMeshZonesDialog } from './data/dynamicMeshWorkflow'
+import { solutionBranchDialogs } from './data/solutionBranches'
+import { directStepMethods, timeAdvancementControls } from './data/timeAdvancement'
+import { enhanceWorkflowDialogs, extendedWorkflowDialogs } from './data/extendedWorkflowDialogs'
 
 type DialogControlInput = Omit<ControlInput, 'region'> & { region?: string }
 
@@ -40,6 +50,7 @@ export const fluentDialogs: FluentMockDialog[] = [
       module: 'File',
       group: 'Case',
       controlType: 'button',
+      dialogId: 'ribbon-read-case-data-dialog',
     },
     {
       id: 'case-file-write',
@@ -47,6 +58,7 @@ export const fluentDialogs: FluentMockDialog[] = [
       module: 'File',
       group: 'Case',
       controlType: 'button',
+      dialogId: 'ribbon-write-case-data-dialog',
     },
     {
       id: 'case-file-autosave-note',
@@ -406,6 +418,7 @@ export const fluentDialogs: FluentMockDialog[] = [
       module: 'Materials',
       group: '材料',
       controlType: 'button',
+      dialogId: 'fluent-database-materials-dialog',
     },
     {
       id: 'materials-assigned',
@@ -455,6 +468,14 @@ export const fluentDialogs: FluentMockDialog[] = [
       module: 'Materials',
       group: 'Operation',
       controlType: 'button',
+    },
+    {
+      id: 'material-electric-conductivity',
+      label: 'Electric Conductivity (S/m)',
+      module: 'Materials',
+      group: 'Properties',
+      controlType: 'field',
+      visibleWhen: [{ controlId: 'electric-potential-enable', values: [true] }],
     },
   ]),
   makeDialog('fluid-material-dialog', 'Fluid material', 'Materials', '流体材料物性教学窗口。', [
@@ -697,6 +718,7 @@ export const fluentDialogs: FluentMockDialog[] = [
       module: 'Cell Zone Conditions',
       group: 'Source Terms',
       controlType: 'button',
+      dialogId: 'cell-zone-source-dialog',
     },
   ]),
   makeDialog('cell-zone-solid-dialog', 'Solid Zone', 'Cell Zone Conditions', '固体单元区域条件教学窗口。', [
@@ -774,6 +796,15 @@ export const fluentDialogs: FluentMockDialog[] = [
       controlType: 'select',
       value: 'Second Order Upwind',
     },
+    {
+      id: 'solution-methods-volume-fraction',
+      label: 'Volume Fraction',
+      module: 'Solution Methods',
+      group: 'Spatial Discretization',
+      controlType: 'select',
+      valueId: 'multiphase-volume-fraction-scheme',
+      visibleWhen: volumeFractionSchemeCondition,
+    },
   ]),
   makeDialog('solution-controls-dialog', 'Solution Controls', 'Solution Controls', '松弛因子和方程开关的教学窗口。', [
     {
@@ -810,12 +841,30 @@ export const fluentDialogs: FluentMockDialog[] = [
       defaultSelected: true,
     },
     {
+      id: 'initialization-standard-dialog',
+      label: 'Standard Initialization',
+      module: 'Initialization',
+      group: 'Method',
+      controlType: 'radio',
+    },
+    {
+      id: 'initialization-compute-from-dialog',
+      label: 'Compute From',
+      module: 'Initialization',
+      group: 'Method',
+      controlType: 'select',
+      value: 'inlet',
+      options: ['inlet', 'outlet', 'all-zones'],
+      visibleWhen: [{ controlId: 'initialization-standard-dialog', values: [true] }],
+    },
+    {
       id: 'initialization-reference-frame',
       label: 'Reference Frame',
       module: 'Initialization',
       group: 'Method',
       controlType: 'select',
       value: 'Relative to Cell Zone',
+      visibleWhen: [{ controlId: 'initialization-standard-dialog', values: [true] }],
     },
     {
       id: 'initialization-run',
@@ -859,6 +908,7 @@ export const fluentDialogs: FluentMockDialog[] = [
     },
   ]),
   makeDialog('run-calculation-dialog', 'Run Calculation', 'Run Calculation', '设置迭代数、时间步并启动计算的教学窗口。', [
+    ...timeAdvancementControls(true),
     {
       id: 'run-calculation-iterations',
       label: 'No. of Iterations',
@@ -866,6 +916,7 @@ export const fluentDialogs: FluentMockDialog[] = [
       group: 'Iteration',
       controlType: 'field',
       value: '250',
+      visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Steady'] }],
     },
     {
       id: 'run-calculation-time-step',
@@ -874,6 +925,23 @@ export const fluentDialogs: FluentMockDialog[] = [
       group: 'Transient',
       controlType: 'field',
       value: '0.001 s',
+      visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Transient'] }, { controlId: 'run-effective-time-method', values: ['User-Specified'] }],
+    },
+    {
+      id: 'run-calculation-time-steps',
+      label: 'Number of Time Steps',
+      module: 'Run Calculation',
+      group: 'Transient',
+      controlType: 'field',
+      visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Transient'] }, { controlId: 'run-effective-time-method', values: directStepMethods }],
+    },
+    {
+      id: 'run-calculation-max-iterations',
+      label: 'Max Iterations/Time Step',
+      module: 'Run Calculation',
+      group: 'Transient',
+      controlType: 'field',
+      visibleWhen: [{ controlId: 'solver-time-formulation', values: ['Transient'] }],
     },
     {
       id: 'run-calculation-calculate',
@@ -884,6 +952,14 @@ export const fluentDialogs: FluentMockDialog[] = [
     },
   ]),
   makeDialog('autosave-dialog', 'Automatic Saving', 'Calculation Activities', '用于设置计算过程中的 case/data 自动保存频率和文件命名规则。', [
+    {
+      id: 'autosave-data-quantities',
+      label: 'Data File Quantities',
+      module: 'Calculation Activities',
+      group: 'Files',
+      controlType: 'button',
+      dialogId: 'data-file-quantities-dialog',
+    },
     {
       id: 'autosave-frequency',
       label: 'Save Every',
@@ -1121,8 +1197,27 @@ export const fluentDialogs: FluentMockDialog[] = [
       value: 'wall',
     },
     {
+      id: 'report-force-vector',
+      label: 'Force Vector',
+      module: 'Report Definitions',
+      group: 'Definition',
+      controlType: 'field',
+      value: '1, 0, 0',
+      visibleWhen: [{ controlId: 'report-definition-type', values: ['Force'] }],
+    },
+    {
+      id: 'report-surface-variable',
+      label: 'Field Variable',
+      module: 'Report Definitions',
+      group: 'Definition',
+      controlType: 'select',
+      value: 'Velocity Magnitude',
+      options: ['Velocity Magnitude', 'Static Pressure', 'Static Temperature'],
+      visibleWhen: [{ controlId: 'report-definition-type', values: ['Area-Weighted Average'] }],
+    },
+    {
       id: 'report-definition-plot',
-      label: 'Plot',
+      label: 'Create Report Plot',
       module: 'Report Definitions',
       group: 'Monitor',
       controlType: 'checkbox',
@@ -1130,7 +1225,7 @@ export const fluentDialogs: FluentMockDialog[] = [
     },
     {
       id: 'report-definition-write',
-      label: 'Write',
+      label: 'Create Report File',
       module: 'Report Definitions',
       group: 'Monitor',
       controlType: 'checkbox',
@@ -1268,8 +1363,34 @@ export const fluentDialogs: FluentMockDialog[] = [
       group: 'Methods',
       controlType: 'checkbox',
     },
+    {
+      id: 'dynamic-mesh-layering',
+      label: 'Layering',
+      module: 'Dynamic Mesh',
+      group: 'Methods',
+      controlType: 'checkbox',
+    },
+    {
+      id: 'dynamic-mesh-create-zone',
+      label: 'Create/Edit Dynamic Mesh Zone…',
+      module: 'Dynamic Mesh',
+      group: 'Zones',
+      controlType: 'button',
+      dialogId: 'dynamic-mesh-zones-dialog',
+    },
   ]),
+  dynamicMeshZonesDialog,
   ...extendedDialogs,
-]
+  ...boundaryChildDialogs,
+  ...boundaryWorkflowDialogs,
+  ...extraBoundaryDialogs,
+  ...surfaceChildDialogs,
+  ...modelChildDialogs,
+  ...multiphaseDialogs,
+  ...physicsModelChildDialogs,
+  ...solutionBranchDialogs,
+  ...extendedWorkflowDialogs,
+  ...fileDialogs,
+].map(addBoundaryBranches).map(addResultBranches).map(addModelBranches).map(addPhysicsModelBranches).map(enhanceWorkflowDialogs)
 
 export const allDialogControls = fluentDialogs.flatMap((dialog) => dialog.controls)

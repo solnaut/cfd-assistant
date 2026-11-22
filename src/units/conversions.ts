@@ -129,11 +129,20 @@ export const unitCatalog: Record<UnitCategory, UnitDefinition[]> = {
   power: [
     { id: 'W', symbol: 'W', label: 'watt', toBaseFactor: 1 },
     { id: 'kW', symbol: 'kW', label: 'kilowatt', toBaseFactor: 1000 },
+    { id: 'BTU_IT/h', symbol: 'BtuIT/h', displaySymbol: 'Btu₍IT₎/h', label: 'international table BTU per hour', toBaseFactor: 1055.05585262 / 3600 },
+    { id: 'USRT', symbol: 'USRT', label: 'US refrigeration ton', toBaseFactor: 12000 * 1055.05585262 / 3600 },
+    { id: 'kcal_th/h', symbol: 'kcal/h', displaySymbol: 'kcal₍th₎/h', label: 'thermochemical kilocalorie per hour', toBaseFactor: 4184 / 3600 },
   ],
   pressure: [
     { id: 'Pa', symbol: 'Pa', label: 'pascal', toBaseFactor: 1 },
     { id: 'kPa', symbol: 'kPa', label: 'kilopascal', toBaseFactor: 1000 },
     { id: 'MPa', symbol: 'MPa', label: 'megapascal', toBaseFactor: 1000000 },
+    { id: 'bar', symbol: 'bar', label: 'bar', toBaseFactor: 100000 },
+    { id: 'atm', symbol: 'atm', label: 'standard atmosphere', toBaseFactor: 101325 },
+    { id: 'psi', symbol: 'psi', label: 'pound force per square inch', toBaseFactor: 6894.757293168 },
+    { id: 'mmHg', symbol: 'mmHg', label: 'conventional millimeter of mercury', toBaseFactor: 133.322387415 },
+    { id: 'mmH2O', symbol: 'mmH2O', displaySymbol: 'mmH₂O', label: 'conventional millimeter of water', toBaseFactor: 9.80665 },
+    { id: 'mH2O', symbol: 'mH2O', displaySymbol: 'mH₂O', label: 'conventional meter of water', toBaseFactor: 9806.65 },
   ],
   rotationalSpeed: [
     { id: 'rpm', symbol: 'rpm', label: 'revolution per minute', toBaseFactor: 1 },

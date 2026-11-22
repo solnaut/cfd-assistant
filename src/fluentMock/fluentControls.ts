@@ -137,6 +137,11 @@ const generalPanel: FluentMockTaskPanel = {
           defaultSelected: true,
         }),
         panelControl('general-density-based', '基于密度', 'General', '求解器 / 类型', 'radio'),
+        panelControl('general-2d-space', '2D Space', 'General', '求解器 / 2D 空间', 'select', {
+          value: 'Planar',
+          options: ['Planar', 'Axisymmetric', 'Axisymmetric Swirl'],
+          visibleWhen: [{ controlId: 'solver-dimension', values: ['2d'] }],
+        }),
         panelControl('general-absolute-velocity', '绝对', 'General', '求解器 / 速度公式', 'radio', {
           defaultSelected: true,
         }),
@@ -215,36 +220,73 @@ export const coreTaskPanels: FluentMockTaskPanel[] = [
       dialogId: 'cell-zone-solid-dialog',
     }),
     panelControl('cell-zone-source', 'Source terms', 'Cell Zone Conditions', '单元区域', 'button', {
-      dialogId: 'cell-zone-source-dialog',
+      dialogId: 'cell-zone-fluid-dialog',
+      dialogTab: 'source-terms',
     }),
   ]),
   simplePanel('reference-values-panel', '参考值', 'Reference Values', [
     panelControl('reference-compute-from', 'Compute From', 'Reference Values', '参考值', 'select', {
       value: 'inlet',
+      options: ['inlet', 'outlet', 'all-zones', 'fluid-domain'],
       dialogId: 'reference-values-dialog',
     }),
     panelControl('reference-area', 'Area', 'Reference Values', '参考值', 'field', {
-      value: '1 m²',
+      value: '0.00785 m²',
       dialogId: 'reference-values-dialog',
     }),
-    panelControl('reference-length', 'Length', 'Reference Values', '参考值', 'field', {
+    panelControl('reference-density', 'Density', 'Reference Values', '参考值', 'field', {
+      value: '1.225 kg/m³',
+    }),
+    panelControl('reference-depth', 'Depth', 'Reference Values', '参考值', 'field', {
       value: '1 m',
+    }),
+    panelControl('reference-enthalpy', 'Enthalpy', 'Reference Values', '参考值', 'field', {
+      value: '0 J/kg',
+    }),
+    panelControl('reference-length', 'Length', 'Reference Values', '参考值', 'field', {
+      value: '0.1 m',
       dialogId: 'reference-values-dialog',
+    }),
+    panelControl('reference-pressure', 'Pressure', 'Reference Values', '参考值', 'field', {
+      value: '0 Pa',
+    }),
+    panelControl('reference-temperature', 'Temperature', 'Reference Values', '参考值', 'field', {
+      value: '300 K',
+    }),
+    panelControl('reference-velocity', 'Velocity', 'Reference Values', '参考值', 'field', {
+      value: '2.5 m/s',
+    }),
+    panelControl('reference-viscosity', 'Viscosity', 'Reference Values', '参考值', 'field', {
+      value: '1.7894e-5 kg/(m·s)',
+    }),
+    panelControl('reference-gamma', 'Ratio of Specific Heats', 'Reference Values', '参考值', 'field', {
+      value: '1.4',
+    }),
+    panelControl('reference-zone', 'Reference Zone', 'Reference Values', '参考值', 'select', {
+      value: 'fluid-domain',
+      options: ['fluid-domain', 'all-fluid-zones'],
     }),
   ]),
   simplePanel('calculation-activities-panel', '计算设置', 'Calculation Activities', [
     panelControl('calculation-autosave', 'Automatic Saving', 'Calculation Activities', '自动保存', 'button', {
       dialogId: 'autosave-dialog',
     }),
-    panelControl('calculation-execute-commands', 'Execute Commands', 'Calculation Activities', '执行命令', 'button'),
-    panelControl('calculation-data-sampling', 'Data Sampling', 'Calculation Activities', '数据采样', 'button'),
+    panelControl('calculation-execute-commands', 'Execute Commands', 'Calculation Activities', '执行命令', 'button', {
+      dialogId: 'execute-commands-dialog',
+    }),
+    panelControl('calculation-data-sampling', 'Data Sampling', 'Calculation Activities', '数据采样', 'button', {
+      dialogId: 'data-sampling-dialog',
+    }),
   ]),
   simplePanel('report-definitions-panel', '报告定义', 'Report Definitions', [
     panelControl('report-definition-force', 'Force Report', 'Report Definitions', '报告定义', 'button', {
       dialogId: 'report-definition-dialog',
     }),
     panelControl('report-definition-surface', 'Surface Report', 'Report Definitions', '报告定义', 'button', {
-      dialogId: 'surface-integrals-dialog',
+      dialogId: 'report-definition-dialog',
+    }),
+    panelControl('report-definition-flux', 'Flux Report', 'Report Definitions', '报告定义', 'button', {
+      dialogId: 'report-definition-dialog',
     }),
   ]),
   simplePanel('mesh-adaptation-panel', '网格自适应', 'Mesh Adaptation', [
@@ -257,7 +299,9 @@ export const coreTaskPanels: FluentMockTaskPanel[] = [
     panelControl('dynamic-mesh-enable', 'Enable Dynamic Mesh', 'Dynamic Mesh', '动态网格', 'checkbox', {
       dialogId: 'dynamic-mesh-dialog',
     }),
-    panelControl('dynamic-mesh-zones', 'Dynamic Mesh Zones', 'Dynamic Mesh', '动态网格', 'button'),
+    panelControl('dynamic-mesh-zones', 'Dynamic Mesh Zones…', 'Dynamic Mesh', '动态网格', 'button', {
+      dialogId: 'dynamic-mesh-zones-dialog',
+    }),
   ]),
 ]
 
@@ -353,8 +397,12 @@ export const quickSearchControl = control({
   controlType: 'field',
 })
 
+export function flattenControls(controls: FluentMockControl[]): FluentMockControl[] {
+  return controls.flatMap((control) => [control, ...flattenControls(control.children ?? [])])
+}
+
 export const allMainControls = [
-  ...ribbonTabs.flatMap((tab) => tab.groups.flatMap((group) => group.controls)),
+  ...ribbonTabs.flatMap((tab) => tab.groups.flatMap((group) => flattenControls(group.controls))),
   ...treeSections.flatMap((section) => section.controls),
   ...allTaskPanels.flatMap((panel) =>
     panel.groups.flatMap((group) => group.controls),

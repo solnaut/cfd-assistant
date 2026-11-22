@@ -32,7 +32,7 @@ import type {
   CalculatorFormulaDefinition,
   CalculatorInputDefinition,
 } from '../models/calculator'
-import { getUnits } from '../units/conversions'
+import { convertValue, getUnits } from '../units/conversions'
 import {
   formatVariableSymbol,
   formatVariableUnit,
@@ -320,6 +320,10 @@ function CalculatorDetailContent({
         <form
           className="calculator-panel"
           aria-label="Calculator input panel"
+          onChange={() => {
+            setResult(null)
+            setError(null)
+          }}
           onSubmit={handleSubmit}
         >
           <div className="panel-heading">
@@ -525,12 +529,17 @@ function InputControl({
     )
   }
 
+  const defaultUnit = input.defaultUnit ?? '1'
+  const unitId = field.unitId ?? defaultUnit
+  const minimum = input.min !== undefined && input.unitCategory
+    ? convertValue(input.min, defaultUnit, unitId, input.unitCategory)
+    : input.min
   return (
     <div className="input-with-unit">
       <input
         disabled={!isAvailable}
         inputMode="decimal"
-        min={input.min}
+        min={minimum}
         onChange={(event) => {
           setFormState((current) => ({
             ...current,
@@ -558,7 +567,7 @@ function InputControl({
               },
             }))
           }}
-          value={field.unitId ?? input.defaultUnit ?? '1'}
+          value={unitId}
         >
           {getUnits(input.unitCategory).map((unit) => (
             <option key={unit.id} value={unit.id}>
@@ -886,7 +895,7 @@ function toCalculatorInputs(
       return [
         input.id,
         {
-          value: input.kind === 'select' ? field.value : Number(field.value),
+          value: field.value,
           unitId: field.unitId,
         },
       ]

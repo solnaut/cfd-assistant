@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import type { FluentLabel } from '../fluentLanguage'
-import { dialogTabsByDialogId } from '../fluentTeachingExtras'
-import type { FluentSimState } from '../state/fluentSimState'
+import { availableDialogTabs, dialogTabRows, isDialogControlVisible } from '../state/fluentDialogView'
+import { validateModelSettings } from '../state/fluentModelValidation'
+import { aiadRegime, gentopRegime, multiphaseDialogId } from '../data/multiphaseDialogs'
+import { eulerianRegime } from '../state/fluentMultiphaseState'
+import { formatViscousBadge, getControlValue, validateFileOperation, type FluentSimState } from '../state/fluentSimState'
 import type { FluentMockControl, FluentMockDialog } from '../fluentTypes'
 import { ControlRenderer } from './ControlRenderer'
 
 export interface OpenDialogEntry {
   id: string
   openerId: string
+  tabId?: string
+  surfaceName?: string
   x: number
   y: number
 }
@@ -22,10 +27,9 @@ export function DialogStack({
   onButtonActivate,
   onValueChange,
   onApplyDialog,
-  onOkDialog,
   onCloseTopDialog,
   onMoveDialog,
-  onFocusDialog,
+  onSelectTab,
   onQuickOpenEnergy,
 }: {
   dialogs: OpenDialogEntry[]
@@ -33,15 +37,14 @@ export function DialogStack({
   activeControlId: string
   simState: FluentSimState
   label: FluentLabel
-  onInspect: (control: FluentMockControl, optionValue?: string) => void
+  onInspect: (control: FluentMockControl) => void
   onButtonActivate: (control: FluentMockControl) => void
   onValueChange: (control: FluentMockControl, value: string | boolean) => void
-  onApplyDialog: (dialogTitle: string) => void
-  onOkDialog: (dialogTitle: string) => void
-  onCloseTopDialog: () => void
+  onApplyDialog: (dialog: FluentMockDialog) => string | void
+  onCloseTopDialog: (applied?: boolean) => void
   onMoveDialog: (index: number, x: number, y: number) => void
-  onFocusDialog: (index: number) => void
-  onQuickOpenEnergy: () => void
+  onSelectTab: (id: string, tabId: string) => void
+  onQuickOpenEnergy: (dialogId: string) => void
 }) {
   if (!dialogs.length) return null
 
@@ -64,11 +67,10 @@ export function DialogStack({
             onButtonActivate={onButtonActivate}
             onValueChange={onValueChange}
             onApplyDialog={onApplyDialog}
-            onOkDialog={onOkDialog}
             onClose={onCloseTopDialog}
             onMove={(x, y) => onMoveDialog(index, x, y)}
-            onFocus={() => onFocusDialog(index)}
-            onQuickOpenEnergy={onQuickOpenEnergy}
+            onSelectTab={(tabId) => onSelectTab(dialog.id, tabId)}
+            onQuickOpenEnergy={() => onQuickOpenEnergy(dialog.id)}
           />
         )
       })}
@@ -88,10 +90,9 @@ function DraggableDialogWindow({
   onButtonActivate,
   onValueChange,
   onApplyDialog,
-  onOkDialog,
   onClose,
   onMove,
-  onFocus,
+  onSelectTab,
   onQuickOpenEnergy,
 }: {
   entry: OpenDialogEntry
@@ -101,48 +102,77 @@ function DraggableDialogWindow({
   activeControlId: string
   simState: FluentSimState
   label: FluentLabel
-  onInspect: (control: FluentMockControl, optionValue?: string) => void
+  onInspect: (control: FluentMockControl) => void
   onButtonActivate: (control: FluentMockControl) => void
   onValueChange: (control: FluentMockControl, value: string | boolean) => void
-  onApplyDialog: (dialogTitle: string) => void
-  onOkDialog: (dialogTitle: string) => void
-  onClose: () => void
+  onApplyDialog: (dialog: FluentMockDialog) => string | void
+  onClose: (applied?: boolean) => void
   onMove: (x: number, y: number) => void
-  onFocus: () => void
+  onSelectTab: (tabId: string) => void
   onQuickOpenEnergy: () => void
 }) {
-  const tabs = dialogTabsByDialogId[dialog.id]
-  const [selectedTabId, setSelectedTabId] = useState(tabs?.[0]?.id ?? '')
-  const activeTab = tabs?.find((item) => item.id === selectedTabId) ?? tabs?.[0]
-  const visibleControls = activeTab
-    ? dialog.controls.filter((control) =>
-        activeTab.groups.includes(control.group),
-      )
-    : dialog.id === 'viscous-model-dialog'
-      ? dialog.controls.filter((control) => {
-          if (control.group === 'k-epsilon Options') {
-            return simState.viscousModel === 'k-epsilon'
-          }
-          if (control.group === 'k-omega Options') {
-            return simState.viscousModel === 'k-omega-sst'
-          }
-          if (control.group === 'Near-Wall Treatment') {
-            return (
-              simState.viscousModel === 'k-epsilon' ||
-              simState.viscousModel === 'rsm' ||
-              simState.viscousModel === 'spalart-allmaras'
-            )
-          }
-          return true
-        })
-      : dialog.controls
+  const tabs = availableDialogTabs(dialog, simState)
+  const tabRows = dialogTabRows(tabs, entry.tabId)
+  const activeTab = tabRows.at(-1)?.active
+  const showTabs = dialog.id !== 'species-model-dialog' || tabs.length > 1
   const isThermalDisabled =
     activeTab?.id === 'thermal' && !simState.energyEnabled
+  const sharedControls = dialog.controls.filter((control) => dialog.sharedGroups?.includes(control.group) && isDialogControlVisible(control, dialog, simState))
+  const visibleControls = isThermalDisabled ? [] : dialog.controls.filter(
+    (control) => (!activeTab || activeTab.groups.includes(control.group)) &&
+      !dialog.sharedGroups?.includes(control.group) &&
+      isDialogControlVisible(control, dialog, simState),
+  )
+  const grouped = dialog.module === 'Models' || dialog.controls.some(({ section }) => Boolean(section))
+  const sections = new Map<string, FluentMockControl[]>()
+  for (const control of visibleControls) {
+    const section = control.section ?? (grouped ? control.group : '')
+    const group = sections.get(section)
+    if (group) group.push(control)
+    else sections.set(section, [control])
+  }
+  const isMultiphase = dialog.id === multiphaseDialogId
+  const activeRegime = eulerianRegime(simState)
+  const pendingRegime = activeRegime !== getControlValue(simState, 'multiphase-eulerian-regime', 'Off')
+  const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const fileError = submitted && dialog.fileOperation ? validateFileOperation(simState, dialog) : ''
+  const reportKind = dialog.id === 'report-plots-dialog' ? 'plot' : dialog.id === 'report-files-dialog' ? 'file' : undefined
+  const report = reportKind && simState.reportOutputs[reportKind + ':' + getControlValue(simState, 'report-' + reportKind + '-existing')]
+
+  function submit(close: boolean) {
+    setSubmitted(true)
+    if (dialog.fileOperation && validateFileOperation(simState, dialog)) return
+    if (dialog.module === 'Models') {
+      const validation = validateModelSettings(visibleControls, simState)
+      if (validation) {
+        setSubmitError(validation)
+        return
+      }
+      if (close) {
+        for (const tab of tabs) {
+          if (tab.disabled || tab.id === activeTab?.id || !tab.groups.length) continue
+          const controls = dialog.controls.filter((control) =>
+            tab.groups.includes(control.group) && isDialogControlVisible(control, dialog, simState),
+          )
+          const error = validateModelSettings(controls, simState)
+          if (error) {
+            onSelectTab(tab.id)
+            setSubmitError(error)
+            return
+          }
+        }
+      }
+    }
+    const error = onApplyDialog(dialog)
+    setSubmitError(error ?? '')
+    if (error) return
+    if (close) onClose(true)
+  }
 
   function startDrag(event: React.PointerEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest('button')) return
+    if (event.pointerType === 'touch' || (event.target as HTMLElement).closest('button')) return
     event.preventDefault()
-    onFocus()
     const startX = event.clientX
     const startY = event.clientY
     const originX = entry.x
@@ -163,10 +193,20 @@ function DraggableDialogWindow({
     window.addEventListener('pointerup', handleUp)
   }
 
+  function renderControl(control: FluentMockControl) {
+    const displayed = !entry.surfaceName ? control
+      : control.id.endsWith('-create') ? { ...control, label: 'Update' }
+        : control.id.endsWith('-name') ? { ...control, label: 'Surface Name', enabled: false } : control
+    return <ControlRenderer key={control.id} control={displayed} active={control.id === activeControlId}
+      simState={simState} label={label} onInspect={onInspect} onButtonActivate={onButtonActivate} onValueChange={onValueChange} />
+  }
+
   return (
     <section
-      className="fluent-dialog-window"
+      className={'fluent-dialog-window' + (grouped ? ' fluent-model-dialog-window' : '')}
       role="dialog"
+      aria-hidden={index < total - 1 ? true : undefined}
+      inert={index < total - 1}
       aria-label={label(dialog.title)}
       data-fluent-control={dialog.id}
       tabIndex={-1}
@@ -174,41 +214,77 @@ function DraggableDialogWindow({
         zIndex: 20 + index,
         transform: `translate(${entry.x + index * 22}px, ${entry.y + index * 18}px)`,
       }}
-      onMouseDown={() => {
-        if (index !== total - 1) onFocus()
-      }}
     >
       <div className="fluent-dialog-titlebar" onPointerDown={startDrag}>
         <strong>{label(dialog.title)}</strong>
         <button
           type="button"
           aria-label={label('Close') + ' ' + label(dialog.title)}
-          onClick={onClose}
+          onClick={() => onClose()}
         >
           ×
         </button>
       </div>
 
-      {tabs && (
-        <div className="fluent-dialog-tabs" role="tablist">
+      {sharedControls.length > 0 && <div className="fluent-dialog-shared">{sharedControls.map(renderControl)}</div>}
+
+      {showTabs && tabRows.map(({ tabs, active }, rowIndex) => (
+        <div key={active.parentId ?? dialog.id} className="fluent-dialog-tabs" role="tablist"
+          aria-label={label(tabRows[rowIndex - 1]?.active.label ?? dialog.title)}
+          onKeyDown={(event) => {
+            const enabled = tabs.filter((tab) => !tab.disabled)
+            if (!enabled.length) return
+            const index = enabled.findIndex((tab) => tab.id === active.id)
+            const next = event.key === 'ArrowRight' ? (index + 1) % enabled.length
+              : event.key === 'ArrowLeft' ? (index + enabled.length - 1) % enabled.length
+                : event.key === 'Home' ? 0 : event.key === 'End' ? enabled.length - 1 : -1
+            if (next < 0) return
+            event.preventDefault()
+            onSelectTab(enabled[next].id)
+            event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)')[next]?.focus()
+          }}
+        >
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               role="tab"
-              aria-selected={activeTab?.id === tab.id}
-              className={activeTab?.id === tab.id ? 'active' : ''}
-              onClick={() => setSelectedTabId(tab.id)}
+              disabled={tab.disabled}
+              aria-selected={active.id === tab.id}
+              tabIndex={active.id === tab.id ? 0 : -1}
+              id={dialog.id + '-tab-' + tab.id}
+              aria-controls={active.id === tab.id ? dialog.id + '-tab-panel' : undefined}
+              className={active.id === tab.id ? 'active' : ''}
+              onClick={() => onSelectTab(tab.id)}
             >
-              {tab.label}
+              {label(tab.label)}
               {tab.id === 'thermal' && !simState.energyEnabled ? ' (Off)' : ''}
             </button>
           ))}
         </div>
-      )}
+      ))}
 
-      <div className="fluent-dialog-body">
+      <div className="fluent-dialog-body"
+        id={dialog.id + '-tab-panel'}
+        role={activeTab && showTabs ? 'tabpanel' : undefined}
+        aria-labelledby={activeTab && showTabs ? dialog.id + '-tab-' + activeTab.id : undefined}
+      >
         <p className="fluent-dialog-subtitle">{dialog.subtitle}</p>
+
+        {isMultiphase && activeTab?.id === 'model' && (
+          simState.multiphaseModel !== 'Eulerian'
+            ? <p className="fluent-inline-note">AIAD 和 GENTOP 位于 Eulerian → Regime Transition Modeling。</p>
+            : pendingRegime ? <p className="fluent-inline-note" role="status">点击 Apply 使流型转换模型生效，再到 Phases 和 Phase Interaction 完成相设置。</p>
+              : activeRegime !== 'Off' && <p className="fluent-inline-note">{activeRegime === aiadRegime
+                ? 'AIAD 已应用。到 Phases 指定次相的连续相处理，然后在 Phase Interaction → Forces 打开 AIAD 参数。'
+                : 'GENTOP 已应用。到 Phases 为一个次相勾选 GENTOP Hybrid Phase Modeling，再检查 Population Balance。'}</p>
+        )}
+        {isMultiphase && activeTab?.id === 'phases' && activeRegime === aiadRegime && (
+          <p className="fluent-inline-note">AIAD 基础设置需要两相。若设置卷吸，添加第三相，为它和次级连续相指定同一种材料。</p>
+        )}
+        {isMultiphase && activeTab?.id === 'phases' && activeRegime === gentopRegime && (
+          <p className="fluent-inline-note">选一个次相启用 GENTOP Hybrid Phase Modeling。次相应使用相同的材料，且与主相材料不同。</p>
+        )}
 
         {isThermalDisabled && (
           <div className="fluent-inline-note">
@@ -216,6 +292,7 @@ function DraggableDialogWindow({
             <button
               type="button"
               className="fluent-action-row"
+              data-fluent-control={dialog.id + '-open-energy'}
               style={{ marginTop: 4 }}
               onClick={onQuickOpenEnergy}
             >
@@ -235,46 +312,65 @@ function DraggableDialogWindow({
                   : simState.viscousModel === 'k-epsilon'
                     ? `当前选择 k-epsilon (${simState.kEpsilonSubModel})：下方可切换子模型与 Near-Wall Treatment。`
                     : simState.viscousModel === 'k-omega-sst'
-                      ? `当前选择 k-omega (${simState.kOmegaSubModel})：自带近壁 y+ 过渡处理，推荐解析边界层时目标 y+ ≈ 1。`
+                    ? `当前选择 k-omega (${simState.kOmegaSubModel})。当前窗口显示该分支的选项。`
                       : simState.viscousModel === 'transition-sst'
                         ? '当前选择 Transition SST：四方程转捩模型，要求近壁 y+ ≤ 1。'
                         : simState.viscousModel === 'rsm'
                           ? '当前选择 RSM：七方程雷诺应力模型，适合强旋流各向异性湍流。'
-                          : '当前选择 LES / DES：高精度瞬态大涡/分离涡模拟，需搭配 Transient 小时间步。'}
+                          : `当前选择 ${formatViscousBadge(simState.viscousModel)}。`}
           </div>
         )}
 
-        <div className="fluent-controls-stack">
-          {visibleControls.map((control) => (
-            <ControlRenderer
-              key={control.id}
-              control={control}
-              active={control.id === activeControlId}
-              simState={simState}
-              label={label}
-              onInspect={onInspect}
-              onButtonActivate={onButtonActivate}
-              onValueChange={onValueChange}
-            />
-          ))}
+        <div className={grouped ? 'fluent-dialog-sections' : 'fluent-controls-stack'}>
+          {[...sections.entries()].map(([section, controls]) => {
+            const items = controls.map(renderControl)
+            return grouped ? (
+              <fieldset key={section} className="fluent-dialog-fieldset fluent-controls-stack">
+                <legend>{label(section)}</legend>
+                {items}
+              </fieldset>
+            ) : items
+          })}
         </div>
+        {report && (
+          <p className="fluent-inline-note">
+            {report.destination} · {report.definition} · {report.every} {label(report.basis)}
+            {report.active ? '' : ' · Inactive'}
+          </p>
+        )}
+        {dialog.fileOperation && ['Read', 'Import'].includes(dialog.fileOperation.verb) && (
+          <label className="fluent-file-browse">
+            <span>{label('Browse…')}</span>
+            <input
+              type="file"
+              aria-label={label('Browse…')}
+              accept={dialog.fileOperation.extensions.join(',')}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                if (file) onValueChange(dialog.controls[0], file.name)
+                event.currentTarget.value = ''
+              }}
+            />
+          </label>
+        )}
+        {dialog.fileOperation?.extensions.length ? (
+          <p className="fluent-dialog-file-types">{dialog.fileOperation.extensions.join(', ')}</p>
+        ) : null}
+        {(fileError || submitError) && <p className="fluent-inline-note" role="alert">{fileError || submitError}</p>}
       </div>
 
       <div className="fluent-dialog-actions">
         <button
           type="button"
           className="primary"
-          onClick={() => onOkDialog(label(dialog.title))}
+          onClick={() => submit(true)}
         >
           {label('OK')}
         </button>
-        <button
-          type="button"
-          onClick={() => onApplyDialog(label(dialog.title))}
-        >
-          {label('Apply')}
-        </button>
-        <button type="button" onClick={onClose}>
+        {!dialog.fileOperation && !dialog.okOnly && (
+          <button type="button" onClick={() => submit(false)}>{label('Apply')}</button>
+        )}
+        <button type="button" onClick={() => onClose()}>
           {label('Close')}
         </button>
       </div>

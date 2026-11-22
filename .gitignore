@@ -12,6 +12,7 @@ dist
 dist-ssr
 coverage
 .vite
+.share-runtime/
 *.local
 .env
 .env.*

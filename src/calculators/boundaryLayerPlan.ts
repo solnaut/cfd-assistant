@@ -35,6 +35,7 @@ interface BoundaryLayerPlanInput {
 
 const DEFAULT_GROWTH_RATE = 1.2
 const DEFAULT_PRESET_LAYER_COUNT = 15
+const MAX_PLAN_ROWS = 1000
 
 export function createBoundaryLayerPlan({
   firstLayerHeight,
@@ -195,6 +196,9 @@ function createPlan({
   pipeDiameter?: number
   notes: string[]
 }): BoundaryLayerPlan {
+  if (!Number.isSafeInteger(layerCount) || layerCount < 1 || layerCount > MAX_PLAN_ROWS) {
+    throw new Error(`边界层推荐表最多支持 ${MAX_PLAN_ROWS} 层，请调整层数或网格参数。`)
+  }
   const rows = createRows(firstLayerHeight, growthRate, layerCount)
   const lastRow = rows[rows.length - 1]
   const actualTotalThickness = lastRow.cumulativeThickness
@@ -230,10 +234,9 @@ function createRows(
   let cumulativeThickness = 0
 
   for (let layer = 1; layer <= layerCount; layer += 1) {
-    const height = isUnitGrowth(growthRate)
-      ? firstLayerHeight
-      : firstLayerHeight * growthRate ** (layer - 1)
+    const height = firstLayerHeight * growthRate ** (layer - 1)
     cumulativeThickness += height
+    if (!Number.isFinite(cumulativeThickness)) throw new Error('累计厚度超出可计算范围。')
     rows.push({ layer, height, cumulativeThickness })
   }
 
@@ -249,21 +252,17 @@ function layersForTargetThickness(
     return 1
   }
 
-  if (isUnitGrowth(growthRate)) {
+  if (growthRate === 1) {
     return Math.ceil(targetTotalThickness / firstLayerHeight)
   }
 
   return Math.max(
     1,
     Math.ceil(
-      Math.log(1 + targetTotalThickness * (growthRate - 1) / firstLayerHeight) /
-      Math.log(growthRate),
+      Math.log1p(targetTotalThickness * (growthRate - 1) / firstLayerHeight) /
+      Math.log1p(growthRate - 1),
     ),
   )
-}
-
-function isUnitGrowth(growthRate: number) {
-  return Math.abs(growthRate - 1) < 1e-12
 }
 
 function assertPositive(value: number | undefined, label: string) {

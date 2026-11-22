@@ -4,11 +4,12 @@ import {
   formatCalculationValue,
 } from '../calculators/implementations'
 import {
+  createBoundaryLayerPlan,
   formatBoundaryLayerPlanCsv,
   formatBoundaryLayerPlanSummary,
   formatBoundaryLayerPlanTable,
 } from '../calculators/boundaryLayerPlan'
-import { getCalculator } from '../calculators/registry'
+import { calculatorCatalog, getCalculator } from '../calculators/registry'
 
 function calculator(id: string) {
   const definition = getCalculator(id)
@@ -82,6 +83,31 @@ function intermediateText(
 }
 
 describe('calculator implementations', () => {
+  it.each(calculatorCatalog.filter((definition) => definition.availability === 'available'))(
+    'calculates the supplied example for $id',
+    (definition) => {
+      const values = Object.fromEntries(definition.inputs.flatMap((input) => input.defaultValue === undefined
+        ? [] : [[input.id, { value: input.defaultValue, unitId: input.defaultUnit }]]))
+      const results = calculate(definition, values)
+      expect(results.outputs.length).toBeGreaterThan(0)
+      expect(results.outputs.every((item) => item.value !== undefined && Number.isFinite(item.value))).toBe(true)
+    },
+  )
+
+  it('keeps large equal-height sequences cheap and bounds full recommendation tables', () => {
+    expect(outputValue('boundary-layer-mesh', {
+      'first-layer-height': { value: 0.001, unitId: 'm' },
+      'growth-rate': { value: 1 },
+      'layer-count': { value: 100_000_000 },
+    })).toBeCloseTo(100_000)
+    expect(() => createBoundaryLayerPlan({
+      firstLayerHeight: 1e-8,
+      growthRate: 1,
+      recommendationMethod: 'target-total-thickness',
+      targetTotalThickness: 1,
+    })).toThrow(/最多支持/)
+  })
+
   it('calculates Reynolds number and handles unit conversion', () => {
     expect(
       outputValue('reynolds-number', {

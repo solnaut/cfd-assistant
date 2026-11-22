@@ -1,14 +1,21 @@
 export type MeshingWorkflowMode = 'watertight' | 'fault-tolerant'
 export type MeshingViewportTab = 'cad' | 'surface-mesh' | 'volume-mesh' | 'quality'
 export type MeshingTaskId =
+  | 'ft-describe'
+  | 'ft-capping'
+  | 'ft-identify'
+  | 'ft-leakage'
   | 'wm-import-geometry'
   | 'wm-local-sizing'
   | 'wm-surface-mesh'
   | 'wm-describe-geometry'
   | 'wm-share-topology'
+  | 'wm-capping'
   | 'wm-update-boundaries'
   | 'wm-update-regions'
   | 'wm-boundary-layers'
+  | 'wm-multizone-controls'
+  | 'wm-multizone-mesh'
   | 'wm-volume-mesh'
   | 'wm-improve-mesh'
 
@@ -84,15 +91,8 @@ export interface MeshingWorkflowStep {
   labelZh: string
   explanationId: string
   optional?: boolean
-}
-
-export interface FaultTolerantStep {
-  id: string
-  order: number
-  label: string
-  labelZh: string
-  summary: string
-  explanationId: string
+  requiresMultizone?: boolean
+  requiresCapping?: boolean
 }
 
 export interface MeshingExplanation {
