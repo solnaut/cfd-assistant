@@ -68,7 +68,119 @@ export const optionTeachingByControlId: Record<string, OptionTeaching> = {
       'piecewise-linear': '按温度分断点线性插值输入实验实测流体动力黏度曲线。',
     },
   },
-  'viscous-wall-treatment': { notes: existingNotes('Enhanced Wall Treatment', 'Standard Wall Functions', 'Scalable Wall Functions') },
+  'viscous-wall-treatment': {
+    notes: {
+      'Enhanced Wall Treatment': '结合双层近壁模型与梯度混合壁面函数，实现“y+ 不敏感”过渡：当首层 y+ ≈ 1 时自动全程精细积分黏性底层；当网格较粗 y+ > 30 时平滑衔接对数律。传热与分离算例首选。',
+      'Standard Wall Functions': '经典 Launder-Spalding 对数律壁面公式，严格要求首层中心落在 30 < y+ < 300 区间；若网格意外切太密（y+ < 15）会导致壁面摩擦与传热出现显著偏差！',
+      'Scalable Wall Functions': '在标准壁面函数基础上施加内部虚拟下限截断 y*_limit ≈ 11.225，避免局部极细网格（如角点加密后 y+ < 11）直接崩溃，可保障中等粗网格的鲁棒性。',
+    },
+  },
+  'viscous-ke-submodel': {
+    notes: {
+      standard: '1972 经典两方程基线；在充分发展的附着高 Re 管流表现成熟，但在强逆压分离与强烈轴对称圆射流扩展率计算上偏粗糙。',
+      rng: '重正化群修正版本，新增高速应变附加项与解析低 Re / 旋流修正，改善弯曲管道、高剪切及旋转弱旋流精度，但极细网格下收敛略慢。',
+      realizable: '对涡黏度系数 C_μ 进行应变率敏感动态约束并重写 ε 耗散方程，彻底消除“圆射流-平射流反常”并显著提升强逆压梯度边界层分离与回流预测，是 k-ε 族首选。',
+    },
+  },
+  'viscous-kw-submodel': {
+    notes: {
+      standard: 'Wilcox 原始 k-ω 模型，近壁直接积至壁面极稳，但在外流区极度依赖入口设定的自由来流湍流比耗散率 ω 数值。',
+      bsl: 'Baseline 混合模型：在近壁区保持 k-ω 高精度、到主流外层区通过 F1 混合函数平滑切换到 k-ε 方程，消除了自由来流敏感性缺陷。',
+      sst: 'Shear Stress Transport（剪切应力输运，全行业默认推荐）：在 BSL 基础上增加主要剪切应力 Bradshaw 限制器，防止分离点处过度产生假湍流黏度，精确捕捉翼型失速、扩压段剥离与强换热峰。',
+      geko: 'Generalized k-omega，以固定稳定基底为骨架提供 6 个物理直观可调参数（CSep, CNW 等），允许标定高精气动/射流实验基准而不破坏默认壁面律。',
+    },
+  },
+  'viscous-les-model': {
+    notes: {
+      'Smagorinsky-Lilly': '经典简单代数亚格子模型（需调 C_s），但壁面未自动衰减（非近壁零黏度）会人为抹平层流转捩脉动。',
+      WALE: '壁面自适应局部涡黏模型：在壁面处自动按 y³ 规律自然渐近为零，能真实还原层流转捩与精细边界层涡结构，全能 LES 默认最优选。',
+      WMLES: '壁面模化大涡模拟（Wall-Modeled LES）：对极端高雷诺数外流或超大气动绕流免除沿流/展向百万级微尺度限制，用 RANS 壁面模化近壁内层。',
+      'Kinetic-Energy Transport': '额外求解一步亚格子动能 k_sgs 输运方程，在含高旋流强非平衡局部涡分裂场中捕捉能量局部聚集和反传效应。',
+    },
+  },
+  'multiphase-volume-fraction-scheme': {
+    notes: {
+      'Geo-Reconstruct': '几何重构法（仅 Explicit VOF 可选）：在界面单元内部精确切出分段线性界面（PLIC）几何截面斜率并逐面输送，几乎零人工界面抹平，捕捉锐利波浪与液滴脱落最准。',
+      CICSAM: '压缩界面捕获方案（仅 Explicit VOF 可选）：针对高低黏度比悬殊（≥ 100）多相流保持极高界面锋利度并支持常规三角/多面体网稳定推进。',
+      Compressive: '无界/有界高阶二阶界面压紧格式：在 Implicit 隐式 VOF 与显式下均可显著消除相界面弥散发虚（比一阶/二阶普通格式清晰得多），是大步长稳态及隐式瞬态主选。',
+      'Modified HRIC': '融合高分辨率迎风格式与界面紧缩限制器，允许以较大的局部库朗数稳定推进气液锋利界面。',
+      'First Order Upwind': '一阶迎风：极其稳定绝不震荡但会使尖锐界面迅速扩散成大片过渡灰区；仅在初算热身前几十步稳住发散场使用，正式评估切回 Compressive/Geo-Reconstruct。',
+    },
+  },
+  'multiphase-pair-drag': {
+    notes: {
+      'schiller-naumann': '刚性光滑球体标准通用曳力关联式，适合低体积分数、不变形硬球微粒及未剧烈拉伸变形的小气泡（d < 1–2 mm）。',
+      'morsi-alexander': '基于实验阻力曲线分区拟合，涵盖全雷诺数范围的刚性球体精准关联。',
+      tomiyama: '专为变形上升气液气泡设计，计及表面张力与 Eo 数（Eötvös Number）引起气泡扁平化后的阻塞曳力增加，还可区分散步污染液态（Pure vs Contaminated）。',
+      'ishii-zuber': '工业气泡塔/稠密液滴群专用稠密群集曳力关联，考虑空泡含率密集引起的颗粒集群曳力衰减修正。',
+      'wen-yu': '稀相/中等孔隙率气固流化床经典关联（颗粒相分率 < 0.2 附近精准）。',
+      gidaspow: '自动在稀相（Wen-Yu）与密相高固含率（Ergun 固定床压降）间无缝拼接转换，鼓泡与循环流化床模拟黄金标配模型。',
+      'syamlal-obrien': '直接依据终端沉降速度与流化床最低流化速度关联标定曳力系数，适合实验测得流化速度的密相床。',
+    },
+  },
+  'multiphase-pb-method': {
+    notes: {
+      Off: '不追踪粒径连续演变分布，次相保留单一直径或局部简单尺度。',
+      Discrete: '将粒径连续谱切分为 N 档离散体积级（Bins，如 10–15 档）单独追踪聚集与破碎，物理保真高且易观测尺度直方分布。',
+      'Inhomogeneous Discrete': '当不同大小档位的气泡/液滴在流场中以明显不同的上升速度分层（GENTOP 核心依赖）时，为各分组分配独立速度场以捕捉小泡下拽和大泡上浮分选。',
+      'Standard Moment': '仅输运粒径分布的前几个低阶统计矩（M0 数量密度至 M3 体积分数），计算极省内存但难以逆向还原复杂多峰尺度谱。',
+      DQMOM: '直接正交矩近似法：以特征权重与节点尺寸直接输运少数几个有效分布峰位，可为不同尺度群赋予多速度场且比全离散级少解海量相分数方程。',
+    },
+  },
+  'acoustics-model-select': {
+    notes: {
+      Off: '不计算远场或域内声波辐射响应。',
+      'Ffowcs-Williams & Hawkings': '混合气动声学首选（FW-H）：先用高精度瞬态 LES/DES 算出近场强涡核脉动并记录封闭积分面表面压力时间历程，再用积分解直接算任意公里外远场接收点声压时间序列及 FFT 频谱。',
+      'Wave Equation': '直接在网格计算域内部与瞬态流场联立求解空间声波传播（需瞬态且采用二阶隐式时间步与精细声学网格每波长 ≥ 10 网格）。',
+      'Broadband Noise Sources': '仅靠定常 RANS 计算出的湍动能 k 与耗散率 ε（Proudman/Curle/Lilley 理论）一眼定量排查机身/进气道哪里是强宽频噪声发源 hotspots，速度极快但不输出某点频谱分贝曲线。',
+    },
+  },
+  'battery-solution-method': {
+    notes: {
+      MSMD: '多尺度多域方法（推荐）：分别建立电化学极片空间尺度和电芯集流体三维欧姆电位/发热尺度的物理耦合，支持切换 NTGK、ECM 等效电路或精细 Newman P2D 子模型。',
+      'CHT Coupling': '仅按已知外部表征发热量或一维产热曲线给电池块加发热体源并做三维流体共轭冷却换热计算（跳过内部复杂极化电位方程）。',
+      'Circuit Network': '在电池包成组模组中将串联/并联铜巴排集流体等构成完整电阻网络求解电流分配、焦耳热与单体压降不均。',
+    },
+  },
+  'dpm-inj-evap': {
+    notes: {
+      Inert: '惰性固体粒子或无相变球体（仅有热交换与曳力运动）。',
+      Droplet: '纯组分蒸发/沸腾液滴（考虑蒸发潜热与气相蒸汽组分释放；达到沸点转为沸腾传质控制）。',
+      Combusting: '煤粉或焦炭等固体可燃颗粒：先后经历水蒸发、热解挥发分脱出（Devolatilization）与表面碳灰异相氧化燃烧。',
+      Multicomponent: '含多种互溶液相馏分（如汽油+乙醇/多烷烃混合物）按挥发度依次蒸馏释放；选择它会在 Injection 自动激活 [Components] 选项卡设置各组份质量比例。',
+    },
+  },
+  'dpm-inj-breakup-model': {
+    notes: {
+      TAB: 'Taylor Analogy Breakup（弹性弹簧振荡类比）：以液滴受风力扭曲拉伸至临界振幅撕裂判据，适合低韦伯数（We < 100）较温和雾化液滴分裂。',
+      'Wave (KH-RT)': 'Kelvin-Helmholtz 表面波增长剥离配合 Rayleigh-Taylor 加速失稳破碎模型，广泛覆盖高压柴油/航空煤油高速雾化射流（We > 100）。',
+      SSD: 'Stochastic Secondary Droplet 随机二次破碎模型：把子液滴尺寸抽样按临界时间与局部湍流涡尺度做福克-普朗克尺寸谱演化。',
+    },
+  },
+  'dynamic-mesh-zone-type': {
+    notes: {
+      Stationary: '网格在当前时间推进期间保持原地完全固定不变（用于贴紧活塞做六面体铺层的静壁面筒体侧边）。',
+      'Rigid Body': '整片边界或体区域全部作为不变形刚体按设定的平动/转动曲线或 Six DOF 流体载荷同步运动（激活 [Motion Attributes] 选项卡）。',
+      Deforming: '面或体内网格会随周边动边界被局部压扁拉长变形甚至局部重构，需在 [Geometry Definition] 选项卡绑定平滑外包几何形状防止表面网格扭曲越位。',
+      'User-Defined': '完全交由用户编写的 `DEFINE_GRID_MOTION` UDF 逐节点精确指令坐标运动（如周期扑翼弹性拍动）。',
+      'System Coupling': '边界节点实时接收来自 Ansys Mechanical 等结构有限元求解器传来的双向 FSI 流固形变位移。',
+    },
+  },
+  'material-cp-method': {
+    notes: {
+      constant: '假定流体比热容不随温度改变；常温低速液体/空气传热可采用以加速收敛。',
+      'piecewise-linear': '通过实验测量表格录入各关键温度段的比热数据点并进行分段线性插值。',
+      polynomial: '用光滑多项式函数拟合宽温度区间气体/熔盐的定压比热随绝对温度 T 的演变。',
+      'piecewise-polynomial': '高温燃烧/CHEMKIN 燃气标准格式：按低/高两个衔接温区分别设置 7 系数 NASA 多项式（点击激活 [Edit NASA Polynomial…] 子框），保证高温化学反应焓变绝对准确。',
+    },
+  },
+  'material-k-method': {
+    notes: {
+      constant: '常规材料使用常数导热系数。',
+      'piecewise-linear': '输入多组温度–导热系数（W/m·K）分段点位拟合如硅胶、合金随温度剧烈改变导热率的材料。',
+      polynomial: '为高热梯度介质设置连续光滑的温度导热多项式，避免温度大跨度计算导热突跳引起收敛困难。',
+    },
+  },
   'methods-transient-formulation': { notes: existingNotes('Second Order Implicit', 'Bounded Second Order Implicit') },
   'methods-pseudo-time': {
     notes: {

@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FluentIcon } from '../FluentIcons'
 import { FluentOperationDetails } from './FluentOperationDetails'
+import { FluentTeachingDiagram } from './FluentTeachingDiagram'
+import { getSolutionTeachingDiagram } from '../data/fluentTeachingDiagrams'
 import { optionTeachingByControlId } from '../data/optionTeaching'
 import type { FluentLabel } from '../fluentLanguage'
+import type { FluentSimState } from '../state/fluentSimState'
 import {
   controlOptionsById,
   relatedCalculatorsByControlId,
@@ -17,6 +20,7 @@ export function ExplanationPane({
   prerequisites,
   explanation,
   controlById,
+  simState,
   label,
   visible,
   inspectorTab: controlledTab,
@@ -29,6 +33,7 @@ export function ExplanationPane({
   prerequisites: FluentVisibilityCondition[]
   explanation?: FluentMockExplanation
   controlById: Map<string, FluentMockControl>
+  simState?: FluentSimState
   label: FluentLabel
   visible: boolean
   inspectorTab?: 'guide' | 'troubleshoot'
@@ -73,6 +78,12 @@ export function ExplanationPane({
   const calcLinks = activeControl
     ? relatedCalculatorsByControlId[activeControl.id] ?? []
     : []
+  const diagramSpec = getSolutionTeachingDiagram(
+    explanation?.id,
+    activeControl?.parentId,
+    activeControl?.id,
+    simState,
+  )
 
   return (
     <aside
@@ -112,6 +123,8 @@ export function ExplanationPane({
         >
           <p className="fluent-explanation-location">{explanation.location}</p>
           <h2>{explanation.title}</h2>
+
+          {diagramSpec && <FluentTeachingDiagram spec={diagramSpec} />}
 
           {missingSettings.length > 0 && (
             <section className="fluent-option-highlight">

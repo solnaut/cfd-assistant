@@ -52,7 +52,7 @@ export const modelChildDialogs: FluentMockDialog[] = [
     subtitle: '保存教学喷射对象。液滴转换设置可引用该对象。',
     controls: modelControls('dpm-injection-dialog', 'Injection', [
       ['dpm-injection-name', 'Injection Name', { value: 'injection-1' }],
-      ['dpm-injection-type', 'Injection Type', { value: 'surface', options: ['single', 'group', 'surface'] }],
+      ['dpm-injection-type', 'Injection Type', { value: 'surface', options: ['single', 'group', 'cone', 'surface', 'plain-orifice-atomizer'] }],
     ]),
   },
 ]

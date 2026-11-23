@@ -104,6 +104,7 @@ add(['general-pressure-based', 'general-density-based', 'solver-type-pressure-ba
 
 add(['models-multiphase', 'ribbon-model-multiphase', 'multiphase-model-select'], 'flu_ug_sec_multiphase_setup.html', {
   whatItIs: '多相模型描述不同流体或颗粒相在同一流动域中的分布及相互作用。应根据能否分辨相界面、相间滑移和研究目标选择模型。',
+  coreConcept: '多相建模的核心分支依据是“界面尺度和网格分辨率的关系”：① 若工程关心气泡/液面清晰宏界面位置（波浪、晃荡、液滴变形），选用单套速度场的 VOF 追踪各相体积分数 α；② 若成千上万小气泡或颗粒均匀散布、网格远大过颗粒直径，改用双/多流体 Eulerian（各相独立动量方程）或简化的 Mixture 混合滑移模型。',
   whenToUse: '需要追踪气液自由表面、分析分散气泡或固体，或求取各相体积分数及相间交换时。',
   choices: [
     ['VOF', '以体积分数追踪可分辨的流体界面，适合自由液面、液柱或大尺度气液界面。'],
@@ -111,41 +112,57 @@ add(['models-multiphase', 'ribbon-model-multiphase', 'multiphase-model-select'],
     ['Eulerian', '分别求各相动量并通过闭合关系耦合。需要各相速度或分布、相间作用较复杂时考虑。'],
     ['Wet Steam', '用于湿蒸汽非平衡凝结。按照专用流程处理蒸汽性质和液滴生成。'],
   ],
+  parameterEffects: [
+    ['VOF Explicit vs Implicit', 'Explicit 使用几何重构（Geo-Reconstruct）保持界面锐利如刀锋，但仅限瞬态且严受 Co ≤ 0.25 约束；Implicit 支持稳态及更大步长，但需配合 Compressive 防止界面模糊。'],
+    ['Implicit Body Force & 表面张力 CSF', '大密度差或毛细主导（低 We / Bo 数）算例必须启用 Implicit Body Force 和 CSF 表面张力，否则静止液面都会产生虚假寄生涡流。'],
+  ],
   steps: ['判断关注的是清晰界面还是分散相，核对是否需要相间滑移或传热传质。', '在 Models → Multiphase 选择模型并定义主相、次相和材料。', '检查 Phase Interaction、入口体积分数及初始化。已充液区域需要和真实初始状态一致。'],
-  example: '水箱晃荡若要看液面位置优先评估 VOF。若关注鼓泡设备中分散小气泡的速度与气含率，可评估 Mixture 或 Eulerian，并核对曳力模型。',
+  example: '水箱晃荡若要看液面位置优先评估 VOF 并设 Courant ≤ 0.25 与明渠重力；若关注鼓泡塔中成千上万分散小气泡的速度与气含率，则选用 Eulerian 并配对相间曳力（Ishii-Zuber / Grace）及湍流弥散。',
+  contextNote: '在 VOF 中启用 Open Channel Flow / Wave BC 后，所有 Velocity/Pressure/Mass-Flow Inlet 与 Pressure Outlet 的 Multiphase 选项卡会自动联动解锁自由液面高度与波浪理论设置。',
   checkItems: ['各相体积分数的和应满足闭合约束', '用相体积或相质量守恒监控检查时间推进和界面设置'],
-  commonMistakes: '只选模型就开始计算，遗漏相材料、边界相分率或相间作用。',
+  commonMistakes: '只选模型就开始计算，遗漏相材料、重力启用（Gravity）、边界相分率或已充液区域的 Patch 初始化。',
   relatedControls: ['general-pressure-based', 'multiphase-num-phases', 'multiphase-eulerian-regime'],
 })
 
 add(['models-energy', 'ribbon-model-energy', 'energy-enable'], models + '#flu_ug_Energy', {
   whatItIs: 'Energy 启用能量方程，求解温度或焓，并与材料热物性、热边界、热源和所启用的其他物理模型耦合。',
+  coreConcept: 'Fluent 根据压/密度基和热力学配置求解静焓或全焓输运方程：包含对流传热 ∇·(ρu h)、傅里叶热传导 ∇·(k ∇T)、黏性耗散 Φ（高速/高黏流体）以及可压缩功。关闭 Energy 时所有流固温差被冻结为绝热等温过程。',
   whenToUse: '需要预测温度、热流、温变物性、热浮力、可压缩热效应或相变时。',
   choices: [['On', '使用能量方程描述热过程，同时设置材料热物性和热边界。'], ['Off', '在温度无需求解且模型允许等温近似时使用。']],
-  steps: ['开启 Models → Energy。', '为流体和固体核对导热系数与比热，在边界设置温度、热流或热耦合。', '建立关键温度与热流监控，核对整体热量收支。'],
-  example: '已知电加热功率和进水温度，求冷却板温升。分别给定固体导热系数和热源，再检查壁面传热与冷却水带走的热量。',
+  parameterEffects: [
+    ['跨窗口全局联动', '开启后 Materials 自动启用热导率 k 与比热 Cp 模型，所有 Inlet/Outlet/Wall/Fan/Porous Jump 解锁 Thermal 选项卡，Cell Zone 解锁能量源项与固定温度选项。'],
+    ['流固共轭耦合界面 Coupled Wall', '共有拓扑（Share Topology）生成的流固交界面会自动变为 Coupled 双面热耦（wall 与 wall-shadow），保证两侧温度连续与热流严格相等 q_f = q_s。'],
+  ],
+  steps: ['开启 Models → Energy。', '为流体和固体核对导热系数与比热（高温气体可设多项式或 NASA 分段比热），在边界设置温度、热流或热耦合。', '建立关键温度与热流监控，核对 Flux Reports Total Heat Transfer Rate 整体热量净收支。'],
+  example: '已知电加热功率和进水温度，求冷却板温升。分别给定固体铝导热系数与 W/m³ 体积热源，流固界面留为 Coupled，再检查壁面传热与冷却水带走热量的能量闭合误差（目标 < 1%）。',
+  contextNote: '高速可压缩（Ma > 0.3）或混合化学反应/沸腾算例必须开启 Energy，否则理想气体状态方程与反应潜热均无法闭合！',
   checkItems: ['共轭传热需确认流固界面配对、材质和热条件', '热流密度 W/m²、体积热源 W/m³ 和总功率 W 应分别核对'],
-  commonMistakes: '启用 Energy 后仍沿用默认绝热壁，或把输入热流密度当成总热功率。',
+  commonMistakes: '启用 Energy 后仍沿用默认绝热壁（Heat Flux = 0），或把总发热量 W 未除以体积/面积直接填入通量或体热源框。',
   relatedControls: ['materials-create-edit', 'wall-thermal', 'cell-zone-solid-source-enable'],
 })
 
 add(['models-viscous', 'ribbon-model-viscous', 'viscous-kepsilon', 'viscous-kw-sst', 'viscous-laminar', 'viscous-les', 'viscous-des', 'viscous-transition-sst', 'viscous-sa', 'viscous-rsm', 'viscous-inviscid', 'viscous-sas', 'viscous-ke-submodel', 'viscous-kw-submodel'], models + '#flu_ug_Viscous_Model', {
   whatItIs: 'Viscous 指定如何描述黏性剪切及湍流输运。模型与近壁网格共同决定壁面摩擦、分离及换热的计算质量。',
+  coreConcept: '绝大多数湍流模拟采用雷诺平均（RANS）引入 Boussinesq 涡黏性假说 μ_t 模化全谱脉动涡耗散；其核心难点在近壁高剪切边界层：黏性底层 y+ < 5 需要贴体加密配合 k-ω SST / EWT 直接积分，而粗糙壁面函数（30 < y+ < 300）则用半经验对数律跨过底层。',
   whenToUse: '依据雷诺数范围、几何、分离与转捩风险，以及需要平均场还是解析时变结构来选模型。',
   choices: [
     ['Inviscid', '忽略分子黏性。用于可接受无黏近似的流动，不能描述近壁剪切与边界层摩擦。'],
-    ['Laminar', '求解分子黏性作用，适用于可合理判为层流的工况。'],
+    ['Laminar', '求解分子黏性作用，适用于低 Re 可合理判为层流的工况。'],
     ['Spalart–Allmaras', '一方程湍流模型，常用于以附着流为主的外部气动。'],
-    ['k-ε / k-ω SST', 'RANS 模型用于获得平均量。k-ε 常用于内部流和自由剪切的基线计算，SST 常用于关注逆压梯度或分离的壁面流动。'],
-    ['Transition SST', '针对转捩过程，需特别核对入口扰动与近壁网格。'],
-    ['Reynolds Stress', '分别求解雷诺应力分量，适合评估强旋转、曲率或湍流各向异性的影响。'],
-    ['SAS', '在满足分辨率等条件时，允许流动不稳定性形成可解析的非定常结构。'],
-    ['LES / DES', 'LES 解析较大的涡并对亚格子尺度建模。DES 结合 RANS 近壁处理与分离区的尺度解析，需核对网格和时间步。'],
+    ['k-ε / k-ω SST', 'RANS 模型用于获得平均量。k-ε 常用于内部流和自由剪切基线计算；k-ω SST 自动融合近壁抗逆压与远场稳定性，是工业绕流/传热首选。'],
+    ['Transition SST', '四方程转捩模型，捕捉层流向湍流转捩（需极精细 y+ ≤ 1 与准确来流 Tu）。'],
+    ['Reynolds Stress (RSM)', '不依赖各向同性假说、直接求解 6 个独立雷诺应力分量的高阶封闭模型，适合强旋风分离器与直角通道二次流。'],
+    ['SAS / LES / DES', '解析时变含能大涡与卡门涡街，必须开 Transient 并使用高度各向同性细网格，声学宽频降噪核心基础。'],
+  ],
+  parameterEffects: [
+    ['y+ 与第一层网格高度匹配', '切换壁面函数或解析边界层模型时，必须核查壁面 y+ 分布，避免网格正好落入 5 < y+ < 30 既非黏性底层又非充分对数律的过渡灰区。'],
+    ['Eulerian 多相联动', '在 Eulerian 多相与湍流同时开启时，Multiphase 面板 Phase Interaction 下会额外激活 Turbulence 选项卡（Mixture / Dispersed / Per-Phase 湍流交互）。'],
   ],
   steps: ['在 Viscous 选择与工况匹配的模型和子模型。', '使用湍流模型时，核对所需的近壁网格、入口湍流强度与尺度定义。', '计算后查看摩擦、分离点或换热量等目标量。采用近壁湍流处理时还要复核 y⁺ 分布。'],
-  example: '扩压器若首先关心平均分离区，可先用 SST 建立基线。要研究涡结构随时间演化或脉动频谱时，再评估瞬态模拟与尺度解析模型。',
+  example: '扩压器若首先关心平均分离区和表面 Nu 数，首选 k-ω SST 配合 y+ ≈ 1 的 15 层边界层；要研究涡结构随时间演化或气动噪声频谱时，切换到 Transient + DES/LES。',
+  contextNote: '强曲率管道和旋风分离器中标准涡黏模型往往高估湍流混合并过早抹平旋转核心，可对比 Curvature Correction 或 RSM 模型预测压降差异。',
   checkItems: ['依据选用的近壁处理解释 y⁺，避免把单一阈值套给所有模型', '比较网格、边界扰动和模型对目标量的影响'],
-  commonMistakes: '只换湍流模型，沿用不匹配的壁面网格与进流湍流条件。',
+  commonMistakes: '只换湍流模型，却沿用与近壁要求不匹配的首层边界层高度与进流湍流边界。',
   relatedControls: ['general-transient', 'velocity-inlet-turbulence', 'energy-enable'],
 })
 
@@ -177,44 +194,60 @@ add(['viscous-kw-submodel'], models + '#flu_ug_Viscous_Model', {
 
 add(['models-radiation', 'ribbon-model-radiation', 'radiation-model-select'], models + '#flu_ug_Radiation_Model', {
   whatItIs: '辐射模型描述物体通过辐射传递热量，并按选用模型处理表面性质、遮挡和介质吸收、发射或散射。',
+  coreConcept: '选择辐射模型的第一准则在于光学厚度 τ = a·L（吸收系数 × 特征尺度）：透明无吸收介质（τ ≈ 0）表面之间只靠视角几何交换能量（S2S）；半透明或全光学厚度参与介质需沿离散立体角积分辐射传输方程（DO / DTRM）；而光学极厚漫射烟气或熔融玻璃则可用 P1 或 Rosseland 扩散近似大幅提速。',
   choices: [
     ['S2S', '表面对表面交换，适用于可忽略介质参与时的封闭或几何可表示的区域。'],
-    ['P1', '将辐射传输近似为扩散形式。选用时评估光学厚度以及几何和方向性限制。'],
-    ['DO', '沿离散方向求解辐射传输。适合需要处理参与性介质、定向入射等情况。'],
-    ['DTRM / Monte Carlo / Rosseland', '分别对应射线、统计抽样或光学厚介质扩散近似。按模型假设核对遮挡、散射、介质和壁面条件。'],
+    ['P1', '将辐射传输近似为扩散形式。适合 τ > 1 参与性烟气工业炉膛，光学薄域易高估通量。'],
+    ['DO', '沿离散方向求解辐射传输。支持参与介质、半透明壁面与镜面反射及太阳加载，通用精度最高。'],
+    ['DTRM / Monte Carlo / Rosseland', '分别对应射线追踪、无偏统计抽样或极厚光学介质高传导近似。按模型假设核对遮挡、散射、介质和壁面条件。'],
   ],
-  steps: ['开启 Energy，判断介质是否吸收、发射或散射。', '选择 Radiation 模型，填写壁面发射率以及所需的吸收系数、波段或角度离散参数。', '比较辐射热流与其他换热量，复核关键表面温度。'],
-  example: '高温炉壁向工件辐射时，若气体吸收显著，应核对参与性介质设置。透明介质中的表面交换可先评估 S2S。',
+  parameterEffects: [
+    ['DO Theta / Phi Divisions', '方向立体角离散越多射线误差越少，一般至少 2×2 至 4×4，高指向性平行光束还需提高 Pixels 细分避免“射线效应”。'],
+    ['Materials 吸收系数 & 壁面 Internal Emissivity', '启用辐射后所有壁面/出口的 Radiation 选项卡激活内部发射率（默认 1.0），且流体材料需设定 Absorption / Scattering Coefficient。'],
+  ],
+  steps: ['开启 Energy，判断介质是否吸收、发射或散射。', '选择 Radiation 模型，填写壁面发射率以及所需的吸收系数、波段或角度离散参数。', '比较辐射热流与其他换热量，复核关键表面温度与全局总热收支。'],
+  example: '高温炉壁向工件辐射时，若炉膛烟气（CO2/H2O）吸收显著，选 Discrete Ordinates (DO) 并用 WSGGM 变吸收率模型；若是真空辐射屏蔽罩或干净空腔内的灯管辐射，选 S2S 仅算一次角系数矩阵极快且精准。',
+  contextNote: '注意内部辐射与太阳载荷（Solar Load）均要求先激活 Energy 方程，否则辐射源项无法推进温度场变化！',
   checkItems: ['发射率与温度、材料及模型假设一致', '检查各热边界的净辐射热流与能量平衡'],
-  commonMistakes: '把 S2S 当作能直接计算气体吸收和发射的模型。',
+  commonMistakes: '把 S2S 当作能直接计算气体吸收和发射的模型，或开启 DO 却在透明气体材料里保留了非零虚假吸收系数。',
   relatedControls: ['energy-enable', 'wall-thermal', 'radiation-model-select'],
 })
 
 add(['models-species', 'ribbon-model-species', 'species-model-select'], models + '#flu_ug_Species_Model', {
   whatItIs: 'Species 用于描述多组分的输运与混合。联用反应模型时，还需要描述化学反应及其与湍流或扩散的耦合。',
+  coreConcept: '组分混合由对流扩散方程求解，无化学反应时各组分保持守恒且 ΣY_i = 1；开启反应流后则按 Damköhler 数（Da = 湍流混合时间 / 化学反应时间）选取模型：混合受限瞬燃火焰（Da ≫ 1）用 Eddy-Dissipation / PDF 查表；需要点火熄火或详细骨架化学机理则需用 EDC（涡耗散概念）+ CHEMKIN 导入与 Stiff Chemistry 求解器。',
   choices: [
-    ['Species Transport', '计算组分质量分数的输运，可用于混合，也可按模型设置反应。'],
-    ['Non-Premixed / Premixed', '分别针对燃料和氧化剂分开进入或在入口前已混合的典型燃烧方式，所需边界量不同。'],
-    ['Partially Premixed / Composition PDF', '适合需要同时描述混合与反应进程，或对湍流化学统计提供专门处理的模型分支。'],
+    ['Species Transport', '计算组分质量分数的输运，可用于单纯组分混合，也可开启 Volumetric 化学反应与壁面催化反应。'],
+    ['Non-Premixed / Premixed', '分别针对燃料/氧化剂分开进气（射流扩散火：求解混合分数 f 与 PDF 平衡表）或在入口前已完全预混（求解反应进度 c）。'],
+    ['Partially Premixed / Composition PDF', '联合混合分数 f 与反应进度 c 捕获局部灭火吹熄，或用拉格朗日粒子输运求解高维联合 PDF。'],
   ],
-  steps: ['明确只计算混合还是也计算反应，并定义混合工质。', '给定入口组成、扩散及需要的反应机制，核对能量与湍流设置。', '检查组分闭合、反应区位置和质量守恒。'],
-  example: '两股不同浓度的气流在风道中混合，关注出口均匀性时可选 Species Transport，使用非反应设置。',
+  parameterEffects: [
+    ['跨窗口全局联动', '一旦启用 Species 模型，所有进出口 Boundary Conditions 解锁 Species 选项卡，同时材料 Cp/k/密度切换至混合气体法则（理想气体混合率与质量加权混合定律）。'],
+    ['CHEMKIN Import & PDF Table', '选择详细多步反应需导入 .inp/.dat CHEMKIN 文件包；选择非预混/部分预混需提前点击计算生成 PDF Lookup Table 后才能正式迭代。'],
+  ],
+  steps: ['明确只计算混合还是也计算反应，并定义混合工质及最重稀释组分（通常把 N2 设为最后一位自动补全余量）。', '给定入口组成、扩散及需要的反应机制，核对能量与湍流设置。', '对于燃烧反应，在 Patch 初始化给点火高温区（或启用 Spark）并在收敛后检查组分闭合与污染物（NOx/Soot）。'],
+  example: '两股不同浓度气体在风道中混合选用非反应 Species Transport；模拟燃气锅炉扩散火焰则优先对比 Non-Premixed PDF，若关心 CO 熄火或详细 NOx 生成机制可转入 Species Transport + EDC + GRI 机理。',
   checkItems: ['区分质量分数和摩尔分数，核对组分和单位', '用进出口组分流量及温升检查混合与反应结果'],
-  commonMistakes: '把体积分数数据直接填写在质量分数输入框中。',
+  commonMistakes: '把体积/摩尔百分比未勾选 Specify Species in Mole Fractions 直接填进质量分数框，或者在多组分里最后一位主惰性组分未随各组分之和凑 1 自动匹配。',
   relatedControls: ['energy-enable', 'species-model-select', 'bc-velocity-inlet'],
 })
 
 add(['models-dpm', 'ribbon-model-dpm', 'dpm-enable'], models + '#flu_ug_Discrete_Phase_Model', {
   whatItIs: 'DPM 以拉格朗日方式跟踪离散颗粒、液滴或气泡在连续相中的运动，可按设置加入颗粒受力、传热和质量传递。',
+  coreConcept: 'DPM 将连续流场（欧拉框架）中携带的微粒、液滴视为按力学牛顿第二定律 m_p dv_p/dt = F_drag + F_buoyancy + F_other 追踪的颗粒束（Parcels）。每个 Parcel 代表大量同粒径同速率真实粒子；离散相总体积分率一般应 ≪ 10%，否则稠密挤压效应需选 DDPM 或欧拉多相模型。',
   choices: [
-    ['单向耦合', '连续相影响颗粒，颗粒对连续相的反馈可忽略时使用。'],
-    ['双向耦合', '让颗粒交换的动量、热和质量进入连续相方程，需要检查源项更新与收敛。'],
-    ['稳态 / 非稳态跟踪', '根据喷射、连续相和目标量选跟踪方式。非稳态跟踪要核对颗粒时间步和流体时间步的关系。'],
+    ['单向耦合', '连续相影响颗粒，颗粒对连续相的反馈可忽略时使用（稀相采样/除尘初估）。'],
+    ['双向耦合 (Interaction with Continuous Phase)', '让颗粒交换的动量、热和质量进入连续相方程，需要合理配置 DPM Source Under-Relaxation（一般 0.2~0.5）以防喷雾热源发散。'],
+    ['稳态 / 非稳态跟踪', '瞬态喷雾、液滴碰壁成膜及二次破碎（Breakup）需开启 Unsteady Particle Tracking 同步耦合流体时间步。'],
   ],
-  steps: ['为连续相建立速度场，再开启 DPM 并创建 Injection。', '设置颗粒类型、直径或粒径分布、速度、质量流率及材料。', '给入口、出口和壁面设置颗粒行为，统计逃逸、捕集和轨迹。'],
-  example: '带颗粒的风道除尘问题，用入口颗粒粒径分布和壁面捕集条件估计捕集率。颗粒负载显著时需评估连续相反馈。',
-  checkItems: ['检查喷射位置、颗粒材料和质量流率单位', '核对 Escape、Trap 和 Reflect 对统计量的影响'],
-  commonMistakes: '把显示出来的一条轨迹当作全部粒径和喷射分布的统计结果。',
+  parameterEffects: [
+    ['跨窗口与喷射器联动', '勾选 DPM → Breakup（且处于 Unsteady Tracking）后，喷射器（Discrete Phase Injection）对话框自动解锁 [Breakup] 选项卡（TAB / Wave KH-RT）；选择 Multicomponent Particle Type 时自动解锁 [Components] 多组分蒸发页签。'],
+    ['Discrete Random Walk (DRW)', '开启湍流随机游走增加颗粒轨迹发散真实度，但需足够高的 Number of Tries（如 10~30）避免颗粒统计分布呈现随机颗粒噪点。'],
+  ],
+  steps: ['为连续相建立稳固初场，开启 DPM（如喷雾蒸发需设 Interaction with Continuous Phase + Unsteady Tracking + Breakup）。', '创建并编辑 Injection：指定喷射方式（Single/Group/Cone/Surface）、材料、粒径分布（Uniform/Rosin-Rammler）、速度与流量。', '到各个进出口与壁面设置颗粒 Boundary Condition（Escape / Trap / Reflect / Wall Film），追踪并检查 Trap/Escape 数量平衡。'],
+  example: '燃油喷嘴高压雾化模拟：启用 Transient、DPM Interaction、Unsteady Particle Tracking 和 Breakup；在 Injection 中选择 Cone 型空心锥喷射 + Multicomponent 多组分液滴，启用 Wave (KH-RT) 破碎追踪二次液滴粒径衰减。',
+  checkItems: ['检查喷射位置、颗粒材料和质量流率单位（注意总流量 vs 单股流量）', '核对边界 Escape/Trap/Reflect 以及 Max Number of Steps（是否导致轨迹中途显示 Incomplete）'],
+  commonMistakes: '稳态下想开颗粒二次破碎（Breakup），或统计粒子捕集率时未开启 DRW 且尝试数仅设 1 导致轨迹重合完全失真。',
   relatedControls: ['general-transient', 'dpm-injections', 'dpm-unsteady-tracking'],
 })
 
@@ -359,6 +392,65 @@ add(['report-definition-type', 'report-plot-display'], 'flu_ug_reporting_sec_mon
   checkItems: ['确认对象、单位、法向和平均方式', '明确采样频率以及所处的时间或迭代位置'],
   commonMistakes: '混用面积平均与质量流率加权平均，或把一侧流量符号直接用于求和。',
   relatedControls: ['run-calculate', 'bc-pressure-outlet'],
+})
+
+add(['ribbon-udf-udm', 'udm-count', 'uds-count', 'uds-flux-fn', 'uds-unsteady-fn', 'uds-solution-zone', 'material-uds-diffusivity'], 'flu_ug_udf_sec_uds.html', {
+  whatItIs: 'UDM 为每个网格单元分配供 UDF 读写缓存的额外内存槽位（不求解输运方程）；UDS 则让 Fluent 直接联立求解最多多个自定义标量 φ_k 的稳态/瞬态对流-扩散输运方程 ∂(ρ φ_k)/∂t + ∇·(ρ F φ_k - Γ_k ∇φ_k) = S_φk。',
+  coreConcept: '开启 N 个 UDS 标量方程时，无需手动用有限体积法重写离散求解器——Fluent 自动组装与联立求解标准对流、扩散和源项线性系统，用户只需在 Materials 给定扩散系数 Γ_k、在 Cell Zone 添加体积源 S_φk 并在全部流体边界设定 Specified Value (第一类 Dirichlet) 或 Specified Flux (第二类 Neumann) 条件。',
+  choices: [
+    ['UDS Flux Function = Mass Flow Rate', '标量随主流动质量通量 ρu 对流输送，适合示踪剂浓度、示龄时间（Fluid Age）或水汽湿含量追踪。'],
+    ['UDS Flux Function = None', '消除对流项、退化为纯扩散/泊松型方程 ∇·(Γ∇φ) + S = 0，常用于电势、静电场、势流或壁面距离场方程计算。'],
+    ['User-Defined Memory (UDM)', '仅开辟额外每个单元的浮点存储槽，供 UDF 后处理记录或跨时间步暂存自定义衍生变量，不求解传输方程。'],
+  ],
+  parameterEffects: [
+    ['全局跨对话框级联效应', '一旦把 Number of User-Defined Scalars 设为 ≥ 1，Materials 材料编辑框立刻出现 UDS Diffusivity，同时 Velocity Inlet、Pressure Outlet、Wall 等全部边界条件弹窗会自动多出 [UDS] 选项卡。'],
+    ['Solution Zones 求解范围', '若标量只存在于液体内部或固体金属电势场，可切换 Solution Zone Scope 限定在特定 Fluid 或 Solid 域内求解以提高效率并避免无意义越界。'],
+  ],
+  steps: ['打开 User-Defined → UDM / UDS，确定需要的 UDM 存储数和 UDS 方程个数（≥ 1）。', '在 User-Defined Scalars 选项卡配置通量函数（对流用 Mass Flow Rate / 纯泊松用 None）与瞬态项、求解区域。', '前往 Materials 设定 UDS Diffusivity，再到每个入口/出口/壁面弹窗新出现的 [UDS] 选项卡设置固定标量值或零通量绝缘边界面。'],
+  example: '求解“管道内部流体停留时间/空气龄 (Mean Age of Air)”：设置 Number of User-Defined Scalars = 1、Flux Function = Mass Flow Rate、Materials Diffusivity ≈ 2.88e-5；入口 UDS 值设 0，出口/壁面留默认 Specified Flux = 0，流体域挂接体积源项 ρ (1 kg/(m³·s))，解出的 φ 即为各处真实局部驻留年龄秒数。',
+  contextNote: '注意区分边界上的“Specified Flux = 0”（绝热无通量零梯度边界，出口与普通墙壁应选此项）与“Specified Value = 0”（强行把标量压回 0 值）。',
+  checkItems: ['若只写 UDF 存衍生变量（如局部雷诺数或换热系数），分配 UDM 而非 UDS 以节省无意义方程求解', '确认所有进出口与壁面已进入 [UDS] 选项卡核对固定值还是零通量边界'],
+  commonMistakes: '把需要绝热零梯度的出口/壁面留成了 Specified Value = 0，造成标量强行掉零并在边界产生虚假边界层。',
+  relatedControls: ['ribbon-udf-udm', 'materials-create-edit', 'bc-velocity-inlet'],
+})
+
+add(['dynamic-mesh-create-zone', 'dynamic-mesh-zone-type', 'dynamic-mesh-zone-selection'], 'flu_ug_sec_dmesh_zones.html', {
+  whatItIs: 'Dynamic Mesh Zones 用于在开启总 Dynamic Mesh 开关后，逐一登记哪些动边界、固体或流体变形区域参与网格拓扑移动、弹簧变形或局部重构更新。',
+  coreConcept: '每个注册的动网格区域依据物理边界运动形态被划分为几类核心 Type，并动态决定上方 [Motion Attributes]、[Geometry Definition] 与 [Meshing Options] 三个选项卡的激活内容：刚体整体刚性移动选 Rigid Body，随着变形被周围顶歪需要贴合几何轮廓滑移重构的腔体壁选 Deforming，其余不直接受运动方程控制的固定邻域设为 Stationary。',
+  choices: [
+    ['Rigid Body（刚体运动）', '在 Motion Attributes 中指定 UDF/Profile 或勾选 Six DOF 求解器刚体动力学属性；所有节点按同一刚体速度平动或旋转。'],
+    ['Deforming（变形域/随动壁）', '激活 Geometry Definition 选项卡！需指定轮廓投影表面（Plane/Cylinder/Faceted/UDF）确保重构节点紧贴几何外表面，并在 Meshing Options 设置 Min/Max Length Scale。'],
+    ['Stationary / User-Defined / System Coupling', '静止边界、全节点自定义 UDF 变形（DEFINE_GRID_MOTION）或与外部结构力学双向 FSI 耦合变形接口。'],
+  ],
+  parameterEffects: [
+    ['三选项卡联动机制', '将 Type 切换为 Rigid Body 仅解锁 Motion Attributes；设为 Deforming 时才激活 Geometry Definition；而 Meshing Options 中的理想单元高度（Cell Height）和重分尺寸尺度控制铺层/重剖阈值。'],
+    ['6-DOF 隐式流固耦合', '对轻质浮体或单向阀瓣等受流力推动旋转平动场景，需先开启全局 Six DOF 并在区属性里勾选 Six DOF Solver（可勾选 Passive 做仅积分受力但不驱使网格移动的监测）。'],
+  ],
+  steps: ['在 Dynamic Mesh 主面板勾选需要的更新方式（Smoothing / Layering / Remeshing）并检查对应模型（Six DOF / In-Cylinder）。', '打开 Dynamic Mesh Zones，选定 Zone Name 及对应的 Type（如活塞端面选 Rigid Body，侧面筒壁四面体相邻流体或贴壁设为 Deforming）。', '按开启的选项卡填好运动 Profile、几何投影面以及 Cell Height/Length Scale，然后先执行 Mesh Motion Preview 空跑预览验证无负体积。'],
+  example: '活塞发动机缸内压缩冲程（六面体铺层）：活塞顶面设 Rigid Body 并绑定曲柄角速度运动；活塞底部相邻的圆柱流体源侧壁设为 Stationary（固定边界让层劈裂），并在 Meshing Options 指定理想的 Cell Height = 0.5 mm。',
+  checkItems: ['务必对照 Preview 预览控制台输出的最小体积与最大偏斜度再开流体耦合计算', 'Deforming 壁面的投影几何定义（Cylinder 轴心半径或 Plane 法向点）必须与实际 CAD 完全一致'],
+  commonMistakes: '把受六自由度流体推动的刚体表面错设为 Deforming，或者让 Deforming 壁面使用 unspecified 未定义投影面导致圆柱曲面边界越算越变成多边形直面。',
+  relatedControls: ['dynamic-mesh-smoothing', 'dynamic-mesh-preview', 'dynamic-mesh-create-zone'],
+})
+
+add(['bc-fan', 'bc-intake-fan', 'bc-exhaust-fan', 'bc-inlet-vent', 'bc-outlet-vent', 'bc-porous-jump', 'bc-radiator', 'fan-pressure-profile', 'radiator-loss-method'], boundaries + '#flu_ug_sec_bc_fan', {
+  whatItIs: '内部与末端功能性薄边界（Fan / Intake-Exhaust Fan / Vent / Porous Jump / Radiator）将复杂薄壁装置（轴流风机、百叶风口、孔板过滤网、汽车散热器芯）等效为零厚度数学跃变面，避开划分微小物理几何所需的庞大网格。',
+  coreConcept: '这些特殊面片依据连续性穿透流体提供指定压头升 ΔP 或动量压力损失 Δp = -(μ/α v + ½ C₂ ρ v²)Δm（Darcy-Forchheimer 一维膜片定律），并在启用 Energy 后按表面换热或接触热阻方程对穿过微片的流体加热或导热阻碍。',
+  choices: [
+    ['Fan / Intake Fan / Exhaust Fan', '用风洞测得的 P-Q 性能曲线（常数 / 多项式 / 分段线性表 ΔP vs V_n）直接模拟风机的升压能力与旋流切向附加速度，不划分实际旋转叶轮。'],
+    ['Porous Jump（多孔阶跃薄面）', '等价于薄金属丝网、多孔均流板或滤膜的一维简化形式，比三维 Porous Zone 体模型更省网格且数值收敛更稳。'],
+    ['Radiator（薄散热器）', '在给出流动压损系数 K_L 随流速变化曲线的同时，根据已知芯体水温/热阻和换热系数曲线向穿过气流供热。'],
+    ['Inlet Vent / Outlet Vent', '带进气/出气局部压损系数 K_L 的自由大气开放风口，按进口静/总压差或出口背压乘动压头计算局部阻损。'],
+  ],
+  parameterEffects: [
+    ['多学科物理页签扩展', '这些表面依然携带完整流场跨越守恒关系，弹窗按需提供 Momentum、Thermal（需开启 Energy）、Turbulence（外部风口）、DPM（壁面捕集/穿透行为）与 UDS（标量通量）多个标签页。'],
+    ['曲线编辑器串联弹窗', '当 Fan 的 Pressure-Jump Profile 或 Radiator 的 Loss Method 从 constant 切换到 polynomial / piecewise-linear 时，即可打开对应风压 P-Q 曲线或阻损特性曲线窗口。'],
+  ],
+  steps: ['确认几何风道中内部薄面（如风扇界面）必须属于 Interior 拓扑类才能转为 Fan / Radiator / Porous Jump；外部末端风口选用 Intake/Exhaust Fan 或 Vent。', '输入标定好的常数值，或切换 Polynomial / Piecewise-Linear 打开曲线编辑器输入实验室风速-压升/损失点数。', '若出现水流/气流反向抽吹现象，勾选 Fan 界面的 Reverse Fan Direction 反转正法向并检查 Flux 质量流量方向。'],
+  example: '服务器机箱前方装配 3 把轴流风扇：用内部面设 Fan 并输入 P-Q 三次多项式曲线 `250 - 12.5*v - 0.8*v^2`（Pa），再开后方 Outlet Vent 设百叶阻损系数 K_L = 1.8，无需建扇叶网格 10 分钟即可求得系统整机工作点风量。',
+  checkItems: ['核实多孔跳变或散热器的“内部面”属性，如果误建成双面实心墙将彻底堵死流道', '检查 P-Q 多项式拟合范围，开启 Limit Velocity Range 或用线性表防止数值瞬态超速发散'],
+  commonMistakes: '外部进风面错用内部 Fan 边界，或者在 Fan P-Q 曲线把静压、全压公式混用并弄反风向朝向导致往箱外逆吹。',
+  relatedControls: ['bc-fan', 'bc-porous-jump', 'bc-radiator', 'energy-enable'],
 })
 
 export const fluentOperationExplanations = entries

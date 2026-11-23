@@ -7,6 +7,7 @@ import type { FluentVisibilityCondition } from './fluentTypes'
 import { multiphaseDialogId, multiphaseTabs } from './data/multiphaseDialogs'
 import { physicsModelTabs } from './data/physicsModelBranches'
 import { extendedWorkflowDialogTabs } from './data/extendedWorkflowDialogs'
+import { nestedSubDialogTabs } from './data/nestedSubDialogs'
 
 export interface SelectOptionItem {
   value: string
@@ -145,16 +146,20 @@ export const controlOptionsById: Record<string, SelectOptionItem[]> = {
     { value: 'mm', label: 'mm' },
     { value: 'cm', label: 'cm' },
     { value: 'in', label: 'in' },
+    { value: 'ft', label: 'ft' },
   ],
   'units-pressure': [
     { value: 'Pa', label: 'Pa' },
     { value: 'kPa', label: 'kPa' },
     { value: 'bar', label: 'bar' },
     { value: 'atm', label: 'atm' },
+    { value: 'psi', label: 'psi' },
+    { value: 'dyn/cm2', label: 'dyn/cm²' },
   ],
   'units-temperature': [
     { value: 'K', label: 'K' },
     { value: 'C', label: 'C' },
+    { value: 'F', label: 'F' },
   ],
   'contours-field-variable': [
     { value: 'Velocity Magnitude', label: 'Velocity Magnitude' },
@@ -625,11 +630,14 @@ const radiationTab: DialogTabGroup = { id: 'radiation', label: 'Radiation', grou
 const speciesTab: DialogTabGroup = { id: 'species', label: 'Species', groups: ['Species'], requires: 'species' }
 const dpmTab: DialogTabGroup = { id: 'dpm', label: 'DPM', groups: ['DPM'], requires: 'dpm' }
 const multiphaseTab: DialogTabGroup = { id: 'multiphase', label: 'Multiphase', groups: ['Multiphase'], requires: 'multiphase' }
-const flowTabs = [momentumTab, thermalTab, radiationTab, speciesTab, dpmTab]
+const udsTab: DialogTabGroup = { id: 'uds', label: 'UDS', groups: ['UDS'], visibleWhen: [{ controlId: 'uds-count', values: ['1', '2', '3'] }] }
+const flowTabs = [momentumTab, thermalTab, radiationTab, speciesTab, dpmTab, udsTab]
+const fanOrVentTabs = [momentumTab, thermalTab, radiationTab, speciesTab, dpmTab, multiphaseTab, udsTab]
 
 export const dialogTabsByDialogId: Record<string, DialogTabGroup[]> = {
   ...physicsModelTabs,
   ...extendedWorkflowDialogTabs,
+  ...nestedSubDialogTabs,
   'velocity-inlet-dialog': [...flowTabs, multiphaseTab],
   'pressure-inlet-dialog': [...flowTabs, multiphaseTab],
   'pressure-far-field-dialog': flowTabs,
@@ -638,12 +646,44 @@ export const dialogTabsByDialogId: Record<string, DialogTabGroup[]> = {
   'mass-flow-outlet-dialog': [
     { ...momentumTab, groups: ['Zone', 'Momentum'] },
     radiationTab,
+    speciesTab,
     dpmTab,
+    multiphaseTab,
+    udsTab,
   ],
-  'wall-dialog': [momentumTab, thermalTab, radiationTab, dpmTab, {
+  'inlet-vent-dialog': fanOrVentTabs,
+  'outlet-vent-dialog': fanOrVentTabs,
+  'intake-fan-dialog': fanOrVentTabs,
+  'exhaust-fan-dialog': fanOrVentTabs,
+  'fan-dialog': [
+    { id: 'momentum', label: 'Momentum', groups: ['Pressure-Jump Specification'] },
+    dpmTab,
+    udsTab,
+  ],
+  'porous-jump-dialog': [
+    { id: 'momentum', label: 'Momentum', groups: ['Porous Jump'] },
+    thermalTab,
+    dpmTab,
+    udsTab,
+  ],
+  'radiator-dialog': [
+    { id: 'momentum', label: 'Momentum', groups: ['Radiator'] },
+    thermalTab,
+    dpmTab,
+    udsTab,
+  ],
+  'wall-dialog': [momentumTab, thermalTab, radiationTab, dpmTab, speciesTab, udsTab, {
+    id: 'wall-film', label: 'Wall Film', groups: ['Wall Film'],
+    visibleWhen: [{ controlId: 'wall-film-enable', values: [true] }],
+  }, {
     id: 'potential', label: 'Potential', groups: ['Potential'],
     visibleWhen: [{ controlId: 'electric-potential-enable', values: [true] }],
   }],
+  'dynamic-mesh-zones-dialog': [
+    { id: 'motion-attr', label: 'Motion Attributes', groups: ['Motion Attributes'], enabledWhen: [{ controlId: 'dynamic-mesh-zone-type', values: ['Rigid Body', 'User-Defined', 'System Coupling'] }] },
+    { id: 'geom-def', label: 'Geometry Definition', groups: ['Geometry Definition'], enabledWhen: [{ controlId: 'dynamic-mesh-zone-type', values: ['Deforming'] }] },
+    { id: 'mesh-opts', label: 'Meshing Options', groups: ['Meshing Options'] },
+  ],
   [multiphaseDialogId]: multiphaseTabs,
   'dpm-model-dialog': [
     { id: 'tracking', label: 'Tracking', groups: ['Discrete Phase', 'Tracking'] },

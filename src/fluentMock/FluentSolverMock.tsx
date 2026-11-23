@@ -190,13 +190,23 @@ const defaultExpandedTreeNodes = ['tree-models', 'tree-boundary-conditions']
 const expandableTreeNodes = [
   'tree-models',
   'tree-materials',
+  'tree-motion-definitions',
   'tree-cell-zone-conditions',
   'tree-boundary-conditions',
+  'tree-mesh-interfaces',
+  'tree-dynamic-mesh',
+  'tree-reference-frames',
+  'tree-named-expressions',
+  'tree-report-definitions',
   'tree-monitors',
+  'tree-cell-registers',
+  'tree-calculation-activities',
   'tree-surfaces',
   'tree-graphics',
   'tree-plots',
+  'tree-animations',
   'tree-reports',
+  'tree-parameters-controls',
 ]
 
 function resolveInitialLocation(search: string) {
@@ -618,12 +628,10 @@ export default function FluentSolverMock() {
         dispatch(parseAndExecuteTui('help', simState))
         break
       case 'units-restore-si':
-        dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'units-length', value: 'm' })
-        dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'units-pressure', value: 'Pa' })
-        dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'units-temperature', value: 'K' })
+        dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'units-system', value: 'SI' })
         dispatch({
           type: 'APPEND_CONSOLE',
-          entries: [{ kind: 'info', text: 'Display units restored to SI (m, Pa, K).' }],
+          entries: [{ kind: 'info', text: 'Display units restored to SI (m, Pa, K, m/s, kg/s).' }],
         })
         break
       case 'mesh-scale-apply':
@@ -779,6 +787,18 @@ export default function FluentSolverMock() {
       case 'fft-plot-btn':
         dispatch({ type: 'DISPLAY_RESULT', tab: 'fft' })
         break
+      case 'rad-curve-plot-btn':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /define/boundary-conditions/radiator/preview-curve' },
+            {
+              kind: 'info',
+              text: `[Radiator Curve Preview] Target=${getControlValue(simState, 'rad-curve-target', 'Loss Coefficient')}, Representation=${getControlValue(simState, 'rad-curve-type', 'Polynomial')}.`,
+            },
+          ],
+        })
+        break
       case 'scene-display-btn':
         dispatch({ type: 'DISPLAY_RESULT', tab: 'scene' })
         break
@@ -817,6 +837,498 @@ export default function FluentSolverMock() {
       case 'results-summary':
         dispatch({ type: 'RUN_CASE_SUMMARY' })
         break
+      case 'cc-run-btn': {
+        const checks = [
+          getControlChecked(simState, 'cc-check-quality', true) ? `Mesh Quality (Min Ortho=${simState.meshInfo.minOrthogonalQuality})` : null,
+          getControlChecked(simState, 'cc-check-models', true) ? `Models (${formatViscousBadge(simState.viscousModel)})` : null,
+          getControlChecked(simState, 'cc-check-materials', true) ? `Materials (${simState.cellZoneMaterial})` : null,
+          getControlChecked(simState, 'cc-check-zones', true) ? 'Zones & BC Pairing' : null,
+          getControlChecked(simState, 'cc-check-disc', true) ? `Discretization (${simState.methods.coupling})` : null,
+          getControlChecked(simState, 'cc-check-init', true) ? `Initialized=${simState.initialization.isInitialized ? 'Yes' : 'No'}` : null,
+        ].filter(Boolean)
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /solve/case-check' },
+            { kind: simState.initialization.isInitialized ? 'success' : 'warning', text: `[Case Check] Verified ${checks.join(' | ')}.` },
+          ],
+        })
+        break
+      }
+      case 'mi-info-print-size':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /mesh/size-info' },
+            {
+              kind: 'output',
+              text: `[Mesh Info] Cells=${getControlValue(simState, 'mi-info-cells', String(simState.meshInfo.cellCount))}, Faces=${getControlValue(simState, 'mi-info-faces', '41280')}, Nodes=${getControlValue(simState, 'mi-info-nodes', '21650')}, Partitions=${simState.processes}.`,
+            },
+          ],
+        })
+        break
+      case 'mi-info-list-zones': {
+        const filter = getControlValue(simState, 'mi-info-zone-filter', 'All')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /mesh/zone-info' },
+            {
+              kind: 'output',
+              text: `[Mesh Info: ${filter}] Cell zones: fluid-domain (${simState.cellZoneMaterial}) | Boundary zones: velocity-inlet, pressure-outlet, wall-heated, symmetry-plane.`,
+            },
+          ],
+        })
+        break
+      }
+      case 'mi-info-memory-btn':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /mesh/memory-usage' },
+            {
+              kind: 'output',
+              text: `[Mesh Memory] Total allocated solver mesh memory = ${(simState.meshInfo.cellCount * 0.0042).toFixed(1)} MB across ${simState.processes} partitions.`,
+            },
+          ],
+        })
+        break
+      case 'zone-adj-check-btn': {
+        const target = getControlValue(simState, 'zone-adj-target', 'fluid-domain')
+        const includeFaces = getControlChecked(simState, 'zone-adj-include-faces', true)
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /mesh/modify-zones/zone-adjacency ${target}` },
+            {
+              kind: 'output',
+              text: `[Zone Adjacency] "${target}" shares connectivity with ${includeFaces ? 'velocity-inlet, pressure-outlet, wall-heated' : 'neighbor cell threads'}.`,
+            },
+          ],
+        })
+        break
+      }
+      case 'orient-check-btn': {
+        const target = getControlValue(simState, 'orient-target-zone', 'rotor-stator-interface')
+        const autoFix = getControlChecked(simState, 'orient-auto-fix', false)
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/mesh-interfaces/orient-check ${target}` },
+            {
+              kind: 'success',
+              text: `[Orientation] Face normals on "${target}" are right-handed${autoFix ? ' (outward auto-orientation verified)' : ''}.`,
+            },
+          ],
+        })
+        break
+      }
+      case 'motion-def-save': {
+        const name = getControlValue(simState, 'motion-def-name', 'impeller-rotation')
+        const mode = getControlValue(simState, 'motion-def-type', 'Rotational')
+        const detail = mode === 'Rotational'
+          ? getControlValue(simState, 'motion-def-rpm', '1200 rpm')
+          : mode === 'Translational'
+            ? getControlValue(simState, 'motion-def-vel', '1.5, 0, 0') + ' m/s'
+            : getControlValue(simState, 'motion-def-mass', '2.5') + ' kg'
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/motion-definitions/save ${name}` },
+            { kind: 'success', text: `[Motion Definition] Saved "${name}" (${mode}: ${detail}).` },
+          ],
+        })
+        break
+      }
+      case 'mi-dlg-create-btn': {
+        const name = getControlValue(simState, 'mi-dlg-name', 'rotor-stator-interface')
+        const z1 = getControlValue(simState, 'mi-dlg-zone1', 'interface-rotor')
+        const z2 = getControlValue(simState, 'mi-dlg-zone2', 'interface-stator')
+        const coupled = getControlChecked(simState, 'mi-dlg-coupled', true)
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/mesh-interfaces/create ${name} ${z1} ${z2}` },
+            { kind: 'success', text: `[Mesh Interface] Created "${name}" (${z1} <-> ${z2}, Coupled=${coupled ? 'Yes' : 'No'}).` },
+          ],
+        })
+        break
+      }
+      case 'aux-dlg-create-btn': {
+        const name = getControlValue(simState, 'aux-dlg-name', 'aux-cyl-1')
+        const shape = getControlValue(simState, 'aux-dlg-shape', 'Cylinder')
+        const origin = getControlValue(simState, 'aux-dlg-origin', '0, 0, 0')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/auxiliary-geometry/create ${name}` },
+            { kind: 'success', text: `[Auxiliary Geometry] Created "${name}" (${shape} at origin ${origin}).` },
+          ],
+        })
+        break
+      }
+      case 'rf-dlg-save-btn': {
+        const name = getControlValue(simState, 'rf-dlg-name', 'mrf-impeller-frame')
+        const parent = getControlValue(simState, 'rf-dlg-parent', 'global')
+        const motion = getControlValue(simState, 'rf-dlg-motion', 'Stationary')
+        const omega = getControlValue(simState, 'rf-dlg-omega', '125.66')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/reference-frames/create ${name}` },
+            {
+              kind: 'success',
+              text: `[Reference Frame] Saved "${name}" (parent=${parent}, ${motion === 'Moving' ? `omega=${omega} rad/s` : 'Stationary'}).`,
+            },
+          ],
+        })
+        break
+      }
+      case 'expr-dlg-eval-btn': {
+        const name = getControlValue(simState, 'expr-dlg-name', 'inlet_profile')
+        const def = getControlValue(simState, 'expr-dlg-def', '2.5 [m s^-1]')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/named-expressions/evaluate ${name}` },
+            { kind: 'output', text: `[Named Expression] ${name} = ${def} -> Sample Range: [0.00, 2.50].` },
+          ],
+        })
+        break
+      }
+      case 'curv-dlg-compute-btn': {
+        const name = getControlValue(simState, 'curv-dlg-name', 'curv-duct-1')
+        const zone = getControlValue(simState, 'curv-dlg-zone', 'fluid-domain')
+        const method = getControlValue(simState, 'curv-dlg-method', 'Inlet-to-Outlet Potential')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/curvilinear-coordinates/compute ${name}` },
+            { kind: 'success', text: `[Curvilinear] Solved "${name}" on "${zone}" via ${method}.` },
+          ],
+        })
+        break
+      }
+      case 'reg-dlg-mark-btn': {
+        const name = getControlValue(simState, 'reg-dlg-name', 'high-grad-region')
+        const regType = getControlValue(simState, 'reg-dlg-type', 'Field Value')
+        const markedCount = Math.max(120, Math.round(simState.meshInfo.cellCount * 0.14))
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /solve/cell-registers/mark ${name}` },
+            { kind: 'success', text: `[Cell Register] Created "${name}" (${regType}) and marked ${markedCount.toLocaleString()} cells.` },
+          ],
+        })
+        break
+      }
+      case 'anim-dlg-preview': {
+        const name = getControlValue(simState, 'anim-dlg-name', 'velocity-transient-anim')
+        const obj = getControlValue(simState, 'anim-dlg-object', 'contour-1')
+        const storage = getControlValue(simState, 'anim-dlg-storage', 'HSF File')
+        const tab = obj.startsWith('vector')
+          ? 'vectors'
+          : obj.startsWith('pathline')
+            ? 'pathlines'
+            : obj.startsWith('scene')
+              ? 'scene'
+              : 'contours'
+        dispatch({ type: 'DISPLAY_RESULT', tab })
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'output', text: `[Animation] Previewed keyframe for "${name}" (${obj}, format=${storage}).` },
+          ],
+        })
+        break
+      }
+      case 'anim-play-run': {
+        const seq = getControlValue(simState, 'anim-play-seq', 'velocity-transient-anim')
+        const speed = getControlValue(simState, 'anim-play-speed', '1x')
+        const loop = getControlValue(simState, 'anim-play-loop', 'Repeat')
+        dispatch({ type: 'DISPLAY_RESULT', tab: seq.includes('pressure') ? 'contours' : 'scene' })
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [{ kind: 'info', text: `[Animation Playback] Playing "${seq}" at ${speed} (${loop}).` }],
+        })
+        break
+      }
+      case 'anim-play-write': {
+        const seq = getControlValue(simState, 'anim-play-seq', 'velocity-transient-anim')
+        const fmt = getControlValue(simState, 'anim-play-export', 'MPEG')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /solve/animate/playback/write "${seq}"` },
+            { kind: 'success', text: `[Animation Playback] Exported "${seq}" as ${fmt}.` },
+          ],
+        })
+        break
+      }
+      case 'csum-print':
+        dispatch({ type: 'RUN_CASE_SUMMARY' })
+        break
+      case 'csum-write':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /report/summary yes "case-summary.txt"' },
+            { kind: 'success', text: '[Case Summary] Wrote full case setup & solver report to case-summary.txt.' },
+          ],
+        })
+        break
+      case 'simrep-generate-btn': {
+        const title = getControlValue(simState, 'simrep-title', 'Mixing Elbow CFD Analysis Report')
+        const fmt = getControlValue(simState, 'simrep-format', 'HTML')
+        const dir = getControlValue(simState, 'simrep-dir', './reports')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /report/simulation-report/generate' },
+            { kind: 'success', text: `[Simulation Report] Generated "${title}" (${fmt}) in ${dir}.` },
+          ],
+        })
+        break
+      }
+      case 'pnet-bandwidth-test': {
+        const interconnect = getControlValue(simState, 'pnet-interconnect', 'default')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /parallel/network/bandwidth-test' },
+            { kind: 'output', text: `[Parallel Network] ${simState.processes} MPI ranks (${interconnect}): latency = 0.03 ms, bandwidth = 11.8 GB/s.` },
+          ],
+        })
+        break
+      }
+      case 'pnet-show-hosts':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /parallel/show-hosts' },
+            { kind: 'output', text: `[Parallel Hosts] Active host: localhost (${simState.processes} compute nodes n0..n${Math.max(0, simState.processes - 1)}).` },
+          ],
+        })
+        break
+      case 'ptimer-print-btn': {
+        const scope = getControlValue(simState, 'ptimer-scope', 'Flow Iterations')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /parallel/timer/usage' },
+            { kind: 'output', text: `[Timer Usage: ${scope}] Total CPU = 14.8 s | Solver = 82% | AMG = 12% | MPI Comm = 6%.` },
+          ],
+        })
+        break
+      }
+      case 'ptimer-reset-btn':
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /parallel/timer/reset' },
+            { kind: 'info', text: '[Timer Usage] All parallel solver and communication timers reset to 0.0 s.' },
+          ],
+        })
+        break
+      case 'gpu-check-btn':
+        dispatch({ type: 'CHECK_GPU_COMPATIBILITY' })
+        break
+      case 'mat-udb-copy':
+        dispatch({ type: 'COPY_USER_DATABASE_MATERIAL' })
+        break
+      case 'dm-prev-run': {
+        const dt = getControlValue(simState, 'dm-prev-dt', '0.001')
+        const steps = getControlValue(simState, 'dm-prev-steps', '20')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /solve/mesh-motion-preview ${dt} ${steps}` },
+            { kind: 'success', text: `[Dynamic Mesh Preview] Completed ${steps} preview steps (dt=${dt} s): min ortho quality = 0.19 (no negative volumes).` },
+          ],
+        })
+        break
+      }
+      case 'dm-evt-define': {
+        const name = getControlValue(simState, 'dm-evt-name', 'valve-open-event')
+        const at = getControlValue(simState, 'dm-evt-at', '0.01 s')
+        const evtType = getControlValue(simState, 'dm-evt-type', 'Activate Cell Zone')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/dynamic-mesh/events/define ${name}` },
+            { kind: 'success', text: `[Dynamic Mesh Events] Scheduled "${name}" (${evtType}) at ${at}.` },
+          ],
+        })
+        break
+      }
+      case 'vconst-reset': {
+        const defaults: Array<[string, string]> = [
+          ['vconst-cmu', '0.09'],
+          ['vconst-c1e', '1.44'],
+          ['vconst-c2e', '1.92'],
+          ['vconst-ke-pr', '1.0 / 1.3'],
+          ['vconst-alpha-inf', '0.52'],
+          ['vconst-beta-i', '0.075'],
+          ['vconst-a1', '0.31'],
+          ['vconst-kw-pr', '1.176 / 2.0'],
+          ['vconst-cb1', '0.1355'],
+          ['vconst-cb2', '0.622'],
+          ['vconst-cv1', '7.1'],
+          ['vconst-cs', '0.1'],
+          ['vconst-energy-pr', '0.85'],
+        ]
+        for (const [controlId, value] of defaults) {
+          dispatch({ type: 'SET_CONTROL_VALUE', controlId, value })
+        }
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [{ kind: 'info', text: '[Viscous Constants] Restored turbulence closure constants to Fluent defaults.' }],
+        })
+        break
+      }
+      case 'chemkin-import-btn': {
+        const gas = getControlValue(simState, 'chemkin-gas-file', 'gri30.inp')
+        const thermo = getControlValue(simState, 'chemkin-thermo-file', 'thermo30.dat')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/models/species/import-chemkin "${gas}" "${thermo}"` },
+            { kind: 'success', text: `[CHEMKIN] Loaded mechanism "${gas}" with thermodynamic data "${thermo}".` },
+          ],
+        })
+        break
+      }
+      case 'rxn-save-btn': {
+        const name = getControlValue(simState, 'rxn-name', 'ch4-air-1step')
+        const a = getControlValue(simState, 'rxn-pre-exp', '2.119e11')
+        const e = getControlValue(simState, 'rxn-act-energy', '2.027e8')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/models/species/reactions ${name}` },
+            { kind: 'success', text: `[Reactions] Saved "${name}" (A=${a}, Ea=${e} J/kgmol).` },
+          ],
+        })
+        break
+      }
+      case 'pdf-tbl-calc-btn': {
+        const fuel = getControlValue(simState, 'pdf-tbl-fuel', 'ch4: 1.0')
+        const ox = getControlValue(simState, 'pdf-tbl-ox', 'o2: 0.23, n2: 0.77')
+        const grid = getControlValue(simState, 'pdf-tbl-grid', '20')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /define/models/species/calculate-pdf-table' },
+            { kind: 'success', text: `[PDF Table] Generated ${grid}-point equilibrium lookup table (fuel=${fuel}, ox=${ox}).` },
+          ],
+        })
+        break
+      }
+      case 'dtrm-compute-btn': {
+        const theta = getControlValue(simState, 'dtrm-theta', '2')
+        const phi = getControlValue(simState, 'dtrm-phi', '2')
+        const file = getControlValue(simState, 'dtrm-file', 'dtrm.ray')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/models/radiation/dtrm-rays ${theta} ${phi}` },
+            { kind: 'success', text: `[DTRM Rays] Traced ${Number(theta || 2) * Number(phi || 2) * 8} rays and wrote "${file}".` },
+          ],
+        })
+        break
+      }
+      case 'bprof-read-btn': {
+        const file = getControlValue(simState, 'bprof-file', 'inlet_measured.prof')
+        const variable = getControlValue(simState, 'bprof-var', 'Velocity Magnitude')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /file/read-profile "${file}"` },
+            { kind: 'success', text: `[Boundary Profiles] Read "${file}" (${variable}, 128 spatial points).` },
+          ],
+        })
+        break
+      }
+      case 'bprof-apply-btn': {
+        const name = getControlValue(simState, 'bprof-name', 'measured-velocity-profile')
+        const interp = getControlValue(simState, 'bprof-interp', 'Linear')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [{ kind: 'success', text: `[Boundary Profiles] Bound profile "${name}" (${interp} interpolation) to active boundary.` }],
+        })
+        break
+      }
+      case 'fan-curve-plot-btn': {
+        const curveType = getControlValue(simState, 'fan-curve-type', 'Polynomial')
+        const data = curveType === 'Polynomial'
+          ? getControlValue(simState, 'fan-curve-coeffs', '250, -12.5, -0.8')
+          : getControlValue(simState, 'fan-curve-ppts', '250, 210, 130, 20')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: '> /define/boundary-conditions/fan/plot-curve' },
+            { kind: 'output', text: `[Fan P-Q Curve] ${curveType}: ${data}.` },
+          ],
+        })
+        break
+      }
+      case 'path-attr-pulse-btn': {
+        const mode = getControlValue(simState, 'path-attr-pulse', 'Off')
+        const style = getControlValue(simState, 'pathlines-style', 'Line')
+        dispatch({ type: 'DISPLAY_RESULT', tab: 'pathlines' })
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [{ kind: 'info', text: `[Pathlines] Rendered ${style} pulse preview (mode=${mode}).` }],
+        })
+        break
+      }
+      case 'xy-load-btn': {
+        const file = getControlValue(simState, 'xy-load-file', 'experiment_profile.xy')
+        const legend = getControlValue(simState, 'xy-load-label', 'Exp. Data')
+        dispatch({ type: 'DISPLAY_RESULT', tab: 'xy-plot' })
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /plot/file "${file}"` },
+            { kind: 'success', text: `[XY Plot] Loaded comparison dataset "${file}" (legend="${legend}").` },
+          ],
+        })
+        break
+      }
+      case 'adj-obs-save': {
+        const name = getControlValue(simState, 'adj-obs-name', 'pressure-drop-obs')
+        const op = getControlValue(simState, 'adj-obs-op', 'Pressure Drop')
+        const zones = getControlValue(simState, 'adj-obs-zones', 'inlet, outlet')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /design/adjoint/observable ${name}` },
+            { kind: 'success', text: `[Adjoint Observable] Saved "${name}" (${op} on ${zones}).` },
+          ],
+        })
+        break
+      }
+      case 'param-new-input-btn':
+        dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'param-new-role', value: 'Input Parameter' })
+        break
+      case 'param-new-output-btn':
+        dispatch({ type: 'SET_CONTROL_VALUE', controlId: 'param-new-role', value: 'Output Parameter' })
+        break
+      case 'param-new-save': {
+        const role = getControlValue(simState, 'param-new-role', 'Input Parameter')
+        const name = getControlValue(simState, 'param-new-name', 'v_in_2')
+        const val = role === 'Input Parameter'
+          ? getControlValue(simState, 'param-new-val', '3.5 m/s')
+          : getControlValue(simState, 'param-new-report', 'drag-monitor')
+        dispatch({
+          type: 'APPEND_CONSOLE',
+          entries: [
+            { kind: 'command', text: `> /define/parameters/create ${name}` },
+            { kind: 'success', text: `[Parameters] Created ${role} "${name}" (${val}).` },
+          ],
+        })
+        break
+      }
       default:
         break
     }
@@ -1374,8 +1886,9 @@ export default function FluentSolverMock() {
               const ownerPanel = layout.taskPanels.find((item) =>
                 item.groups.some((group) => group.controls.includes(target)),
               )
-              if (ownerPanel) {
-                setPanelId(ownerPanel.id)
+              const nextPanelId = target.panelId ?? ownerPanel?.id
+              if (nextPanelId) {
+                setPanelId(nextPanelId)
                 setMobilePane('task')
               }
             }
@@ -1532,6 +2045,7 @@ export default function FluentSolverMock() {
           prerequisites={prerequisites}
           explanation={explanation}
           controlById={controlById}
+          simState={simState}
           label={label}
           visible={showGuide}
           inspectorTab={inspectorTab}

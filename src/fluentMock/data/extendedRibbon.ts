@@ -39,7 +39,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         label: '网格',
         controls: [
           makeRibbonControl('ribbon-mesh-display', '显示网格', '网格', 'mesh-display-dialog'),
-          makeRibbonControl('ribbon-mesh-info', '信息', '网格', 'mesh-quality-dialog'),
+          makeRibbonControl('ribbon-mesh-info', '信息', '网格', 'mesh-info-dialog'),
           makeRibbonControl('ribbon-mesh-scale', '缩放网格', '网格', 'mesh-scale-dialog'),
           makeRibbonControl('ribbon-mesh-check', '检查', '网格', 'mesh-check-dialog', {
             panelId: 'general-panel',
@@ -62,7 +62,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         controls: [
           makeRibbonControl('ribbon-zone-merge', '组合', 'Zones', 'zone-merge-dialog'),
           makeRibbonControl('ribbon-zone-separate', '分离', 'Zones', 'zone-separate-dialog'),
-          makeRibbonControl('ribbon-zone-adjacency', '邻接', 'Zones'),
+          makeRibbonControl('ribbon-zone-adjacency', '邻接', 'Zones', 'zone-adjacency-dialog'),
           makeRibbonControl('ribbon-zone-delete', '删除', 'Zones', 'zone-delete-dialog'),
           makeRibbonControl('ribbon-zone-replace', '替换区域', 'Zones', 'zone-replace-dialog'),
           makeRibbonControl('ribbon-zone-append', 'Append', 'Zones', 'zone-append-dialog'),
@@ -88,7 +88,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           makeRibbonControl('ribbon-interface-mesh', '网格界面', '界面', undefined, {
             panelId: 'mesh-interface-panel',
           }),
-          makeRibbonControl('ribbon-interface-orient', '方向检查', '界面'),
+          makeRibbonControl('ribbon-interface-orient', '方向检查', '界面', 'interface-orient-dialog'),
           makeRibbonControl('ribbon-interface-overset', 'Overset', '界面', 'overset-interface-dialog', {
             panelId: 'mesh-interface-panel',
           }),
@@ -417,7 +417,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
         id: 'ribbon-solution-run',
         label: 'Run Calculation',
         controls: [
-          makeRibbonControl('ribbon-check-case', 'Check Case', 'Run Calculation', undefined, {
+          makeRibbonControl('ribbon-check-case', 'Check Case', 'Run Calculation', 'case-check-dialog', {
             module: 'Run Calculation',
             panelId: 'run-calculation-panel',
           }),
@@ -531,7 +531,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
           makeRibbonControl('ribbon-reports', '报告定义', 'Reports', 'reports-dialog', {
             module: 'Results',
           }),
-          makeRibbonControl('ribbon-sim-report', 'Simulation Report', 'Reports', undefined, {
+          makeRibbonControl('ribbon-sim-report', 'Simulation Report', 'Reports', 'simulation-report-dialog', {
             module: 'Results',
             panelId: 'simulation-report-panel',
           }),
@@ -608,10 +608,10 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Parallel',
             dialogTab: 'network-load',
           }),
-          makeRibbonControl('ribbon-parallel-network', 'Network Check', 'Network', undefined, {
+          makeRibbonControl('ribbon-parallel-network', 'Network Check', 'Network', 'parallel-network-dialog', {
             module: 'Parallel',
           }),
-          makeRibbonControl('ribbon-parallel-timer', 'Timer Usage', 'Network', undefined, {
+          makeRibbonControl('ribbon-parallel-timer', 'Timer Usage', 'Network', 'parallel-timer-dialog', {
             module: 'Parallel',
           }),
         ],
@@ -632,7 +632,7 @@ export const extendedRibbonTabs: FluentMockRibbonTab[] = [
             module: 'Parallel',
             dialogTab: 'network-load',
           }),
-          makeRibbonControl('ribbon-parallel-gpu', 'GPU Solver', 'Load Balancing', 'preferences-dialog', {
+          makeRibbonControl('ribbon-parallel-gpu', 'GPU Solver', 'Load Balancing', 'gpu-solver-dialog', {
             module: 'Parallel',
           }),
         ],

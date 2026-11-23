@@ -2,7 +2,7 @@ import { makeControl, makePanelControl } from './controlHelpers'
 import type { FluentMockControl, FluentMockDialog } from '../fluentTypes'
 
 type Condition = NonNullable<FluentMockControl['visibleWhen']>[number]
-type FieldOptions = Pick<FluentMockControl, 'value' | 'options' | 'defaultSelected' | 'dialogId' | 'visibleWhen'>
+type FieldOptions = Pick<FluentMockControl, 'value' | 'options' | 'defaultSelected' | 'dialogId' | 'optionDialogs' | 'visibleWhen'>
 type BoundaryField = [suffix: string, label: string, options?: FieldOptions]
 
 function when(controlId: string, ...values: Condition['values']): Condition {
@@ -185,11 +185,29 @@ export function addBoundaryBranches(dialog: FluentMockDialog): FluentMockDialog 
       value: prefix === 'wall' ? 'reflect' : 'escape', options: ['reflect', 'trap', 'escape'],
     }]]),
     ...(volumeFractionBoundaries.includes(prefix)
-      ? fields(prefix, 'Multiphase', [
-        ['phase-selection', 'Secondary Phase', { options: [] }],
-        ['volume-fraction', prefix === 'pressure-outlet' ? 'Backflow Volume Fraction' : 'Volume Fraction', { value: '0' }],
-      ])
+      ? [
+        ...fields(prefix, 'Multiphase', [
+          ['phase-selection', 'Secondary Phase', { options: [] }],
+          ['volume-fraction', prefix === 'pressure-outlet' ? 'Backflow Volume Fraction' : 'Volume Fraction', { value: '0' }],
+        ]),
+        ...fields(prefix, 'Multiphase', [
+          ['open-channel-enable', 'Open Channel', { defaultSelected: false }],
+          ['free-surface-level', 'Free Surface Level (m)', { value: '0.5', visibleWhen: [when(prefix + '-open-channel-enable', true)] }],
+          ['bottom-level', 'Bottom Level (m)', { value: '0', visibleWhen: [when(prefix + '-open-channel-enable', true)] }],
+        ], [when('multiphase-model-select', 'Volume of Fluid (VOF)'), when('multiphase-open-channel', true)]),
+        ...(prefix !== 'pressure-outlet' ? fields(prefix, 'Multiphase', [
+          ['wave-bc-enable', 'Open Channel Wave BC', { defaultSelected: false }],
+          ['wave-theory', 'Wave Theory', { value: 'First-Order Airy', options: ['First-Order Airy', 'Second-Order Stokes', 'Third-Order Stokes', 'Fifth-Order Stokes', 'Shallow/Intermediate Solitary'], visibleWhen: [when(prefix + '-wave-bc-enable', true)] }],
+          ['wave-height', 'Wave Height (m)', { value: '0.05', visibleWhen: [when(prefix + '-wave-bc-enable', true)] }],
+          ['wave-length', 'Wave Length (m)', { value: '1.5', visibleWhen: [when(prefix + '-wave-bc-enable', true)] }],
+        ], [when('multiphase-model-select', 'Volume of Fluid (VOF)'), when('multiphase-open-channel-wave', true)]) : []),
+      ]
       : []),
+    ...fields(prefix, 'UDS', [
+      ['uds-bc-type', 'UDS Boundary Condition', { value: 'Specified Value', options: ['Specified Value', 'Specified Flux'] }],
+      ['uds-val', 'Scalar Value', { value: '0', visibleWhen: [when(prefix + '-uds-bc-type', 'Specified Value')] }],
+      ['uds-flux', 'Scalar Flux', { value: '0', visibleWhen: [when(prefix + '-uds-bc-type', 'Specified Flux')] }],
+    ]),
   ].map((control) => ({ ...control, parentId: dialog.id }))
 
   const updated = dialog.controls.map((control) => {
@@ -349,34 +367,89 @@ const specialSettings: Record<string, FluentMockControl[]> = {
     ['corrected-temperature', 'ECMF Reference Temperature (K)', { visibleWhen: [when(outletMethod, flowMethods[3])] }],
     ['corrected-pressure', 'ECMF Reference Gauge Pressure (Pa)', { visibleWhen: [when(outletMethod, flowMethods[3])] }],
   ]),
-    ...fields(massOutlet, 'Radiation', [['internal-emissivity', 'Internal Emissivity']]),
+    ...fields(massOutlet, 'Radiation', [['internal-emissivity', 'Internal Emissivity', { value: '1' }]]),
+    ...fields(massOutlet, 'Species', [
+      ['mole-fractions', 'Specify Species in Mole Fractions', { defaultSelected: false }],
+      ['species-mass-fraction', 'Backflow Species Mass Fraction', { value: '0', visibleWhen: [when(massOutlet + '-mole-fractions', false)] }],
+      ['species-mole-fraction', 'Backflow Species Mole Fraction', { value: '0', visibleWhen: [when(massOutlet + '-mole-fractions', true)] }],
+    ]),
     ...fields(massOutlet, 'DPM', [['particle-bc', 'Discrete Phase BC Type', {
       value: 'escape', options: ['escape', 'reflect', 'trap'],
     }]]),
+    ...fields(massOutlet, 'Multiphase', [
+      ['phase-selection', 'Secondary Phase', { options: [] }],
+      ['volume-fraction', 'Backflow Volume Fraction', { value: '0' }],
+    ]),
+    ...fields(massOutlet, 'UDS', [
+      ['uds-bc-type', 'UDS Boundary Condition', { value: 'Specified Value', options: ['Specified Value', 'Specified Flux'] }],
+      ['uds-val', 'Scalar Value', { value: '0', visibleWhen: [when(massOutlet + '-uds-bc-type', 'Specified Value')] }],
+      ['uds-flux', 'Scalar Flux', { value: '0', visibleWhen: [when(massOutlet + '-uds-bc-type', 'Specified Flux')] }],
+    ]),
   ],
-  'porous-jump': fields('porous-jump', 'Porous Jump', [
-    ['permeability', 'Face Permeability (m²)'],
-    ['thickness', 'Porous Medium Thickness (m)'],
-    ['coefficient', 'Pressure-Jump Coefficient (1/m)'],
-    ['contact-resistance', 'Thermal Contact Resistance', {
-      visibleWhen: [when('energy-enable', true)],
-    }],
-  ]),
-  fan: fields('fan', 'Pressure-Jump Specification', [
-    ['reverse', 'Reverse Fan Direction', { defaultSelected: false }],
-    ['pressure-profile', 'Pressure-Jump Profile', { value: 'constant', options: ['constant', 'polynomial', 'piecewise-linear'] }],
-    ['jump', 'Pressure Jump (Pa)'],
-    ['swirl-radial', 'Specify Tangential/Radial Velocity', { defaultSelected: false }],
-    ['swirl-speed', 'Tangential Velocity (m/s)', { value: '0', visibleWhen: [when('fan-swirl-radial', true)] }],
-    ['limit-velocity', 'Limit Polynomial Velocity Range', { defaultSelected: false }],
-    ['min-velocity', 'Min Velocity Magnitude (m/s)', { visibleWhen: [when('fan-limit-velocity', true)] }],
-    ['max-velocity', 'Max Velocity Magnitude (m/s)', { visibleWhen: [when('fan-limit-velocity', true)] }],
-  ]),
-  radiator: fields('radiator', 'Radiator', [
-    ['loss', 'Loss Coefficient'],
-    ['coefficient', 'Heat-Transfer-Coefficient', { visibleWhen: [when('energy-enable', true)] }],
-    ['temperature', 'Temperature (K)', { visibleWhen: [when('energy-enable', true)] }],
-  ]),
+  'porous-jump': [
+    ...fields('porous-jump', 'Porous Jump', [
+      ['permeability', 'Face Permeability (m²)', { value: '1e-10' }],
+      ['thickness', 'Porous Medium Thickness (m)', { value: '0.01' }],
+      ['coefficient', 'Pressure-Jump Coefficient (1/m)', { value: '0' }],
+    ]),
+    ...fields('porous-jump', 'Thermal', [
+      ['contact-resistance', 'Thermal Contact Resistance', { value: '0' }],
+    ]),
+    ...fields('porous-jump', 'DPM', [
+      ['particle-bc', 'Discrete Phase BC Type', { value: 'interior', options: ['interior', 'reflect', 'trap', 'escape'] }],
+    ]),
+    ...fields('porous-jump', 'UDS', [
+      ['uds-bc-type', 'UDS Boundary Condition', { value: 'Coupled', options: ['Coupled', 'Specified Value', 'Specified Flux'] }],
+      ['uds-val', 'Scalar Value', { value: '0', visibleWhen: [when('porous-jump-uds-bc-type', 'Specified Value')] }],
+      ['uds-flux', 'Scalar Flux', { value: '0', visibleWhen: [when('porous-jump-uds-bc-type', 'Specified Flux')] }],
+    ]),
+  ],
+  fan: [
+    ...fields('fan', 'Pressure-Jump Specification', [
+      ['reverse', 'Reverse Fan Direction', { defaultSelected: false }],
+      ['pressure-profile', 'Pressure-Jump Profile', { value: 'constant', options: ['constant', 'polynomial', 'piecewise-linear'] }],
+      ['jump', 'Pressure Jump (Pa)', { value: '150' }],
+      ['swirl-radial', 'Specify Tangential/Radial Velocity', { defaultSelected: false }],
+      ['swirl-speed', 'Tangential Velocity (m/s)', { value: '0', visibleWhen: [when('fan-swirl-radial', true)] }],
+      ['limit-velocity', 'Limit Polynomial Velocity Range', { defaultSelected: false }],
+      ['min-velocity', 'Min Velocity Magnitude (m/s)', { value: '0', visibleWhen: [when('fan-limit-velocity', true)] }],
+      ['max-velocity', 'Max Velocity Magnitude (m/s)', { value: '50', visibleWhen: [when('fan-limit-velocity', true)] }],
+    ]),
+    ...fields('fan', 'DPM', [
+      ['particle-bc', 'Discrete Phase BC Type', { value: 'interior', options: ['interior', 'reflect', 'trap', 'escape'] }],
+    ]),
+    ...fields('fan', 'UDS', [
+      ['uds-bc-type', 'UDS Boundary Condition', { value: 'Coupled', options: ['Coupled', 'Specified Value', 'Specified Flux'] }],
+      ['uds-val', 'Scalar Value', { value: '0', visibleWhen: [when('fan-uds-bc-type', 'Specified Value')] }],
+      ['uds-flux', 'Scalar Flux', { value: '0', visibleWhen: [when('fan-uds-bc-type', 'Specified Flux')] }],
+    ]),
+  ],
+  radiator: [
+    ...fields('radiator', 'Radiator', [
+      ['loss-method', 'Loss Coefficient Method', {
+        value: 'constant',
+        options: ['constant', 'polynomial', 'piecewise-linear'],
+        optionDialogs: { polynomial: 'radiator-profile-dialog', 'piecewise-linear': 'radiator-profile-dialog' },
+      }],
+      ['loss', 'Loss Coefficient', { value: '1.5' }],
+      ['edit-curve-btn', 'Edit Loss/HTC Curve…', {
+        dialogId: 'radiator-profile-dialog',
+        visibleWhen: [when('radiator-loss-method', 'polynomial', 'piecewise-linear')],
+      }],
+    ]),
+    ...fields('radiator', 'Thermal', [
+      ['coefficient', 'Heat-Transfer-Coefficient', { value: '500' }],
+      ['temperature', 'Temperature (K)', { value: '330' }],
+    ]),
+    ...fields('radiator', 'DPM', [
+      ['particle-bc', 'Discrete Phase BC Type', { value: 'interior', options: ['interior', 'reflect', 'trap', 'escape'] }],
+    ]),
+    ...fields('radiator', 'UDS', [
+      ['uds-bc-type', 'UDS Boundary Condition', { value: 'Coupled', options: ['Coupled', 'Specified Value', 'Specified Flux'] }],
+      ['uds-val', 'Scalar Value', { value: '0', visibleWhen: [when('radiator-uds-bc-type', 'Specified Value')] }],
+      ['uds-flux', 'Scalar Flux', { value: '0', visibleWhen: [when('radiator-uds-bc-type', 'Specified Flux')] }],
+    ]),
+  ],
   degassing: fields('degassing', 'Degassing', [
     ['phase', 'Phase', { value: 'secondary', options: ['primary', 'secondary'] }],
   ]),
@@ -385,25 +458,66 @@ const specialSettings: Record<string, FluentMockControl[]> = {
   ]),
 }
 
+const tabbedSpecialIds = new Set(['inlet-vent', 'outlet-vent', 'intake-fan', 'exhaust-fan', 'fan', 'porous-jump', 'radiator'])
+
 export const extraBoundaryDialogs = specialBoundaries.map(([id, title, group]): FluentMockDialog => {
   const isVent = id.endsWith('-vent')
+  const isFanEnd = id === 'intake-fan' || id === 'exhaust-fan'
   const inlet = group === 'Inlet'
-  const fanOrVent = isVent || id === 'intake-fan' || id === 'exhaust-fan'
+  const fanOrVent = isVent || isFanEnd
   return {
     id: id + '-dialog',
     title,
     module: 'Boundary Conditions',
     subtitle: '当前窗口展示该边界类型的主要设置，输入由所选算例决定。',
+    ...(tabbedSpecialIds.has(id) ? { sharedGroups: ['Zone'] } : {}),
     controls: [
       ...fields(id, 'Zone', [['zone-name', 'Zone Name', { value: id }]]),
       ...(specialSettings[id] ?? []),
-      ...(fanOrVent ? fields(id, 'Momentum', [
-        ['pressure', inlet ? 'Gauge Total Pressure (Pa)' : 'Gauge Pressure (Pa)'],
-        isVent ? ['loss', 'Loss Coefficient'] : ['jump', 'Pressure Jump (Pa)'],
-        ['temperature', inlet ? 'Total Temperature (K)' : 'Backflow Total Temperature (K)', {
-          visibleWhen: [when('energy-enable', true)],
-        }],
-      ]) : []),
+      ...(fanOrVent ? [
+        ...fields(id, 'Momentum', [
+          ['pressure', inlet ? 'Gauge Total Pressure (Pa)' : 'Gauge Pressure (Pa)', { value: '0' }],
+          isVent
+            ? ['loss', 'Loss Coefficient', { value: '1.0' }]
+            : ['jump', 'Pressure Jump (Pa)', { value: '150' }],
+          ...(isFanEnd ? [
+            ['pressure-profile', 'Pressure-Jump Profile', {
+              value: 'constant',
+              options: ['constant', 'polynomial', 'piecewise-linear'],
+              optionDialogs: { polynomial: 'fan-profile-dialog', 'piecewise-linear': 'fan-profile-dialog' },
+            }] as BoundaryField,
+            ['edit-curve-btn', 'Edit Fan Curve…', {
+              dialogId: 'fan-profile-dialog',
+              visibleWhen: [when(id + '-pressure-profile', 'polynomial', 'piecewise-linear')],
+            }] as BoundaryField,
+          ] : []),
+        ]),
+        ...fields(id, 'Turbulence', [
+          ['turbulence', 'Turbulence Specification Method', { value: turbulenceMethods[0], options: turbulenceMethods }],
+        ]),
+        ...turbulenceFields(id),
+        ...fields(id, 'Thermal', [
+          ['temperature', inlet ? 'Total Temperature (K)' : 'Backflow Total Temperature (K)', { value: '300' }],
+        ]),
+        ...fields(id, 'Radiation', [['internal-emissivity', 'Internal Emissivity', { value: '1' }]]),
+        ...fields(id, 'Species', [
+          ['mole-fractions', 'Specify Species in Mole Fractions', { defaultSelected: false }],
+          ['species-mass-fraction', 'Species Mass Fraction', { value: '0', visibleWhen: [when(id + '-mole-fractions', false)] }],
+          ['species-mole-fraction', 'Species Mole Fraction', { value: '0', visibleWhen: [when(id + '-mole-fractions', true)] }],
+        ]),
+        ...fields(id, 'DPM', [['particle-bc', 'Discrete Phase BC Type', {
+          value: 'escape', options: ['reflect', 'trap', 'escape'],
+        }]]),
+        ...fields(id, 'Multiphase', [
+          ['phase-selection', 'Secondary Phase', { options: [] }],
+          ['volume-fraction', inlet ? 'Volume Fraction' : 'Backflow Volume Fraction', { value: '0' }],
+        ]),
+        ...fields(id, 'UDS', [
+          ['uds-bc-type', 'UDS Boundary Condition', { value: 'Specified Value', options: ['Specified Value', 'Specified Flux'] }],
+          ['uds-val', 'Scalar Value', { value: '0', visibleWhen: [when(id + '-uds-bc-type', 'Specified Value')] }],
+          ['uds-flux', 'Scalar Flux', { value: '0', visibleWhen: [when(id + '-uds-bc-type', 'Specified Flux')] }],
+        ]),
+      ] : []),
     ].map((control) => ({ ...control, parentId: id + '-dialog' })),
   }
 })

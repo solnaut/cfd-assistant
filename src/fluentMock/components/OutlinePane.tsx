@@ -4,6 +4,7 @@ import type { FluentLabel } from '../fluentLanguage'
 import {
   formatBatteryBadge,
   formatViscousBadge,
+  getControlChecked,
   getControlValue,
   type FluentSimState,
   type HighlightedBoundary,
@@ -195,6 +196,91 @@ function getTreeSubNodes(
           boundary: control.group === 'Inlet' ? 'inlet' as const : control.group === 'Outlet' ? 'outlet' as const : null,
         })),
       ]
+    case 'tree-motion-definitions':
+      return [
+        {
+          id: 'sub-motion-impeller',
+          label: getControlValue(simState, 'motion-def-name', 'impeller-rotation'),
+          badge: getControlValue(simState, 'motion-def-type', 'Rotational'),
+          targetControlId: 'motion-create-edit',
+        },
+      ]
+    case 'tree-mesh-interfaces':
+      return [
+        {
+          id: 'sub-interface-pair',
+          label: getControlValue(simState, 'mi-dlg-name', 'rotor-stator-interface'),
+          badge: 'Interface',
+          targetControlId: 'interface-create',
+        },
+      ]
+    case 'tree-dynamic-mesh':
+      return [
+        {
+          id: 'sub-dm-setup',
+          label: label('Dynamic Mesh Setup'),
+          badge: getControlChecked(simState, 'dynamic-mesh-enable') ? 'On' : 'Off',
+          targetControlId: 'ribbon-dynamic-mesh',
+        },
+        {
+          id: 'sub-dm-preview',
+          label: label('Mesh Motion Preview'),
+          targetControlId: 'ribbon-dynamic-mesh',
+        },
+      ]
+    case 'tree-reference-frames':
+      return [
+        {
+          id: 'sub-rf-global',
+          label: 'global',
+          badge: 'Absolute',
+          targetControlId: 'ref-frame-create-edit',
+        },
+        {
+          id: 'sub-rf-mrf',
+          label: getControlValue(simState, 'rf-dlg-name', 'mrf-impeller-frame'),
+          badge: getControlValue(simState, 'rf-dlg-motion', 'Stationary'),
+          targetControlId: 'ref-frame-create-edit',
+        },
+      ]
+    case 'tree-named-expressions':
+      return [
+        {
+          id: 'sub-expr-default',
+          label: getControlValue(simState, 'expr-dlg-name', 'inlet_profile'),
+          badge: 'Expr',
+          targetControlId: 'expr-open-editor',
+        },
+      ]
+    case 'tree-report-definitions':
+      return [
+        {
+          id: 'sub-repdef-force',
+          label: label('Force Report'),
+          targetControlId: 'report-definition-force',
+        },
+        {
+          id: 'sub-repdef-surface',
+          label: label('Surface Report'),
+          targetControlId: 'report-definition-surface',
+        },
+        {
+          id: 'sub-repdef-volume',
+          label: label('Volume Report'),
+          targetControlId: 'report-definition-volume',
+        },
+        ...Object.values(simState.reportDefinitions).map((item) => ({
+          id: `sub-repdef-${item.name}`,
+          label: item.name,
+          badge: item.type,
+          targetControlId:
+            item.type === 'Force'
+              ? 'report-definition-force'
+              : item.type === 'Volume'
+                ? 'report-definition-volume'
+                : 'report-definition-surface',
+        })),
+      ]
     case 'tree-monitors':
       return [
         {
@@ -290,6 +376,68 @@ function getTreeSubNodes(
           id: 'sub-rep-vol',
           label: label('Volume Integrals'),
           targetControlId: 'results-volume-integrals',
+        },
+      ]
+    case 'tree-cell-registers':
+      return [
+        {
+          id: 'sub-reg-default',
+          label: getControlValue(simState, 'reg-dlg-name', 'high-grad-region'),
+          badge: getControlValue(simState, 'reg-dlg-type', 'Field Value'),
+          targetControlId: 'register-create-new',
+        },
+      ]
+    case 'tree-calculation-activities':
+      return [
+        {
+          id: 'sub-calc-autosave',
+          label: label('Automatic Saving'),
+          badge: simState.autosave.frequency,
+          targetControlId: 'calculation-autosave',
+        },
+        {
+          id: 'sub-calc-exec',
+          label: label('Execute Commands'),
+          targetControlId: 'calculation-execute-commands',
+        },
+        {
+          id: 'sub-calc-sample',
+          label: label('Data Sampling'),
+          targetControlId: 'calculation-data-sampling',
+        },
+      ]
+    case 'tree-animations':
+      return [
+        {
+          id: 'sub-anim-def',
+          label: getControlValue(simState, 'anim-dlg-name', 'velocity-transient-anim'),
+          badge: getControlValue(simState, 'anim-dlg-storage', 'HSF File'),
+          targetControlId: 'anim-open-definition',
+        },
+        {
+          id: 'sub-anim-play',
+          label: label('Animation Playback'),
+          targetControlId: 'anim-open-playback',
+        },
+      ]
+    case 'tree-parameters-controls':
+      return [
+        {
+          id: 'sub-param-input',
+          label: label('Input Parameters'),
+          badge: '1',
+          targetControlId: 'ribbon-param-input',
+        },
+        {
+          id: 'sub-param-output',
+          label: label('Output Parameters'),
+          badge: '1',
+          targetControlId: 'ribbon-param-output',
+        },
+        {
+          id: 'sub-param-table',
+          label: label('Parameter Table'),
+          targetControlId: 'param-open-table',
         },
       ]
     default:

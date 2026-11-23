@@ -10,6 +10,7 @@ import { dialogTabsByDialogId } from '../fluentMock/fluentTeachingExtras'
 import { derivedMultiphaseControls } from '../fluentMock/state/fluentMultiphaseState'
 import { derivedModelControls } from '../fluentMock/data/physicsModelBranches'
 import { fluentOperationExplanations } from '../fluentMock/data/fluentOperationExplanations'
+import { getMeshingTeachingDiagram, getSolutionTeachingDiagram } from '../fluentMock/data/fluentTeachingDiagrams'
 
 describe('Fluent mock data', () => {
   it('keeps dialog links, panel links, visibility dependencies and tab groups valid', () => {
@@ -271,8 +272,78 @@ describe('Fluent mock data', () => {
       'parallel-partition-dialog',
       'adjoint-solver-dialog',
       'parameters-table-dialog',
+      'case-check-dialog',
+      'mesh-info-dialog',
+      'preferences-dialog',
+      'species-pollutants-dialog',
+      'dpm-injection-dialog',
+      'multigrid-controls-dialog',
+      'simulation-report-dialog',
+      'udm-uds-dialog',
+      'fft-dialog',
+      'particle-tracks-dialog',
+      'dynamic-mesh-zones-dialog',
+      'inlet-vent-dialog',
+      'outlet-vent-dialog',
+      'intake-fan-dialog',
+      'exhaust-fan-dialog',
+      'fan-dialog',
+      'porous-jump-dialog',
+      'radiator-dialog',
     ]) {
       expect(dialogTabsByDialogId[id]?.length ?? 0, id).toBeGreaterThanOrEqual(2)
     }
+  })
+
+  it('defines cross-dialog conditional tabs, special boundary multi-tabs, and teaching diagrams', () => {
+    const dialogsById = new Map(fluentDialogs.map((d) => [d.id, d]))
+    expect(dialogsById.has('radiator-profile-dialog')).toBe(true)
+    expect(dialogsById.has('material-nasa-cp-dialog')).toBe(true)
+
+    const dpmTabs = dialogTabsByDialogId['dpm-injection-dialog']
+    expect(dpmTabs.map((t) => t.id)).toEqual([
+      'point-properties',
+      'turbulent-dispersion',
+      'physical-models',
+      'components',
+      'breakup',
+    ])
+    expect(dpmTabs.find((t) => t.id === 'components')?.visibleWhen?.[0]).toEqual({
+      controlId: 'dpm-inj-evap',
+      values: ['Multicomponent'],
+    })
+    expect(dpmTabs.find((t) => t.id === 'breakup')?.visibleWhen?.[0]).toEqual({
+      controlId: 'dpm-breakup',
+      values: [true],
+    })
+
+    for (const bcId of [
+      'velocity-inlet-dialog',
+      'wall-dialog',
+      'mass-flow-outlet-dialog',
+      'inlet-vent-dialog',
+      'radiator-dialog',
+    ]) {
+      const udsTab = dialogTabsByDialogId[bcId].find((t) => t.id === 'uds')
+      expect(udsTab?.visibleWhen?.[0], bcId).toEqual({
+        controlId: 'uds-count',
+        values: ['1', '2', '3'],
+      })
+    }
+
+    const dmZonesDlg = dialogsById.get('dynamic-mesh-zones-dialog')
+    expect(dmZonesDlg?.sharedGroups).toEqual(['Zone Definition'])
+    expect(dialogTabsByDialogId['dynamic-mesh-zones-dialog'].map((t) => t.id)).toEqual([
+      'motion-attr',
+      'geom-def',
+      'mesh-opts',
+    ])
+
+    expect(getSolutionTeachingDiagram('general-pressure-based-explanation')?.kind).toBe('solver-comparison')
+    expect(getSolutionTeachingDiagram('models-viscous-explanation')?.kind).toBe('turbulence-hierarchy')
+    expect(getSolutionTeachingDiagram('models-multiphase-explanation')?.kind).toBe('multiphase-regimes')
+    expect(getSolutionTeachingDiagram('uds-count-explanation')?.kind).toBe('uds-transport')
+    expect(getMeshingTeachingDiagram('meshing-surface-mesh')?.kind).toBe('surface-mesh-cad')
+    expect(getMeshingTeachingDiagram('meshing-boundary-layers')?.kind).toBe('volume-mesh-layers')
   })
 })

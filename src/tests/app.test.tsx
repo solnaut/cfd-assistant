@@ -1634,4 +1634,180 @@ describe('Fluent workbench interaction branches', () => {
     expect(repDlg.getByRole('combobox', { name: 'Report Category' })).toHaveValue('Force')
     expect(repDlg.getByRole('combobox', { name: 'Report Type' })).toHaveValue('Force')
   })
+
+  it('opens nested sub-dialogs, option-triggered dialogs, panel dialogs, and updates British/SI unit presets', () => {
+    window.sessionStorage.clear()
+    render(
+      <MemoryRouter initialEntries={['/fluent-guide']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    const ribbon = within(screen.getByRole('navigation', { name: 'Command tabs' }).parentElement!)
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    const consolePane = within(screen.getByRole('region', { name: 'Console' }))
+
+    // 1. Materials option-triggered sub-dialogs + User-Defined Database
+    fireEvent.click(ribbon.getByRole('button', { name: 'Physics' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Create/Edit' }))
+    const matDlg = within(screen.getByRole('dialog', { name: 'Create/Edit Materials' }))
+    fireEvent.change(matDlg.getByRole('combobox', { name: 'Density Method' }), { target: { value: 'polynomial' } })
+    const polyDlg = within(screen.getByRole('dialog', { name: 'Polynomial Profile' }))
+    fireEvent.click(polyDlg.getByRole('button', { name: 'Close Polynomial Profile' }))
+    fireEvent.change(matDlg.getByRole('combobox', { name: 'Viscosity Method' }), { target: { value: 'piecewise-linear' } })
+    const pwlDlg = within(screen.getByRole('dialog', { name: 'Piecewise-Linear Profile' }))
+    fireEvent.click(pwlDlg.getByRole('button', { name: 'Close Piecewise-Linear Profile' }))
+    fireEvent.click(matDlg.getByRole('button', { name: 'User-Defined Database…' }))
+    const udbDlg = within(screen.getByRole('dialog', { name: 'User-Defined Database Materials' }))
+    fireEvent.click(udbDlg.getByRole('button', { name: 'Copy to Case' }))
+    expect(consolePane.getByText(/\[User Database:/)).toBeInTheDocument()
+    fireEvent.click(udbDlg.getByRole('button', { name: 'Close User-Defined Database Materials' }))
+    fireEvent.click(matDlg.getByRole('button', { name: 'Close Create/Edit Materials' }))
+
+    // 2. Stacked Results sub-dialogs (Contours -> Colormap Options, XY Plot -> Axes)
+    fireEvent.click(ribbon.getByRole('button', { name: 'Results' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Contours' }))
+    const contourDlg = within(screen.getAllByRole('dialog').at(-1) as HTMLElement)
+    fireEvent.click(contourDlg.getByRole('button', { name: 'Colormap Options…' }))
+    const cmapDlg = within(screen.getByRole('dialog', { name: 'Colormap Options' }))
+    fireEvent.click(cmapDlg.getByRole('button', { name: 'Close Colormap Options' }))
+    fireEvent.click(contourDlg.getByRole('button', { name: /^Close / }))
+
+    fireEvent.click(ribbon.getByRole('button', { name: 'XY Plot' }))
+    const xyDlg = within(screen.getAllByRole('dialog').at(-1) as HTMLElement)
+    fireEvent.click(xyDlg.getByRole('button', { name: 'Axes…' }))
+    const axesDlg = within(screen.getByRole('dialog', { name: 'Axes - Solution XY Plot' }))
+    fireEvent.click(axesDlg.getByRole('button', { name: 'Close Axes - Solution XY Plot' }))
+    fireEvent.click(xyDlg.getByRole('button', { name: /^Close / }))
+
+    // 3. Dynamic Mesh -> Options -> In-Cylinder Settings…
+    fireEvent.click(ribbon.getByRole('button', { name: 'Domain' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Dynamic Mesh' }))
+    const dmDlg = within(screen.getByRole('dialog', { name: 'Dynamic Mesh' }))
+    fireEvent.click(dmDlg.getByRole('tab', { name: 'Options' }))
+    expect(dmDlg.queryByRole('button', { name: 'In-Cylinder Settings…' })).not.toBeInTheDocument()
+    fireEvent.click(dmDlg.getByRole('checkbox', { name: 'In-Cylinder' }))
+    fireEvent.click(dmDlg.getByRole('button', { name: 'In-Cylinder Settings…' }))
+    const incylDlg = within(screen.getByRole('dialog', { name: 'In-Cylinder Settings' }))
+    fireEvent.click(incylDlg.getByRole('button', { name: 'Close In-Cylinder Settings' }))
+    fireEvent.click(dmDlg.getByRole('button', { name: 'Close Dynamic Mesh' }))
+
+    // 4. Case Check & GPU Solver dialogs
+    fireEvent.click(ribbon.getByRole('button', { name: 'Solution' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Check Case' }))
+    const ccDlg = within(screen.getByRole('dialog', { name: 'Case Check' }))
+    fireEvent.click(ccDlg.getByRole('tab', { name: 'Solver' }))
+    fireEvent.click(ccDlg.getByRole('button', { name: 'Run Case Check' }))
+    expect(consolePane.getByText(/\[Case Check\]/)).toBeInTheDocument()
+    fireEvent.click(ccDlg.getByRole('button', { name: 'Close Case Check' }))
+
+    fireEvent.click(ribbon.getByRole('button', { name: 'Parallel' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'GPU Solver' }))
+    const gpuDlg = within(screen.getByRole('dialog', { name: 'Native GPU Solver Settings' }))
+    fireEvent.click(gpuDlg.getByRole('button', { name: 'Check Physics Compatibility' }))
+    expect(consolePane.getByText(/\[GPU Solver\]/)).toBeInTheDocument()
+    fireEvent.click(gpuDlg.getByRole('button', { name: 'Close Native GPU Solver Settings' }))
+
+    // 5. Outline panel -> Expression Editor, New Cell Register, Animation Definition
+    fireEvent.click(outline.getByRole('button', { name: 'Named Expressions' }))
+    fireEvent.click(task.getByRole('button', { name: 'Expression Editor…' }))
+    const exprDlg = within(screen.getByRole('dialog', { name: 'Expression Editor' }))
+    fireEvent.click(exprDlg.getByRole('button', { name: 'Close Expression Editor' }))
+
+    fireEvent.click(outline.getByRole('button', { name: 'Cell Registers' }))
+    fireEvent.click(task.getByRole('button', { name: 'New Cell Register…' }))
+    const regDlg = within(screen.getByRole('dialog', { name: 'New Cell Register' }))
+    fireEvent.click(regDlg.getByRole('button', { name: 'Close New Cell Register' }))
+
+    fireEvent.click(outline.getByRole('button', { name: 'Animations' }))
+    fireEvent.click(task.getByRole('button', { name: 'Solution Animations…' }))
+    const animDlg = within(screen.getByRole('dialog', { name: 'Animation Definition' }))
+    fireEvent.click(animDlg.getByRole('button', { name: 'Close Animation Definition' }))
+
+    // 6. Units -> British preset + Reset to SI
+    fireEvent.click(ribbon.getByRole('button', { name: 'Physics' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Units' }))
+    const unitsDlg = within(screen.getAllByRole('dialog').at(-1) as HTMLElement)
+    fireEvent.change(unitsDlg.getByRole('combobox', { name: 'Unit System' }), { target: { value: 'British' } })
+    expect(unitsDlg.getByRole('combobox', { name: 'Length Unit' })).toHaveValue('ft')
+    expect(unitsDlg.getByRole('combobox', { name: 'Pressure Unit' })).toHaveValue('psi')
+    expect(unitsDlg.getByRole('combobox', { name: 'Temperature Unit' })).toHaveValue('F')
+    fireEvent.click(unitsDlg.getByRole('button', { name: 'Reset to SI' }))
+    expect(unitsDlg.getByRole('combobox', { name: 'Length Unit' })).toHaveValue('m')
+    expect(unitsDlg.getByRole('combobox', { name: 'Pressure Unit' })).toHaveValue('Pa')
+    expect(unitsDlg.getByRole('combobox', { name: 'Temperature Unit' })).toHaveValue('K')
+  })
+
+  it('triggers UDS/Material/SpecialBC/FFT multi-tab cascades and renders teaching SVG diagrams', () => {
+    window.sessionStorage.clear()
+    renderApp('/fluent-guide')
+
+    const ribbon = within(screen.getByRole('navigation', { name: 'Command tabs' }).parentElement!)
+    const outline = within(screen.getByRole('complementary', { name: 'Outline' }))
+    const task = within(screen.getByRole('region', { name: 'Task Page' }))
+    const guide = within(screen.getByRole('complementary', { name: '控件说明' }))
+
+    // 1. User-Defined -> UDM / UDS 2-tab dialog & cross-dialog UDS cascade
+    fireEvent.click(ribbon.getByRole('button', { name: 'User-Defined' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'UDM / UDS' }))
+    const udmDlg = within(screen.getByRole('dialog', { name: 'User-Defined Memory & Scalars' }))
+    expect(udmDlg.getByRole('tab', { name: 'User-Defined Memory' })).toBeInTheDocument()
+    fireEvent.click(udmDlg.getByRole('tab', { name: 'User-Defined Scalars' }))
+    fireEvent.change(udmDlg.getByRole('combobox', { name: 'Number of User-Defined Scalars' }), {
+      target: { value: '2' },
+    })
+    expect(udmDlg.getByRole('combobox', { name: 'UDS Flux Function' })).toBeInTheDocument()
+    expect(guide.getByRole('img')).toBeInTheDocument()
+    fireEvent.click(udmDlg.getByRole('button', { name: 'Close User-Defined Memory & Scalars' }))
+
+    // 2. Materials -> UDS Diffusivity unlocked + Cp Method -> NASA Piecewise-Polynomial sub-dialog
+    fireEvent.click(ribbon.getByRole('button', { name: 'Physics' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Create/Edit' }))
+    const matDlg = within(screen.getByRole('dialog', { name: 'Create/Edit Materials' }))
+    expect(matDlg.getByRole('textbox', { name: 'UDS Diffusivity (kg/m·s)' })).toBeInTheDocument()
+    fireEvent.change(matDlg.getByRole('combobox', { name: 'Cp Method' }), {
+      target: { value: 'piecewise-polynomial' },
+    })
+    const nasaDlg = within(screen.getByRole('dialog', { name: 'NASA Piecewise-Polynomial Profile' }))
+    expect(nasaDlg.getByRole('textbox', { name: 'Coefficient a1' })).toBeInTheDocument()
+    fireEvent.click(nasaDlg.getByRole('button', { name: 'Close NASA Piecewise-Polynomial Profile' }))
+    fireEvent.click(matDlg.getByRole('button', { name: 'Close Create/Edit Materials' }))
+
+    // 3. Viscous dialog keeps no tablist while rendering inline mechanism summary & collapsible SVG
+    fireEvent.click(ribbon.getByRole('button', { name: 'Viscous' }))
+    const viscousDlg = within(screen.getByRole('dialog', { name: 'Viscous Model' }))
+    expect(viscousDlg.queryByRole('tablist')).not.toBeInTheDocument()
+    expect(viscousDlg.getByText(/当前活跃模型/)).toBeInTheDocument()
+    expect(viscousDlg.getByRole('img')).toBeInTheDocument()
+    fireEvent.click(viscousDlg.getByRole('button', { name: 'Close Viscous Model' }))
+
+    // 4. Boundary Conditions -> Velocity Inlet UDS tab & Radiator multi-tab + Radiator Curve sub-dialog
+    fireEvent.click(outline.getByRole('button', { name: 'Boundary Conditions' }))
+    fireEvent.click(task.getByRole('button', { name: 'Velocity Inlet' }))
+    const viDlg = within(screen.getByRole('dialog', { name: 'Velocity Inlet' }))
+    fireEvent.click(viDlg.getByRole('tab', { name: 'UDS' }))
+    expect(viDlg.getByRole('combobox', { name: 'UDS Boundary Condition' })).toBeInTheDocument()
+    fireEvent.click(viDlg.getByRole('button', { name: 'Close Velocity Inlet' }))
+
+    fireEvent.click(task.getByRole('button', { name: 'Radiator' }))
+    const radDlg = within(screen.getByRole('dialog', { name: 'Radiator' }))
+    expect(radDlg.getByRole('tab', { name: 'Momentum' })).toBeInTheDocument()
+    expect(radDlg.getByRole('tab', { name: /Thermal/ })).toBeInTheDocument()
+    expect(radDlg.getByRole('tab', { name: 'UDS' })).toBeInTheDocument()
+    fireEvent.change(radDlg.getByRole('combobox', { name: 'Loss Coefficient Method' }), {
+      target: { value: 'polynomial' },
+    })
+    const radCurveDlg = within(screen.getByRole('dialog', { name: 'Radiator Loss & Heat-Transfer Curve' }))
+    fireEvent.click(radCurveDlg.getByRole('button', { name: 'Close Radiator Loss & Heat-Transfer Curve' }))
+    fireEvent.click(radDlg.getByRole('button', { name: 'Close Radiator' }))
+
+    // 5. Results -> FFT 2-tab dialog
+    fireEvent.click(ribbon.getByRole('button', { name: 'Results' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'FFT' }))
+    const fftDlg = within(screen.getByRole('dialog', { name: 'Fourier Transform (FFT)' }))
+    expect(fftDlg.getByRole('tab', { name: 'Signal & Window' })).toBeInTheDocument()
+    fireEvent.click(fftDlg.getByRole('tab', { name: 'Axes Options' }))
+    expect(fftDlg.getByRole('checkbox', { name: 'Logarithmic Frequency Axis' })).toBeInTheDocument()
+  })
 })

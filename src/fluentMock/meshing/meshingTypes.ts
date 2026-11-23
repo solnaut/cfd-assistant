@@ -53,12 +53,21 @@ export interface MeshingLocalSizingItem {
   scope: string
 }
 
+export type MeshingDialogId =
+  | 'meshing-file-io'
+  | 'meshing-display-options'
+  | 'meshing-surface-diagnostics'
+  | 'meshing-volume-check'
+  | 'meshing-zone-manager'
+  | 'meshing-preferences'
+
 export interface MeshingRibbonCommand {
   id: string
   label: string
   group: string
   targetTaskId?: MeshingTaskId
   viewportTab?: MeshingViewportTab
+  dialogId?: MeshingDialogId
   actionId?:
     | 'reset-workflow'
     | 'run-surface-mesh'

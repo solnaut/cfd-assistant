@@ -238,6 +238,12 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           }),
           makePanelControl('methods-warped-face', 'Warped-Face Gradient Correction', 'Solution Methods', 'Options', 'checkbox'),
           makePanelControl('methods-high-order-relax', 'High Order Term Relaxation', 'Solution Methods', 'Options', 'checkbox'),
+          makePanelControl('panel-hotr-options', 'HOTR Options…', 'Solution Methods', 'Options', 'button', {
+            dialogId: 'hotr-options-dialog',
+          }),
+          makePanelControl('panel-nita-controls', 'Non-Iterative Time Advancement…', 'Solution Methods', 'Options', 'button', {
+            dialogId: 'nita-controls-dialog',
+          }),
           makePanelControl('methods-pseudo-time', 'Pseudo Time Method', 'Solution Methods', 'Options', 'select', {
             value: 'Global Time Step',
             visibleWhen: [{ controlId: 'general-steady', values: [true] }],
@@ -319,6 +325,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           }),
           makePanelControl('controls-limits', 'Limits', 'Solution Controls', 'Equations & Limits', 'button', {
             dialogId: 'solution-limits-dialog',
+          }),
+          makePanelControl('controls-multigrid', 'Multigrid Controls…', 'Solution Controls', 'Equations & Limits', 'button', {
+            dialogId: 'multigrid-controls-dialog',
           }),
           makePanelControl('controls-reset-default', 'Default', 'Solution Controls', 'Equations & Limits', 'button'),
         ],
@@ -418,7 +427,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
         id: 'run-check-group',
         title: 'Pre-Run Verification',
         controls: [
-          makePanelControl('run-check-case', 'Check Case', 'Run Calculation', 'Pre-Run Verification', 'button'),
+          makePanelControl('run-check-case', 'Check Case', 'Run Calculation', 'Pre-Run Verification', 'button', {
+            dialogId: 'case-check-dialog',
+          }),
         ],
       },
       {
@@ -596,7 +607,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('results-reports', 'Reports', 'Results', 'Reports', 'button', {
             dialogId: 'reports-dialog',
           }),
-          makePanelControl('results-summary', 'Summary', 'Results', 'Reports', 'button'),
+          makePanelControl('results-summary', 'Summary', 'Results', 'Reports', 'button', {
+            dialogId: 'case-summary-dialog',
+          }),
         ],
       },
     ],
@@ -624,6 +637,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('motion-apply-zone', 'Cell Zone Conditions', 'Motion Definitions', 'Motion Profile', 'button', {
             dialogId: 'cell-zone-fluid-dialog',
           }),
+          makePanelControl('motion-create-edit', 'Motion Definition…', 'Motion Definitions', 'Motion Profile', 'button', {
+            dialogId: 'motion-definition-dialog',
+          }),
         ],
       },
     ],
@@ -645,7 +661,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             value: 'Coupled Wall',
           }),
           makePanelControl('interface-matching', 'Matching', 'Mesh Interfaces', 'Interface Pairs', 'checkbox'),
-          makePanelControl('interface-create', 'Create', 'Mesh Interfaces', 'Interface Pairs', 'button'),
+          makePanelControl('interface-create', 'Create', 'Mesh Interfaces', 'Interface Pairs', 'button', {
+            dialogId: 'mesh-interface-create-dialog',
+          }),
         ],
       },
     ],
@@ -668,6 +686,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           }),
           makePanelControl('aux-radius', 'Radius', 'Auxiliary Geometry', 'Auxiliary Shapes', 'field', {
             value: '0.05 m',
+          }),
+          makePanelControl('aux-create-edit', 'Create / Edit Auxiliary Geometry…', 'Auxiliary Geometry', 'Auxiliary Shapes', 'button', {
+            dialogId: 'aux-geometry-dialog',
           }),
         ],
       },
@@ -692,6 +713,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('ref-frame-omega', 'Angular Velocity', 'Reference Frames', 'Frame Definition', 'field', {
             value: '0 rad/s',
           }),
+          makePanelControl('ref-frame-create-edit', 'Reference Frame Setup…', 'Reference Frames', 'Frame Definition', 'button', {
+            dialogId: 'reference-frame-dialog',
+          }),
         ],
       },
     ],
@@ -715,6 +739,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('expr-use-in-bc', 'Use as Velocity Inlet', 'Named Expressions', 'Expression Editor', 'button', {
             dialogId: 'velocity-inlet-dialog',
           }),
+          makePanelControl('expr-open-editor', 'Expression Editor…', 'Named Expressions', 'Expression Editor', 'button', {
+            dialogId: 'named-expression-dialog',
+          }),
         ],
       },
     ],
@@ -736,6 +763,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             value: 'fluid-domain',
           }),
           makePanelControl('curv-compute', 'Compute', 'Curvilinear Coordinates', 'Coordinate Direction', 'button'),
+          makePanelControl('curv-open-dialog', 'Curvilinear Coordinates…', 'Curvilinear Coordinates', 'Coordinate Direction', 'button', {
+            dialogId: 'curvilinear-dialog',
+          }),
         ],
       },
     ],
@@ -761,6 +791,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           }),
           makePanelControl('register-open-patch', 'Patch Using Register', 'Cell Registers', 'Register Criteria', 'button', {
             dialogId: 'patch-initialization-dialog',
+          }),
+          makePanelControl('register-create-new', 'New Cell Register…', 'Cell Registers', 'Register Criteria', 'button', {
+            dialogId: 'cell-register-dialog',
           }),
         ],
       },
@@ -806,6 +839,12 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
           makePanelControl('anim-storage', 'Storage Type', 'Animations', 'Solution Animation', 'select', {
             value: 'HSF File',
           }),
+          makePanelControl('anim-open-definition', 'Solution Animations…', 'Animations', 'Solution Animation', 'button', {
+            dialogId: 'solution-animation-dialog',
+          }),
+          makePanelControl('anim-open-playback', 'Animation Playback…', 'Animations', 'Solution Animation', 'button', {
+            dialogId: 'animation-playback-dialog',
+          }),
         ],
       },
     ],
@@ -850,6 +889,9 @@ export const extendedTaskPanels: FluentMockTaskPanel[] = [
             defaultSelected: true,
           }),
           makePanelControl('sim-report-generate', 'Generate Summary', 'Simulation Report', 'Report Generation', 'button'),
+          makePanelControl('sim-report-configure', 'Simulation Report Settings…', 'Simulation Report', 'Report Generation', 'button', {
+            dialogId: 'simulation-report-dialog',
+          }),
         ],
       },
     ],

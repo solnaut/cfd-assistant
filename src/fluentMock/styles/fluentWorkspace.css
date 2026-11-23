@@ -2606,3 +2606,257 @@ body:has(.fluent-workbench) {
 .fluent-dialog-shared .fluent-field-row {
   grid-template-columns: minmax(0, 1fr);
 }
+
+.fluent-dialog-inline-summary {
+  margin: 0 0 8px;
+  padding: 6px 9px;
+  border-left: 3px solid #0b7285;
+  border-radius: 4px;
+  background: color-mix(in srgb, #0b7285 9%, transparent);
+  color: var(--fl-ink);
+  font-size: 12px;
+  line-height: 1.48;
+}
+
+.fluent-dialog-diagram-details {
+  margin: 0 0 8px;
+  border: 1px solid var(--fl-rule);
+  border-radius: var(--fl-radius);
+  background: var(--fl-panel-bg, #ffffff);
+}
+
+.fluent-dialog-diagram-details > summary {
+  cursor: pointer;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0b7285;
+  user-select: none;
+}
+
+.fluent-dialog-diagram-details[open] > summary {
+  border-bottom: 1px solid var(--fl-rule);
+}
+
+.fluent-teaching-diagram-card {
+  margin: 10px 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--fl-rule);
+  border-radius: 6px;
+  background: var(--fl-surface-alt, #f8fafc);
+}
+
+.fluent-teaching-diagram-card.compact {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  padding: 8px;
+}
+
+.fluent-teaching-diagram-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--fl-ink);
+}
+
+.fluent-teaching-diagram-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #0b7285 16%, transparent);
+  color: #0b7285;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fluent-teaching-diagram-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: var(--fl-canvas-bg, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--fl-rule) 70%, transparent);
+}
+
+.fluent-teaching-diagram-caption {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--fl-muted);
+}
+
+.fluent-teaching-diagram-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.fluent-teaching-diagram-tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fl-rule) 35%, transparent);
+  color: var(--fl-ink);
+  font-size: 11px;
+}
+
+.fluent-teaching-diagram-svg .diag-heading {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--fl-ink, #1e293b);
+}
+
+.fluent-teaching-diagram-svg .diag-title {
+  font-size: 11.5px;
+  font-weight: 650;
+  fill: var(--fl-ink, #0f172a);
+}
+
+.fluent-teaching-diagram-svg .diag-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--fl-ink, #1e293b);
+}
+
+.fluent-teaching-diagram-svg .diag-sub {
+  font-size: 10px;
+  fill: #0b7285;
+}
+
+.fluent-teaching-diagram-svg .diag-small {
+  font-size: 9.8px;
+  fill: var(--fl-muted, #475569);
+}
+
+.fluent-teaching-diagram-svg .diag-box {
+  fill: var(--fl-surface-alt, #f8fafc);
+  stroke: var(--fl-rule, #cbd5e1);
+  stroke-width: 1.2;
+}
+
+.fluent-teaching-diagram-svg .diag-box-active {
+  stroke: #0b7285;
+  stroke-width: 2;
+  fill: color-mix(in srgb, #0b7285 5%, var(--fl-surface-alt, #f8fafc));
+}
+
+.fluent-teaching-diagram-svg .diag-node {
+  fill: color-mix(in srgb, var(--fl-rule, #cbd5e1) 25%, transparent);
+  stroke: var(--fl-rule, #94a3b8);
+  stroke-width: 1;
+}
+
+.fluent-teaching-diagram-svg .diag-node-accent {
+  fill: color-mix(in srgb, #0b7285 12%, transparent);
+  stroke: #0b7285;
+  stroke-width: 1.2;
+}
+
+.fluent-teaching-diagram-svg .diag-node-warm {
+  fill: color-mix(in srgb, #d9480f 10%, transparent);
+  stroke: #d9480f;
+  stroke-width: 1.2;
+}
+
+.fluent-teaching-diagram-svg .diag-note-box {
+  fill: color-mix(in srgb, #0b7285 6%, transparent);
+  stroke: color-mix(in srgb, #0b7285 35%, transparent);
+  stroke-width: 1;
+}
+
+.fluent-teaching-diagram-svg .diag-shade-accent {
+  fill: color-mix(in srgb, #0b7285 14%, transparent);
+}
+
+.fluent-teaching-diagram-svg .diag-shade-active {
+  fill: color-mix(in srgb, #0b7285 26%, transparent);
+}
+
+.fluent-teaching-diagram-svg .diag-shade-warm {
+  fill: color-mix(in srgb, #d9480f 14%, transparent);
+}
+
+.fluent-teaching-diagram-svg .diag-shade-muted {
+  fill: color-mix(in srgb, var(--fl-rule, #94a3b8) 25%, transparent);
+}
+
+.fluent-teaching-diagram-svg .diag-arrow {
+  stroke: #0b7285;
+  stroke-width: 1.6;
+}
+
+.fluent-teaching-diagram-svg .diag-axis {
+  stroke: var(--fl-ink, #334155);
+  stroke-width: 1.3;
+}
+
+.fluent-teaching-diagram-svg .diag-curve-accent {
+  stroke: #0b7285;
+  stroke-width: 2.2;
+}
+
+.fluent-teaching-diagram-svg .diag-curve-warm {
+  stroke: #d9480f;
+  stroke-width: 2;
+}
+
+.fluent-teaching-diagram-svg .diag-shock {
+  stroke: #c92a2a;
+  stroke-width: 2.2;
+}
+
+.fluent-teaching-diagram-svg .diag-wall {
+  stroke: var(--fl-ink, #1e293b);
+  stroke-width: 2.6;
+}
+
+.fluent-teaching-diagram-svg .diag-wall-band {
+  fill: #868e96;
+}
+
+.fluent-teaching-diagram-svg .diag-mesh {
+  stroke: var(--fl-rule, #94a3b8);
+  stroke-width: 1;
+}
+
+.fluent-teaching-diagram-svg .diag-dashed {
+  stroke: var(--fl-muted, #64748b);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+
+.fluent-teaching-diagram-svg .diag-inlet {
+  stroke: #1c7ed6;
+  stroke-width: 3;
+}
+
+.fluent-teaching-diagram-svg .diag-outlet {
+  stroke: #d9480f;
+  stroke-width: 3;
+}
+
+.fluent-teaching-diagram-svg .diag-particle {
+  fill: #d9480f;
+  stroke: #ffffff;
+  stroke-width: 1;
+}
+
+[data-fl-theme='dark'] .fluent-teaching-diagram-svg {
+  background: #1a212b;
+}
+
+[data-fl-theme='dark'] .fluent-teaching-diagram-badge {
+  color: #4dabf7;
+  background: color-mix(in srgb, #4dabf7 18%, transparent);
+}
+
+[data-fl-theme='dark'] .fluent-teaching-diagram-svg .diag-sub,
+[data-fl-theme='dark'] .fluent-dialog-diagram-details > summary {
+  color: #4dabf7;
+}

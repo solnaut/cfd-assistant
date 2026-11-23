@@ -390,6 +390,8 @@ export type FluentSimAction =
   | { type: 'RESET_DATA_SAMPLING' }
   | { type: 'RUN_STATISTICS_SUMMARY' }
   | { type: 'RESET_URF_DEFAULTS' }
+  | { type: 'COPY_USER_DATABASE_MATERIAL' }
+  | { type: 'CHECK_GPU_COMPATIBILITY' }
   | { type: 'SET_CAMERA_PRESET'; preset: CameraPreset }
   | {
       type: 'APPLY_MESHING_HANDOFF'
@@ -892,6 +894,56 @@ export function fluentSimReducer(
         ...state,
         materials: { ...state.materials, [collection]: [...existing, name] },
         ...appendLogs(state, [{ kind: 'success', text: `[Teaching Demo] Copied "${name}" into case ${collection}.` }]),
+      }
+    }
+
+    case 'COPY_USER_DATABASE_MATERIAL': {
+      const solid = getControlValue(state, 'mat-udb-type', 'fluid') === 'solid'
+      const collection = solid ? 'solids' : 'fluids'
+      const name = solid
+        ? getControlValue(state, 'mat-udb-solid', 'alloy-inconel')
+        : getControlValue(state, 'mat-udb-fluid', 'custom-oil')
+      const dbFile = getControlValue(state, 'mat-udb-file', 'user_materials.scm')
+      const existing = state.materials[collection]
+      if (existing.includes(name)) {
+        return {
+          ...state,
+          ...appendLogs(state, [
+            { kind: 'info', text: `[User Database: ${dbFile}] "${name}" already belongs to this case.` },
+          ]),
+        }
+      }
+      return {
+        ...state,
+        materials: { ...state.materials, [collection]: [...existing, name] },
+        ...appendLogs(state, [
+          { kind: 'command', text: `> /define/materials/copy-from-database ${name}` },
+          { kind: 'success', text: `[User Database: ${dbFile}] Copied "${name}" into case ${collection}.` },
+        ]),
+      }
+    }
+
+    case 'CHECK_GPU_COMPATIBILITY': {
+      const enabled = getControlChecked(state, 'pref-gpu-enable', false)
+      const gpuCount = getControlValue(state, 'gpu-count', '1')
+      const precision = getControlValue(state, 'gpu-precision', 'Double')
+      const memoryMode = getControlValue(state, 'gpu-memory-mode', 'Balanced')
+      const warnings: string[] = []
+      if (state.dpmEnabled) warnings.push('Discrete Phase (DPM)')
+      if (state.multiphaseModel !== 'off') warnings.push(`Multiphase (${state.multiphaseModel})`)
+      if (state.speciesModel !== 'off') warnings.push(`Species (${state.speciesModel})`)
+      const statusText = warnings.length
+        ? `Partial CPU fallback for: ${warnings.join(', ')}.`
+        : 'All active physics models are natively supported on the GPU solver.'
+      return {
+        ...state,
+        ...appendLogs(state, [
+          { kind: 'command', text: '> /solve/gpu/check-compatibility' },
+          {
+            kind: warnings.length ? 'warning' : 'success',
+            text: `[GPU Solver] Enabled=${enabled ? 'Yes' : 'No'}, GPUs=${gpuCount}, Precision=${precision}, Memory=${memoryMode} (${state.meshInfo.cellCount.toLocaleString()} cells). ${statusText}`,
+          },
+        ]),
       }
     }
 
@@ -2556,6 +2608,72 @@ function applyControlValue(
         ...state,
         displayOptions: { ...state.displayOptions, showLegend: bool },
       }
+    case 'units-system': {
+      const presets: Record<string, {
+        length: string
+        pressure: string
+        temperature: string
+        velocity: string
+        massFlow: string
+        angularVel: string
+        heatFlux: string
+        density: string
+        viscosity: string
+      }> = {
+        SI: {
+          length: 'm',
+          pressure: 'Pa',
+          temperature: 'K',
+          velocity: 'm/s',
+          massFlow: 'kg/s',
+          angularVel: 'rad/s',
+          heatFlux: 'W/m²',
+          density: 'kg/m³',
+          viscosity: 'kg/(m·s)',
+        },
+        British: {
+          length: 'ft',
+          pressure: 'psi',
+          temperature: 'F',
+          velocity: 'ft/s',
+          massFlow: 'lbm/s',
+          angularVel: 'rpm',
+          heatFlux: 'BTU/(h·ft²)',
+          density: 'lbm/ft³',
+          viscosity: 'cP',
+        },
+        CGS: {
+          length: 'cm',
+          pressure: 'dyn/cm2',
+          temperature: 'C',
+          velocity: 'mm/s',
+          massFlow: 'g/s',
+          angularVel: 'deg/s',
+          heatFlux: 'kW/m²',
+          density: 'g/cm³',
+          viscosity: 'cP',
+        },
+      }
+      const next = presets[str] ?? presets.SI
+      return {
+        ...state,
+        units: {
+          length: next.length,
+          pressure: next.pressure,
+          temperature: next.temperature,
+        },
+        controlOverrides: {
+          ...state.controlOverrides,
+          'units-system': str,
+          'units-velocity': next.velocity,
+          'units-mass-flow': next.massFlow,
+          'units-angular-vel': next.angularVel,
+          'units-heat-flux': next.heatFlux,
+          'units-density': next.density,
+          'units-viscosity': next.viscosity,
+        },
+      }
+    }
     case 'units-length':
       return { ...state, units: { ...state.units, length: str } }
     case 'units-pressure':
@@ -2966,6 +3084,10 @@ export function getControlValue(
       return state.displayOptions.colormap
     case 'display-options-theme':
       return state.uiTheme
+    case 'units-system': {
+      const override = state.controlOverrides['units-system']
+      return typeof override === 'string' ? override : 'SI'
+    }
     case 'units-length':
       return state.units.length
     case 'units-pressure':

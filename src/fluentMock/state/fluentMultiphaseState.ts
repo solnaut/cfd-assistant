@@ -154,7 +154,7 @@ export function multiphaseSettingKey(state: FluentSimState, id: string) {
   if (modelScopedSettings.has(id)) return `model:${state.multiphaseModel}:${id}`
   if (id === 'multiphase-pb-bins' && eulerianRegime(state) === gentopRegime) return `phase:${getMultiphaseValue(state, 'multiphase-pb-phase')}:${id}`
   if (id === 'wall-contact-angle') return `wall-contact:${selectedPair(state, 'wall-contact-angle-pair')}:${id}`
-  if (/^(velocity-inlet|pressure-inlet|pressure-outlet|mass-flow-inlet)-volume-fraction$/.test(id)) {
+  if (/^(velocity-inlet|pressure-inlet|pressure-outlet|mass-flow-inlet|mass-flow-outlet|inlet-vent|outlet-vent|intake-fan|exhaust-fan)-volume-fraction$/.test(id)) {
     const phase = getMultiphaseValue(state, id.replace(/volume-fraction$/, 'phase-selection'))
     return `boundary-phase:${phase}:${id}`
   }
@@ -207,7 +207,7 @@ function volumeFractionSchemes(state: FluentSimState) {
 }
 
 export function getMultiphaseOptions(state: FluentSimState, id: string): MultiphaseOption[] | undefined {
-  if (/^(velocity-inlet|pressure-inlet|pressure-outlet|mass-flow-inlet)-phase-selection$/.test(id)) {
+  if (/^(velocity-inlet|pressure-inlet|pressure-outlet|mass-flow-inlet|mass-flow-outlet|inlet-vent|outlet-vent|intake-fan|exhaust-fan)-phase-selection$/.test(id)) {
     return phaseOptions(state, state.phaseIds.slice(1))
   }
   if (id === 'multiphase-pair-list' || id === 'wall-contact-angle-pair') {

@@ -11,6 +11,7 @@ import { dynamicMeshZonesDialog } from './data/dynamicMeshWorkflow'
 import { solutionBranchDialogs } from './data/solutionBranches'
 import { directStepMethods, timeAdvancementControls } from './data/timeAdvancement'
 import { enhanceWorkflowDialogs, extendedWorkflowDialogs } from './data/extendedWorkflowDialogs'
+import { enhanceNestedDialogs, nestedSubDialogs } from './data/nestedSubDialogs'
 
 type DialogControlInput = Omit<ControlInput, 'region'> & { region?: string }
 
@@ -1390,7 +1391,8 @@ export const fluentDialogs: FluentMockDialog[] = [
   ...physicsModelChildDialogs,
   ...solutionBranchDialogs,
   ...extendedWorkflowDialogs,
+  ...nestedSubDialogs,
   ...fileDialogs,
-].map(addBoundaryBranches).map(addResultBranches).map(addModelBranches).map(addPhysicsModelBranches).map(enhanceWorkflowDialogs)
+].map(addBoundaryBranches).map(addResultBranches).map(addModelBranches).map(addPhysicsModelBranches).map(enhanceWorkflowDialogs).map(enhanceNestedDialogs)
 
 export const allDialogControls = fluentDialogs.flatMap((dialog) => dialog.controls)

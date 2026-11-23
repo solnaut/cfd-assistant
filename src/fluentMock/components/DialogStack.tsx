@@ -6,7 +6,9 @@ import { aiadRegime, gentopRegime, multiphaseDialogId } from '../data/multiphase
 import { eulerianRegime } from '../state/fluentMultiphaseState'
 import { formatViscousBadge, getControlValue, validateFileOperation, type FluentSimState } from '../state/fluentSimState'
 import type { FluentMockControl, FluentMockDialog } from '../fluentTypes'
+import { getDialogInlineSummaryAndDiagram } from '../data/fluentTeachingDiagrams'
 import { ControlRenderer } from './ControlRenderer'
+import { FluentTeachingDiagram } from './FluentTeachingDiagram'
 
 export interface OpenDialogEntry {
   id: string
@@ -270,6 +272,21 @@ function DraggableDialogWindow({
         aria-labelledby={activeTab && showTabs ? dialog.id + '-tab-' + activeTab.id : undefined}
       >
         <p className="fluent-dialog-subtitle">{dialog.subtitle}</p>
+        {(() => {
+          const inlineTeaching = getDialogInlineSummaryAndDiagram(dialog.id, simState)
+          if (!inlineTeaching) return null
+          return (
+            <>
+              <p className="fluent-dialog-inline-summary">{inlineTeaching.summary}</p>
+              {inlineTeaching.diagram && (
+                <details className="fluent-dialog-diagram-details">
+                  <summary>物理机理图解：{inlineTeaching.diagram.title}</summary>
+                  <FluentTeachingDiagram spec={inlineTeaching.diagram} compact />
+                </details>
+              )}
+            </>
+          )
+        })()}
 
         {isMultiphase && activeTab?.id === 'model' && (
           simState.multiphaseModel !== 'Eulerian'

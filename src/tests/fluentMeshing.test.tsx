@@ -379,4 +379,94 @@ describe('Fluent Meshing data & state machine', () => {
     const guidePane = within(screen.getByRole('complementary', { name: '控件说明' }))
     expect(guidePane.getByRole('button', { name: /Identify Regions/ })).toBeInTheDocument()
   })
+
+  it('opens and operates interactive meshing sub-dialogs from ribbon commands', () => {
+    window.sessionStorage.clear()
+    const { container } = render(
+      <MemoryRouter initialEntries={['/fluent-meshing']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(meshingRibbonTabs).toHaveLength(9)
+    expect(Object.keys(meshingExplanations)).toHaveLength(21)
+
+    const workbench = container.querySelector('.fluent-workbench') as HTMLElement
+    const ribbon = within(screen.getByRole('navigation', { name: 'Command tabs' }).parentElement!)
+    const consolePane = within(screen.getByRole('region', { name: 'Console' }))
+    const guidePane = within(screen.getByRole('complementary', { name: '控件说明' }))
+    expect(guidePane.getByRole('img')).toBeInTheDocument()
+
+    // File -> Preferences: switch UI Theme to Dark and close via Apply Preferences
+    fireEvent.click(ribbon.getByRole('button', { name: 'File' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Preferences…' }))
+    const prefDlg = within(screen.getByRole('dialog', { name: 'Preferences' }))
+    expect(workbench).toHaveAttribute('data-theme', 'light')
+    fireEvent.change(prefDlg.getByRole('combobox', { name: 'UI Theme' }), { target: { value: 'dark' } })
+    expect(workbench).toHaveAttribute('data-theme', 'dark')
+    fireEvent.click(prefDlg.getByRole('tab', { name: 'Meshing Engine' }))
+    expect(prefDlg.getByRole('combobox', { name: 'Parallel Processes' })).toBeInTheDocument()
+    fireEvent.click(prefDlg.getByRole('button', { name: 'Apply Preferences' }))
+    expect(screen.queryByRole('dialog', { name: 'Preferences' })).not.toBeInTheDocument()
+    expect(consolePane.getByText(/\[Meshing Preferences\] Theme=dark/)).toBeInTheDocument()
+
+    // File -> Read/Write Mesh: switch tabs & close with Escape
+    fireEvent.click(ribbon.getByRole('button', { name: 'Read/Write Mesh…' }))
+    const ioDlg = within(screen.getByRole('dialog', { name: 'Read/Write Mesh' }))
+    fireEvent.click(ioDlg.getByRole('button', { name: 'Read File' }))
+    expect(consolePane.getByText(/\[Meshing File I\/O\]/)).toBeInTheDocument()
+    fireEvent.click(ioDlg.getByRole('tab', { name: 'Write' }))
+    expect(ioDlg.getByRole('textbox', { name: 'Output File Name' })).toBeInTheDocument()
+    fireEvent.keyDown(workbench, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Read/Write Mesh' })).not.toBeInTheDocument()
+
+    // Surface Mesh -> Diagnostics…
+    fireEvent.click(ribbon.getByRole('button', { name: 'Surface Mesh' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Diagnostics…' }))
+    const diagDlg = within(screen.getByRole('dialog', { name: 'Surface Mesh Diagnostics' }))
+    fireEvent.click(diagDlg.getByRole('button', { name: 'Run Diagnostics' }))
+    expect(consolePane.getByText(/\[Surface Diagnostics\]/)).toBeInTheDocument()
+    fireEvent.click(diagDlg.getByRole('tab', { name: 'Repair & Smooth' }))
+    fireEvent.click(diagDlg.getByRole('button', { name: 'Smooth & Stitch' }))
+    expect(consolePane.getByText(/\[Surface Repair\]/)).toBeInTheDocument()
+    fireEvent.click(diagDlg.getByRole('button', { name: 'Close Surface Mesh Diagnostics' }))
+
+    // Volume Mesh -> Check Mesh…
+    fireEvent.click(ribbon.getByRole('button', { name: 'Volume Mesh' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Check Mesh…' }))
+    const volDlg = within(screen.getByRole('dialog', { name: 'Volume Mesh Check' }))
+    fireEvent.click(volDlg.getByRole('button', { name: 'Check Volume Mesh' }))
+    expect(consolePane.getByText(/\[Volume Mesh Check\]/)).toBeInTheDocument()
+    fireEvent.click(volDlg.getByRole('tab', { name: 'Boundary Layer Audit' }))
+    fireEvent.click(volDlg.getByRole('button', { name: 'Audit Boundary Layers' }))
+    expect(consolePane.getByText(/\[BL Audit\]/)).toBeInTheDocument()
+    fireEvent.click(volDlg.getByRole('button', { name: 'Close Volume Mesh Check' }))
+
+    // Zones & Tools -> Manage Zones… updates boundary zone type
+    fireEvent.click(ribbon.getByRole('button', { name: 'Zones & Tools' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Manage Zones…' }))
+    const zoneDlg = within(screen.getByRole('dialog', { name: 'Manage Zones' }))
+    const firstZoneSelect = zoneDlg.getAllByRole('combobox')[0]
+    fireEvent.change(firstZoneSelect, { target: { value: 'mass-flow-inlet' } })
+    expect(firstZoneSelect).toHaveValue('mass-flow-inlet')
+    fireEvent.click(zoneDlg.getByRole('tab', { name: 'Cell Regions' }))
+    expect(zoneDlg.getAllByRole('combobox').length).toBeGreaterThan(0)
+    fireEvent.click(zoneDlg.getByRole('button', { name: 'Close Manage Zones' }))
+
+    // View -> Display Options… toggles Cut Plane
+    fireEvent.click(ribbon.getByRole('button', { name: 'View' }))
+    fireEvent.click(ribbon.getByRole('button', { name: 'Display Options…' }))
+    const dispDlg = within(screen.getByRole('dialog', { name: 'Display Options' }))
+    fireEvent.click(dispDlg.getByRole('tab', { name: 'Cut Plane' }))
+    const cutToggle = dispDlg.getByRole('checkbox', { name: 'Enable Cut Plane' })
+    const initialChecked = (cutToggle as HTMLInputElement).checked
+    expect(initialChecked).toBe(true)
+    fireEvent.click(cutToggle)
+    expect(cutToggle).not.toBeChecked()
+    fireEvent.click(cutToggle)
+    expect(cutToggle).toBeChecked()
+    fireEvent.click(dispDlg.getByRole('tab', { name: 'Colors & Lighting' }))
+    expect(dispDlg.getByRole('combobox', { name: 'Color Faces By' })).toBeInTheDocument()
+    fireEvent.click(dispDlg.getByRole('button', { name: 'Close Display Options' }))
+  })
 })

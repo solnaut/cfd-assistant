@@ -41,6 +41,8 @@ export const meshingOperationGuides: Record<
     ],
     example:
       '在 90° 弯管下游存在二次流与分离回流区，可将上游 CAD 中的长方体辅助体设为 BOI 赋予 1.5 mm 目标尺寸，同时直管远端保持 4 mm 基准尺寸。',
+    contextNote:
+      '网格预算应当精打细算投向“流场梯度剧烈但几何无细微棱边”的位置（如尾迹剥离剪切层、混合射流核）；利用 BOI 做空间加密既避免污染全局尺寸，也不会给无关壁面增加毫无价值的微单元。',
   },
   'meshing-surface-mesh': {
     sourceUrl: meshingHelp + 'tgd_user_workflow_guided_surface_mesh_gen.html',
@@ -78,6 +80,8 @@ export const meshingOperationGuides: Record<
     ],
     example:
       '水冷板仿真中既有 Aluminum 固体冷板体也有内部 Water 流体体：应在 Describe Geometry 中选 Fluid and Solid 并启用 Share Topology，使流固界面共节点换热。',
+    contextNote:
+      '若上游几何存在装配多体微小间隙（无法直接做共节点融合）或含旋转滑移子域（Sliding Mesh / MRF），可跳过 Share Topology，在体网格生成后切至 Solution 模式下配对 Mesh Interface，但共轭导热建议优先确保共节点几何融合。',
   },
   'meshing-share-topology': {
     coreConcept:
@@ -160,6 +164,8 @@ export const meshingOperationGuides: Record<
     ],
     example:
       '计算直径 40 mm 管道内部对流换热（Re ≈ 5×10⁴，选用 k-ω SST）：先算得目标 y⁺ = 1 对应首层约 0.035 mm，选用 Uniform 填 First Height = 0.035 mm、12 层、Growth Rate = 1.2，总高约 1.38 mm 平稳进入核心六面体。',
+    contextNote:
+      '请先结合流体速度与几何特征长度到上方 Fluent 计算器栏计算 y+ 对应的第一层高度，并记住：在狭缝流道（间隙 < 2 mm）中总边界层厚度若超过半通道宽度，会自动被挤压产生 stair-stepping（阶梯降层）甚至倒置畸变单元！',
   },
   'meshing-multizone-controls': {
     sourceUrl: meshingHelp + 'tgd_user_workflow_guided_multizone_add.html',

@@ -4,6 +4,8 @@ import { MobileFullscreenButton } from '../../components/MobileFullscreenButton'
 import { FluentIcon } from '../FluentIcons'
 import { ConsolePane } from '../components/ConsolePane'
 import { FluentOperationDetails } from '../components/FluentOperationDetails'
+import { FluentTeachingDiagram } from '../components/FluentTeachingDiagram'
+import { getMeshingTeachingDiagram } from '../data/fluentTeachingDiagrams'
 import { MobileWorkbenchPanes, type MobileWorkbenchPane } from '../components/MobileWorkbenchPanes'
 import { labelIn, type FluentLabel, type FluentLanguage } from '../fluentLanguage'
 import type { FluentMockControl } from '../fluentTypes'
@@ -19,7 +21,9 @@ import {
 } from '../state/fluentWorkbenchBridge'
 import '../styles/fluentWorkspace.css'
 import { FaultTolerantTaskBody } from './FaultTolerantTaskBody'
+import { MeshingDialogs } from './MeshingDialogs'
 import { MeshingViewport } from './MeshingViewport'
+import type { MeshingDialogId } from './meshingTypes'
 import { meshingOperationGuides } from './meshingOperationGuides'
 import { MultizoneTaskBody } from './MultizoneTaskBody'
 import { WatertightCappingTask } from './WatertightCappingTask'
@@ -117,6 +121,7 @@ export default function FluentMeshingWorkbench() {
     () => initialPrefs?.theme ?? 'light',
   )
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false)
+  const [activeDialog, setActiveDialog] = useState<MeshingDialogId | null>(null)
   const [ribbonId, setRibbonId] = useState(
     () => initialCatalogHit?.ribbonTabId ?? 'm-tab-workflow',
   )
@@ -353,6 +358,9 @@ export default function FluentMeshingWorkbench() {
     if (cmd.viewportTab) {
       dispatch({ type: 'SET_VIEWPORT_TAB', tab: cmd.viewportTab })
     }
+    if (cmd.dialogId) {
+      setActiveDialog(cmd.dialogId)
+    }
     switch (cmd.actionId) {
       case 'reset-workflow':
         dispatch({ type: 'RESET_WORKFLOW' })
@@ -405,9 +413,14 @@ export default function FluentMeshingWorkbench() {
       aria-labelledby="fluent-meshing-title"
       lang={language === 'zh' ? 'zh-CN' : 'en'}
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && showDisclaimerModal) {
-          event.preventDefault()
-          setShowDisclaimerModal(false)
+        if (event.key === 'Escape') {
+          if (showDisclaimerModal) {
+            event.preventDefault()
+            setShowDisclaimerModal(false)
+          } else if (activeDialog) {
+            event.preventDefault()
+            setActiveDialog(null)
+          }
         }
       }}
     >
@@ -909,6 +922,11 @@ export default function FluentMeshingWorkbench() {
               <p className="fluent-explanation-location">{explanation.location}</p>
               <h2>{explanation.title}</h2>
 
+              {(() => {
+                const meshingDiagram = getMeshingTeachingDiagram(explanation.id, state)
+                return meshingDiagram ? <FluentTeachingDiagram spec={meshingDiagram} /> : null
+              })()}
+
               {optionNote && (
                 <div className="fluent-option-highlight">
                   <strong>当前选项要点：{activeOptionKey}</strong>
@@ -1131,6 +1149,17 @@ export default function FluentMeshingWorkbench() {
           </div>
         </div>
       )}
+      <MeshingDialogs
+        activeDialog={activeDialog}
+        state={state}
+        dispatch={dispatch}
+        label={label}
+        language={language}
+        uiTheme={uiTheme}
+        onSetLanguage={setLanguage}
+        onSetUiTheme={setUiTheme}
+        onClose={() => setActiveDialog(null)}
+      />
     </section>
   )
 }

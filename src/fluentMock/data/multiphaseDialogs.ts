@@ -58,6 +58,7 @@ const mass = settings(multiphaseDialogId, 'Mass')
 const reactions = settings(multiphaseDialogId, 'Reactions')
 const area = settings(multiphaseDialogId, 'Interfacial Area')
 const discretization = settings(multiphaseDialogId, 'Discretization')
+const mpTurb = settings(multiphaseDialogId, 'Multiphase Turbulence')
 const transition = settings(multiphaseDialogId, 'Model Transition')
 const population = settings(multiphaseDialogId, 'Population Balance')
 const hasMassTransfer = when('multiphase-mass-count', ...countOptions.slice(1))
@@ -230,6 +231,8 @@ const advancedControls = [
   area.choice('multiphase-pair-area', 'Interfacial Area Model', ['ia-symmetric', 'ia-particle', 'ia-gradient', 'ia-hybrid', 'user-defined', 'ia-aiad']),
   discretization.toggle('multiphase-compressive', 'Phase Localized Compressive Scheme', when('multiphase-interface-localized', true)),
   discretization.field('multiphase-pair-slope-limiter', 'Slope Limiter (0–2)', '1', [...when('multiphase-interface-localized', true), ...when('multiphase-compressive', true)]),
+  mpTurb.choice('multiphase-pair-turb-int', 'Turbulence Interaction Model', ['none', 'simonin', 'troshko-hassan', 'sato', 'user-defined'], [...eulerian, ...when('viscous-inviscid', false), ...when('viscous-laminar', false)]),
+  mpTurb.field('multiphase-pair-disp-pr', 'Dispersion Prandtl Number', '0.75', [...eulerian, ...when('viscous-inviscid', false), ...when('viscous-laminar', false)]),
   transition.choice('multiphase-transition-count', 'Number of Model Transition Mechanisms', countOptions),
   transition.choice('multiphase-transition-index', 'Model Transition Mechanism', [], hasTransition),
   transition.choice('multiphase-transition-entry-kind', 'Mechanism', ['vof-to-dpm', 'dpm-to-vof'], hasTransition),
@@ -264,6 +267,7 @@ export const multiphaseTabs: DialogTabGroup[] = [
   { id: 'reactions', parentId: 'transfer', label: 'Reactions', groups: ['Reactions'], visibleWhen: hasChemistry },
   { id: 'area', parentId: 'phase-interaction', label: 'Interfacial Area', groups: ['Phase Pair', 'Interfacial Area'], visibleWhen: when('multiphase-interfacial-area-active', true) },
   { id: 'discretization', parentId: 'phase-interaction', label: 'Discretization', groups: ['Phase Pair', 'Discretization'], visibleWhen: hasDiscretization },
+  { id: 'mp-turbulence', parentId: 'phase-interaction', label: 'Turbulence', groups: ['Phase Pair', 'Multiphase Turbulence'], visibleWhen: [...eulerian, ...when('viscous-inviscid', false), ...when('viscous-laminar', false)] },
   { id: 'transition', parentId: 'phase-interaction', label: 'Model Transition', groups: ['Model Transition'], visibleWhen: canTransition },
   { id: 'population-balance', label: 'Population Balance', groups: ['Population Balance'], visibleWhen: mixtureOrEulerian },
 ]

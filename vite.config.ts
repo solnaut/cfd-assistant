@@ -19,6 +19,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         cleanupOutdatedCaches: true,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       includeAssets: ['favicon.svg'],
       manifest: {
