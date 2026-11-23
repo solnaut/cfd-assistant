@@ -181,8 +181,8 @@ function DraggableDialogWindow({
     const originY = entry.y
 
     function handleMove(moveEvent: PointerEvent) {
-      const nextX = Math.max(-280, Math.min(280, originX + moveEvent.clientX - startX))
-      const nextY = Math.max(-160, Math.min(200, originY + moveEvent.clientY - startY))
+      const nextX = Math.max(-420, Math.min(420, originX + moveEvent.clientX - startX))
+      const nextY = Math.max(-200, Math.min(260, originY + moveEvent.clientY - startY))
       onMove(nextX, nextY)
     }
 
@@ -205,7 +205,10 @@ function DraggableDialogWindow({
 
   return (
     <section
-      className={'fluent-dialog-window' + (grouped ? ' fluent-model-dialog-window' : '')}
+      className={
+        'fluent-dialog-window' +
+        (grouped ? ' fluent-model-dialog-window' : tabs.length >= 4 ? ' fluent-wide-dialog-window' : '')
+      }
       role="dialog"
       aria-hidden={index < total - 1 ? true : undefined}
       inert={index < total - 1}

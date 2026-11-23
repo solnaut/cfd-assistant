@@ -306,6 +306,7 @@ export default function FluentSolverMock() {
     defaultExpandedTreeNodes,
   )
   const [showGuide, setShowGuide] = useState(true)
+  const [wideGuide, setWideGuide] = useState(false)
   const [inspectorTab, setInspectorTab] = useState<'guide' | 'troubleshoot'>(
     () => initialResolved.inspectorTab,
   )
@@ -1583,6 +1584,8 @@ export default function FluentSolverMock() {
             <Link to="/fluent-launcher">Fluent Launcher</Link>
             <Link to="/calculators">参数计算</Link>
             <Link to="/formulas">CFD 公式库</Link>
+            <Link to="/cfd-practice">实战向导</Link>
+            <Link to="/thermal-lab">热工实验</Link>
             <Link to="/knowledge">热流体工程图解</Link>
           </nav>
           <div className="fluent-mode-switcher" role="group" aria-label="Fluent 模式切换">
@@ -1843,7 +1846,7 @@ export default function FluentSolverMock() {
       <div
         className={
           'fluent-solver-main-grid' +
-          (showGuide ? '' : ' fluent-guide-closed')
+          (showGuide ? (wideGuide ? ' fluent-guide-wide' : '') : ' fluent-guide-closed')
         }
         data-mobile-pane={mobilePane}
       >
@@ -2048,6 +2051,8 @@ export default function FluentSolverMock() {
           simState={simState}
           label={label}
           visible={showGuide}
+          wideGuide={wideGuide}
+          onToggleWideGuide={() => setWideGuide((v) => !v)}
           inspectorTab={inspectorTab}
           onSelectInspectorTab={setInspectorTab}
           onLocate={activate}

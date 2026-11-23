@@ -134,6 +134,31 @@ function MeshingDialogBody({
   const [meshProcesses, setMeshProcesses] = useState(String(state.processes || 4))
   const [autoCheckQuality, setAutoCheckQuality] = useState(true)
   const [keepBackupSurf, setKeepBackupSurf] = useState(false)
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 })
+
+  function startDrag(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === 'touch' || (event.target as HTMLElement).closest('button')) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startY = event.clientY
+    const originX = dragPos.x
+    const originY = dragPos.y
+
+    function handleMove(moveEvent: PointerEvent) {
+      setDragPos({
+        x: Math.max(-420, Math.min(420, originX + moveEvent.clientX - startX)),
+        y: Math.max(-200, Math.min(260, originY + moveEvent.clientY - startY)),
+      })
+    }
+
+    function handleUp() {
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+  }
 
   function handleReadMesh() {
     dispatch({
@@ -264,8 +289,13 @@ function MeshingDialogBody({
   }
 
   return (
-    <div className="fluent-dialog-window" role="dialog" aria-label={title}>
-      <div className="fluent-dialog-titlebar">
+    <div
+      className="fluent-dialog-window fluent-meshing-dialog-window"
+      role="dialog"
+      aria-label={title}
+      style={{ transform: `translate(${dragPos.x}px, ${dragPos.y}px)` }}
+    >
+      <div className="fluent-dialog-titlebar" onPointerDown={startDrag}>
         <strong>{title}</strong>
         <button type="button" aria-label={`Close ${title}`} onClick={onClose}>
           ×

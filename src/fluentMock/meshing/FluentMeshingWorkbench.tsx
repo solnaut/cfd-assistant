@@ -134,6 +134,7 @@ export default function FluentMeshingWorkbench() {
     'sizing',
   ])
   const [showGuide, setShowGuide] = useState(true)
+  const [wideGuide, setWideGuide] = useState(false)
   const [mobilePane, setMobilePane] = useState<MobileWorkbenchPane>('outline')
   const [inspectorTab, setInspectorTab] = useState<'guide' | 'troubleshoot'>(() =>
     initialParams.get('panel') === 'troubleshoot' ? 'troubleshoot' : 'guide',
@@ -432,6 +433,8 @@ export default function FluentMeshingWorkbench() {
             <Link to="/fluent-launcher">Fluent Launcher</Link>
             <Link to="/calculators">参数计算</Link>
             <Link to="/formulas">CFD 公式库</Link>
+            <Link to="/cfd-practice">实战向导</Link>
+            <Link to="/thermal-lab">热工实验</Link>
             <Link to="/knowledge">热流体工程图解</Link>
           </nav>
           <div className="fluent-mode-switcher" role="group" aria-label="Fluent 模式切换">
@@ -642,7 +645,7 @@ export default function FluentMeshingWorkbench() {
       <div
         className={
           'fluent-solver-main-grid' +
-          (showGuide ? '' : ' fluent-guide-closed')
+          (showGuide ? (wideGuide ? ' fluent-guide-wide' : '') : ' fluent-guide-closed')
         }
         data-mobile-pane={mobilePane}
       >
@@ -913,6 +916,15 @@ export default function FluentMeshingWorkbench() {
                 onClick={() => setInspectorTab('troubleshoot')}
               >
                 {label('Troubleshooting')}
+              </button>
+              <button
+                type="button"
+                className={wideGuide ? 'fluent-guide-width-btn active' : 'fluent-guide-width-btn'}
+                aria-label="切换教学说明面板宽度"
+                aria-pressed={wideGuide}
+                onClick={() => setWideGuide((v) => !v)}
+              >
+                {wideGuide ? '标准宽' : '宽屏'}
               </button>
             </div>
           </div>

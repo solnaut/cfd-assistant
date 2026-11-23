@@ -1774,13 +1774,28 @@ describe('Fluent workbench interaction branches', () => {
     fireEvent.click(nasaDlg.getByRole('button', { name: 'Close NASA Piecewise-Polynomial Profile' }))
     fireEvent.click(matDlg.getByRole('button', { name: 'Close Create/Edit Materials' }))
 
-    // 3. Viscous dialog keeps no tablist while rendering inline mechanism summary & collapsible SVG
+    // 3. Viscous dialog keeps no tablist while rendering inline mechanism summary & collapsible SVG + Lightbox zoom
     fireEvent.click(ribbon.getByRole('button', { name: 'Viscous' }))
     const viscousDlg = within(screen.getByRole('dialog', { name: 'Viscous Model' }))
     expect(viscousDlg.queryByRole('tablist')).not.toBeInTheDocument()
     expect(viscousDlg.getByText(/当前活跃模型/)).toBeInTheDocument()
     expect(viscousDlg.getByRole('img')).toBeInTheDocument()
+    fireEvent.click(viscousDlg.getByRole('button', { name: /放大查看：湍流解析尺度谱系/ }))
+    const lightbox = within(screen.getByRole('dialog', { name: /^大图预览：湍流解析尺度谱系/ }))
+    expect(lightbox.getByText('100%')).toBeInTheDocument()
+    fireEvent.click(lightbox.getByRole('button', { name: '放大图解' }))
+    expect(lightbox.getByText('125%')).toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /^大图预览：/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Viscous Model' })).toBeInTheDocument()
     fireEvent.click(viscousDlg.getByRole('button', { name: 'Close Viscous Model' }))
+
+    // Wide ExplanationPane toggle on Solution workbench
+    const wideToggle = screen.getByRole('button', { name: '切换教学说明面板宽度' })
+    expect(wideToggle).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(wideToggle)
+    expect(wideToggle).toHaveAttribute('aria-pressed', 'true')
+    expect(document.querySelector('.fluent-solver-main-grid.fluent-guide-wide')).toBeInTheDocument()
 
     // 4. Boundary Conditions -> Velocity Inlet UDS tab & Radiator multi-tab + Radiator Curve sub-dialog
     fireEvent.click(outline.getByRole('button', { name: 'Boundary Conditions' }))
@@ -1809,5 +1824,16 @@ describe('Fluent workbench interaction branches', () => {
     expect(fftDlg.getByRole('tab', { name: 'Signal & Window' })).toBeInTheDocument()
     fireEvent.click(fftDlg.getByRole('tab', { name: 'Axes Options' }))
     expect(fftDlg.getByRole('checkbox', { name: 'Logarithmic Frequency Axis' })).toBeInTheDocument()
+  })
+
+  it('opens standalone lightbox preview for EnergyKnowledgeDiagram figures on /knowledge', () => {
+    renderApp('/knowledge')
+    const zoomBtn = screen.getByRole('button', { name: /^放大查看：/ })
+    fireEvent.click(zoomBtn)
+    const lightbox = within(screen.getByRole('dialog', { name: /^大图预览：/ }))
+    fireEvent.click(lightbox.getByRole('button', { name: '深色图纸' }))
+    expect(lightbox.getByRole('button', { name: '浅色图纸' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(lightbox.getByRole('button', { name: '关闭大图预览' }))
+    expect(screen.queryByRole('dialog', { name: /^大图预览：/ })).not.toBeInTheDocument()
   })
 })

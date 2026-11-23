@@ -468,5 +468,15 @@ describe('Fluent Meshing data & state machine', () => {
     fireEvent.click(dispDlg.getByRole('tab', { name: 'Colors & Lighting' }))
     expect(dispDlg.getByRole('combobox', { name: 'Color Faces By' })).toBeInTheDocument()
     fireEvent.click(dispDlg.getByRole('button', { name: 'Close Display Options' }))
+
+    // Wide ExplanationPane + clickable Meshing teaching diagram Lightbox preview
+    const wideToggle = screen.getByRole('button', { name: '切换教学说明面板宽度' })
+    fireEvent.click(wideToggle)
+    expect(container.querySelector('.fluent-solver-main-grid.fluent-guide-wide')).toBeInTheDocument()
+    fireEvent.click(guidePane.getByRole('button', { name: /^放大查看：/ }))
+    const lightbox = within(screen.getByRole('dialog', { name: /^大图预览：/ }))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: /^大图预览：/ })).not.toBeInTheDocument()
+    void lightbox
   })
 })

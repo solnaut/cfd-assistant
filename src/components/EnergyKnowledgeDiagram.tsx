@@ -4,9 +4,11 @@ import type { EnergyDiagramKind } from '../models/energyKnowledge'
 export function EnergyKnowledgeDiagram({
   kind,
   caption,
+  decorative = false,
 }: {
   kind: EnergyDiagramKind
   caption: string
+  decorative?: boolean
 }) {
   const uid = useId()
   const arrowUrl = `url(#${uid}-arrow)`
@@ -16,8 +18,9 @@ export function EnergyKnowledgeDiagram({
     <svg
       className="energy-diagram-svg"
       viewBox="0 0 640 280"
-      role="img"
-      aria-label={caption}
+      role={decorative ? undefined : 'img'}
+      aria-label={decorative ? undefined : caption}
+      aria-hidden={decorative ? true : undefined}
     >
       <defs>
         <marker

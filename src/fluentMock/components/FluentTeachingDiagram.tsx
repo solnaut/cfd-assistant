@@ -1,4 +1,5 @@
-import { useId } from 'react'
+import { useId, useRef, useState } from 'react'
+import { DiagramLightboxModal } from '../../components/DiagramLightboxModal'
 import type { FluentDiagramKind, TeachingDiagramSpec } from '../data/fluentTeachingDiagrams'
 
 interface Props {
@@ -529,7 +530,13 @@ function DiagramSvgBody({
   }
 }
 
-export function FluentTeachingDiagram({ spec, compact = false }: Props) {
+function FluentDiagramSvg({
+  spec,
+  decorative = false,
+}: {
+  spec: TeachingDiagramSpec
+  decorative?: boolean
+}) {
   const uid = useId().replace(/:/g, '')
   const markerIds: MarkerIds = {
     ink: `diag-ink-${uid}`,
@@ -538,42 +545,88 @@ export function FluentTeachingDiagram({ spec, compact = false }: Props) {
   }
 
   return (
-    <figure className={compact ? 'fluent-teaching-diagram-card compact' : 'fluent-teaching-diagram-card'}>
-      <div className="fluent-teaching-diagram-head">
-        <strong>{spec.title}</strong>
-        {spec.activeModel && (
-          <span className="fluent-teaching-diagram-badge">{spec.activeModel}</span>
-        )}
-      </div>
-      <svg
-        className="fluent-teaching-diagram-svg"
-        viewBox="0 0 620 260"
-        role="img"
-        aria-label={spec.title}
+    <svg
+      className="fluent-teaching-diagram-svg"
+      viewBox="0 0 620 260"
+      role={decorative ? undefined : 'img'}
+      aria-label={decorative ? undefined : spec.title}
+      aria-hidden={decorative ? true : undefined}
+    >
+      <defs>
+        <marker id={markerIds.ink} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="var(--fl-ink, #1e293b)" />
+        </marker>
+        <marker id={markerIds.accent} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#0b7285" />
+        </marker>
+        <marker id={markerIds.warm} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#d9480f" />
+        </marker>
+      </defs>
+      <DiagramSvgBody kind={spec.kind} m={markerIds} activeModel={spec.activeModel} />
+    </svg>
+  )
+}
+
+export function FluentTeachingDiagram({ spec, compact = false }: Props) {
+  const cardRef = useRef<HTMLElement>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [defaultSurface, setDefaultSurface] = useState<'light' | 'dark'>('light')
+
+  function openLightbox() {
+    const theme = cardRef.current?.closest('.fluent-workbench')?.getAttribute('data-theme')
+    setDefaultSurface(theme === 'dark' ? 'dark' : 'light')
+    setLightboxOpen(true)
+  }
+
+  return (
+    <>
+      <figure
+        ref={cardRef}
+        className={compact ? 'fluent-teaching-diagram-card compact' : 'fluent-teaching-diagram-card'}
       >
-        <defs>
-          <marker id={markerIds.ink} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="var(--fl-ink, #1e293b)" />
-          </marker>
-          <marker id={markerIds.accent} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#0b7285" />
-          </marker>
-          <marker id={markerIds.warm} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M 0 1.5 L 8.5 5 L 0 8.5 z" fill="#d9480f" />
-          </marker>
-        </defs>
-        <DiagramSvgBody kind={spec.kind} m={markerIds} activeModel={spec.activeModel} />
-      </svg>
-      <figcaption className="fluent-teaching-diagram-caption">
-        <span>{spec.caption}</span>
-        {spec.highlights && spec.highlights.length > 0 && (
-          <span className="fluent-teaching-diagram-tags">
-            {spec.highlights.map((item) => (
-              <span key={item} className="fluent-teaching-diagram-tag">{item}</span>
-            ))}
-          </span>
-        )}
-      </figcaption>
-    </figure>
+        <div className="fluent-teaching-diagram-head">
+          <strong>{spec.title}</strong>
+          <div className="fluent-teaching-diagram-actions">
+            {spec.activeModel && (
+              <span className="fluent-teaching-diagram-badge">{spec.activeModel}</span>
+            )}
+            <button
+              type="button"
+              className="diagram-zoom-btn"
+              aria-label={`放大查看：${spec.title}`}
+              onClick={openLightbox}
+            >
+              放大查看
+            </button>
+          </div>
+        </div>
+        <div className="diagram-zoom-stage" onClick={openLightbox}>
+          <FluentDiagramSvg spec={spec} />
+          <span className="diagram-zoom-pill" aria-hidden="true">点击放大</span>
+        </div>
+        <figcaption className="fluent-teaching-diagram-caption">
+          <span>{spec.caption}</span>
+          {spec.highlights && spec.highlights.length > 0 && (
+            <span className="fluent-teaching-diagram-tags">
+              {spec.highlights.map((item) => (
+                <span key={item} className="fluent-teaching-diagram-tag">{item}</span>
+              ))}
+            </span>
+          )}
+        </figcaption>
+      </figure>
+      <DiagramLightboxModal
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        title={spec.title}
+        badge={spec.activeModel}
+        caption={spec.caption}
+        highlights={spec.highlights}
+        defaultSurface={defaultSurface}
+      >
+        <FluentDiagramSvg spec={spec} decorative />
+      </DiagramLightboxModal>
+    </>
   )
 }

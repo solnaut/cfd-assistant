@@ -117,6 +117,12 @@ describe('thermal laboratory', () => {
     const cop = () => screen.getByText('制冷 COP', { selector: 'dt' }).nextElementSibling?.textContent
     const initial = cop()
     expect(screen.getByRole('img', { name: /R134a 压焓图/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '放大查看：R134a 压焓图' }))
+    const chartLightbox = within(screen.getByRole('dialog', { name: '大图预览：R134a 压焓图' }))
+    fireEvent.click(chartLightbox.getByRole('button', { name: '放大图解' }))
+    expect(chartLightbox.getByText('125%')).toBeInTheDocument()
+    fireEvent.click(chartLightbox.getByRole('button', { name: '关闭大图预览' }))
+    expect(screen.queryByRole('dialog', { name: '大图预览：R134a 压焓图' })).not.toBeInTheDocument()
     fireEvent.change(screen.getByRole('slider', { name: '冷凝温度' }), { target: { value: '50' } })
     expect(cop()).not.toBe(initial)
     fireEvent.click(screen.getByRole('link', { name: '换热器 LMTD 与 ε–NTU' }))

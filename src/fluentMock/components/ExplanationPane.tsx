@@ -23,6 +23,8 @@ export function ExplanationPane({
   simState,
   label,
   visible,
+  wideGuide,
+  onToggleWideGuide,
   inspectorTab: controlledTab,
   onSelectInspectorTab,
   onLocate,
@@ -36,6 +38,8 @@ export function ExplanationPane({
   simState?: FluentSimState
   label: FluentLabel
   visible: boolean
+  wideGuide?: boolean
+  onToggleWideGuide?: () => void
   inspectorTab?: 'guide' | 'troubleshoot'
   onSelectInspectorTab?: (tab: 'guide' | 'troubleshoot') => void
   onLocate: (control: FluentMockControl, locate: true) => void
@@ -112,6 +116,17 @@ export function ExplanationPane({
           >
             {label('Troubleshooting')}
           </button>
+          {onToggleWideGuide && (
+            <button
+              type="button"
+              className={wideGuide ? 'fluent-guide-width-btn active' : 'fluent-guide-width-btn'}
+              aria-label="切换教学说明面板宽度"
+              aria-pressed={Boolean(wideGuide)}
+              onClick={onToggleWideGuide}
+            >
+              {wideGuide ? '标准宽' : '宽屏'}
+            </button>
+          )}
         </div>
       </div>
 

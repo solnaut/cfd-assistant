@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Breadcrumbs from '../components/Breadcrumbs'
+import { DiagramLightboxModal } from '../components/DiagramLightboxModal'
 import { EnergyKnowledgeDiagram } from '../components/EnergyKnowledgeDiagram'
 import { KnowledgeFrameworkMap } from '../components/KnowledgeFrameworkMap'
 import MathFormula from '../components/MathFormula'
@@ -94,6 +95,7 @@ function EnergyKnowledgePage() {
   const [quizBankOnlyUnansweredOrWrong, setQuizBankOnlyUnansweredOrWrong] =
     useState(false)
   const [copiedFormulaKey, setCopiedFormulaKey] = useState<string | null>(null)
+  const [openFigure, setOpenFigure] = useState<'diagram' | 'mechanism' | null>(null)
 
   const searchHits = useMemo(
     () => (query.trim() ? searchEnergyTopics(query) : []),
@@ -729,12 +731,28 @@ function EnergyKnowledgePage() {
 
             {activeTopic.diagram && (
               <figure className="energy-section energy-diagram-card">
-                <EnergyKnowledgeDiagram
-                  kind={activeTopic.diagram.kind}
-                  caption={activeTopic.diagram.caption}
-                />
+                <div
+                  className="diagram-zoom-stage"
+                  onClick={() => setOpenFigure('diagram')}
+                >
+                  <EnergyKnowledgeDiagram
+                    kind={activeTopic.diagram.kind}
+                    caption={activeTopic.diagram.caption}
+                  />
+                  <span className="diagram-zoom-pill" aria-hidden="true">点击放大</span>
+                </div>
                 <figcaption className="energy-diagram-caption">
-                  <strong>{activeTopic.diagram.caption}</strong>
+                  <div className="energy-diagram-caption-row">
+                    <strong>{activeTopic.diagram.caption}</strong>
+                    <button
+                      type="button"
+                      className="diagram-zoom-btn"
+                      aria-label={`放大查看：${activeTopic.diagram.caption}`}
+                      onClick={() => setOpenFigure('diagram')}
+                    >
+                      放大查看
+                    </button>
+                  </div>
                   <span>{activeTopic.diagram.note}</span>
                 </figcaption>
               </figure>
@@ -742,11 +760,32 @@ function EnergyKnowledgePage() {
 
             {brief?.mechanism && (
               <figure className="energy-section energy-mechanism" aria-label={brief.mechanism.title}>
-                <h3>{brief.mechanism.title}</h3>
+                <div className="energy-mechanism-head">
+                  <h3>{brief.mechanism.title}</h3>
+                  {brief.mechanism.image && (
+                    <button
+                      type="button"
+                      className="diagram-zoom-btn"
+                      aria-label={`放大查看：${brief.mechanism.title}`}
+                      onClick={() => setOpenFigure('mechanism')}
+                    >
+                      放大查看
+                    </button>
+                  )}
+                </div>
                 {brief.mechanism.image && (
-                  <img className="energy-mechanism-picture" loading="lazy"
-                    src={import.meta.env.BASE_URL + 'knowledge/figures/' + brief.mechanism.image.file}
-                    alt={brief.mechanism.image.alt} />
+                  <div
+                    className="diagram-zoom-stage"
+                    onClick={() => setOpenFigure('mechanism')}
+                  >
+                    <img
+                      className="energy-mechanism-picture"
+                      loading="lazy"
+                      src={import.meta.env.BASE_URL + 'knowledge/figures/' + brief.mechanism.image.file}
+                      alt={brief.mechanism.image.alt}
+                    />
+                    <span className="diagram-zoom-pill" aria-hidden="true">点击放大</span>
+                  </div>
                 )}
                 <ol className={'energy-mechanism-nodes is-' + brief.mechanism.layout}>
                   {brief.mechanism.nodes.map(([title, note]) => (
@@ -756,6 +795,41 @@ function EnergyKnowledgePage() {
                 <figcaption>{brief.mechanism.note}</figcaption>
               </figure>
             )}
+
+            <DiagramLightboxModal
+              open={Boolean(
+                (openFigure === 'diagram' && activeTopic.diagram) ||
+                  (openFigure === 'mechanism' && brief?.mechanism?.image),
+              )}
+              onClose={() => setOpenFigure(null)}
+              title={
+                openFigure === 'mechanism' && brief?.mechanism
+                  ? brief.mechanism.title
+                  : activeTopic.diagram?.caption ?? activeTopic.title
+              }
+              badge={activeCourse.name}
+              caption={
+                openFigure === 'mechanism' && brief?.mechanism
+                  ? brief.mechanism.note
+                  : activeTopic.diagram?.note
+              }
+            >
+              {openFigure === 'diagram' && activeTopic.diagram && (
+                <EnergyKnowledgeDiagram
+                  kind={activeTopic.diagram.kind}
+                  caption={activeTopic.diagram.caption}
+                  decorative
+                />
+              )}
+              {openFigure === 'mechanism' && brief?.mechanism?.image && (
+                <img
+                  className="diagram-lightbox-img"
+                  src={import.meta.env.BASE_URL + 'knowledge/figures/' + brief.mechanism.image.file}
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
+            </DiagramLightboxModal>
 
             <details className="energy-section energy-topic-details" key={activeTopic.id}>
               <summary>原理与关键条件</summary>

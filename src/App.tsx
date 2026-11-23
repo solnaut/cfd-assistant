@@ -60,6 +60,8 @@ function App() {
             <NavLink to="/fluent-guide">Fluent 功能导览</NavLink>
             <NavLink to="/calculators">参数计算</NavLink>
             <NavLink to="/formulas">CFD 公式库</NavLink>
+            <NavLink to="/cfd-practice">实战向导</NavLink>
+            <NavLink to="/thermal-lab">热工实验</NavLink>
             <NavLink to="/knowledge">热流体工程图解</NavLink>
           </nav>
           <div className="site-header-tools">
