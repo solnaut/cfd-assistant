@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/cfd-assistant/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="CFD Assistant is an independent learning and calculation aid for CFD engineers and Ansys Fluent beginners."
+    />
+    <title>CFD Assistant</title>
+    <script>
+      ;(function () {
+        try {
+          var key = 'cfd-assistant:spa-redirect'
+          var redirect = window.sessionStorage.getItem(key)
+          if (!redirect) return
+          window.sessionStorage.removeItem(key)
+          if (redirect.startsWith('/') && !redirect.startsWith('//')) {
+            window.history.replaceState(null, '', redirect)
+          }
+        } catch {
+          // Ignore storage restrictions.
+        }
+      })()
+    </script>
+    <script type="module" crossorigin src="/cfd-assistant/assets/index--6O0LTSL.js"></script>
+    <link rel="stylesheet" crossorigin href="/cfd-assistant/assets/index-0B8hwscC.css">
+  <link rel="manifest" href="/cfd-assistant/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/cfd-assistant/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

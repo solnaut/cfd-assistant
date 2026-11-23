@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CFD Assistant</title>
+    <script>
+      ;(function () {
+        var base = "/cfd-assistant/"
+        var target = window.location.pathname + window.location.search + window.location.hash
+        try {
+          window.sessionStorage.setItem('cfd-assistant:spa-redirect', target)
+        } catch {
+          // Ignore storage restrictions.
+        }
+        window.location.replace(base)
+      })()
+    </script>
+  </head>
+  <body></body>
+</html>
