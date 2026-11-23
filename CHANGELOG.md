@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 深化 Fluent Solution 教学工作台（`src/fluentMock/data/nestedSubDialogs.ts` 等）：新增 54 个多层嵌套教学子窗口，补齐 Case Check、Mesh Info、Zone Adjacency、Interface Orientation、Motion Definitions、Mesh Interfaces、Auxiliary Geometry、Reference Frames、Named Expressions、Curvilinear Coordinates、Cell Registers、Animations/Playback、Case Summary、Simulation Report、Parallel Network/Timer/Native GPU、材料曲线（Polynomial / Piecewise-Linear / Power-Law / NASA Cp / User Database）、动网格子窗（In-Cylinder / Six-DOF / Contact / Preview / Events）、湍流常数、CHEMKIN/Reactions/PDF/Pollutants、DTRM、电池电化学、DPM Rosin-Rammler、多相流/多边界/求解器/后处理二级配置弹窗及对应控件逻辑与 TUI 日志反馈。
+- 新增 14 类交互式 SVG 物理机理教学图解（`FluentTeachingDiagram.tsx`、`fluentTeachingDiagrams.ts`），覆盖压力基/密度基求解器、湍流尺度、近壁 y+、多相流拓扑、能量/共轭传热、辐射选型、组分燃烧、DPM 双向耦合、边界约束、动网格机制、空间离散与压力-速度耦合、UDS 跨界面联动，以及 Meshing CAD 共享拓扑与体网格棱柱层/正交质量，并在右侧解析面板与弹窗内联折叠区联动展示。
+- 增强 Fluent Solution 跨窗口条件联动、模型树与教学深度档案：支持 UDS 标量跨界面解锁边界 UDS 选项卡与材料扩散率、VOF Open Channel/Wave BC 联动、DPM 喷射器条件选项卡（`Components`/`Breakup`）、Dynamic Mesh Zones 动态标签启用状态、Wall（含 Wall Film/Species）与 Vent/Fan/Porous Jump/Radiator 等特殊边界多选项卡，扩展可展开模型树子节点并补充 `dialogTeachingProfiles.ts`、双语字典与控件教学提示。
+- 升级 Fluent Meshing 网格工作台（`MeshingDialogs.tsx`）：新增 6 个多标签页交互弹窗（`Read/Write Mesh`、`Display Options`、`Surface Mesh Diagnostics`、`Volume Mesh Check`、`Manage Zones`、`Preferences`）并接入顶部 Ribbon，同时在右侧教学面板嵌入 SVG 物理机理图解。
+- 调整 `vite.config.ts` 中 PWA Workbox `maximumFileSizeToCacheInBytes` 为 5 MiB，并将自动化测试套件扩展至 14 个测试文件、410 项用例。
 - 正式在 GitHub 公开开源（`solnaut/cfd-assistant`，MIT License），上线 GitHub Pages 在线站点（`https://solnaut.github.io/cfd-assistant/`），支持子路径部署与深链接 SPA 回退。
 - 重写开源 `README.md`，补充完整功能矩阵、界面截图（由 `scripts/capture-screenshots.mjs` 自动采集）、快速开始、目录架构、自动更新与部署说明（含 GitHub Actions 自动部署工作流模板 `docs/github-actions-pages.yml.example` 与一键部署脚本 `scripts/deploy-gh-pages.mjs`）。
 - 新增功能选择式首页、Fluent Launcher 交互配置器及独立启动页（`/fluent-launcher`）、Fluent Meshing 网格工作台（`/fluent-meshing`，覆盖 Watertight / Fault-Tolerant / Multizone 工作流并支持流转到 Solution）。

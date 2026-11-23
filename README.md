@@ -16,8 +16,8 @@
 | 模块 | 访问路径 | 核心能力说明 |
 | :--- | :--- | :--- |
 | **功能首页与启动器** | `/`、`/fluent-launcher` | 融合“原理 → 网格 → 求解”三段学习路径，内置 **Fluent Launcher** 交互配置器（支持 2D/3D、单/双精度、Meshing/Solution 进程数、并行与显示驱动配置并带参数跳转）。 |
-| **Fluent Solution 教学工作台** | `/fluent-guide` | 覆盖 Ribbon、模型树（Outline）、任务页面（Task Page）、3D 弯管流道视口、控制台 TUI（含常用快捷命令）与多层嵌套教学弹窗；支持中英界面切换、深浅色主题、10 步引导教程、报错排查与右侧“是什么 / 什么时候用 / 建议 / 检查要点 / 常见误区”结构化解析。 |
-| **Fluent Meshing 网格工作台** | `/fluent-meshing` | 内置 **Watertight Geometry**（水密几何）、**Fault-Tolerant**（容错几何）与 **Multizone** 引导工作流，涵盖几何导入、BOI 局部加密、面网格、边界更新、边界层、体网格填充与正交质量直方图，支持一键将配置与边界流转到 Solution 工作台。 |
+| **Fluent Solution 教学工作台** | `/fluent-guide` | 覆盖 Ribbon、可展开模型树（Outline）、任务页面（Task Page）、3D 弯管流道视口、控制台 TUI（含常用快捷命令）、**54 个新增多层嵌套教学子窗口**（覆盖 Case Check、Mesh Info、Zone Adjacency、Reference Frames、Named Expressions、Cell Registers、Animations、Simulation Report、Parallel/Native GPU、材料曲线与用户材料库、动网格 In-Cylinder/6-DOF/Contact/Events、燃烧 CHEMKIN/PDF/NOx & Soot、DTRM、电池电化学、DPM Rosin-Rammler、特殊边界与多相/UDS 配置等）与 **跨窗口条件联动选项卡**（如 UDS 自定义标量、VOF Open Channel/Wave BC、DPM Breakup/Components、Wall Film/Species、Dynamic Mesh Zones 与特殊边界多选项卡）；支持中英界面切换、深浅色主题、10 步引导教程、报错排查、右侧结构化解析与 **14 类交互式 SVG 物理机理图解**（解析面板与弹窗内联折叠联动展示）。 |
+| **Fluent Meshing 网格工作台** | `/fluent-meshing` | 内置 **Watertight Geometry**（水密几何）、**Fault-Tolerant**（容错几何）与 **Multizone** 引导工作流，涵盖几何导入、BOI 局部加密、面网格、边界更新、边界层、体网格填充与正交质量直方图，新增 **6 个接入 Ribbon 的多标签页交互弹窗**（`Read/Write Mesh`、`Display Options`、`Surface Mesh Diagnostics`、`Volume Mesh Check`、`Manage Zones`、`Preferences`）与右侧 CAD 共享拓扑、体网格棱柱层/正交质量 **SVG 物理机理图解**，支持一键将配置与边界流转到 Solution 工作台。 |
 | **CFD 参数计算器（27 项）** | `/calculators` | 分为 **5 大专业分类**，均具备单位实时换算、输入边界校验、中间量输出、KaTeX 公式渲染、变量表与一键复制摘要；每项计算器均有独立研究记录与单元测试约束。 |
 | **CFD 公式库** | `/formulas` | 与参数计算器共享单一数据源（无重复硬编码），按物理分类展示公式名称、KaTeX 数学排版、变量符号/物理含义及一键复制 LaTeX 源码。 |
 | **热流体工程图解（36 节）** | `/knowledge` | 覆盖**流体力学、工程热力学、传热学、制冷技术原理** 4 门核心课程共 36 个专题；内置工程示意图解、跨学科知识框架图谱、本学科刷题自测、难度筛选、重点收藏与本地学习进度追踪。 |
@@ -45,11 +45,11 @@
 
 ![CFD Assistant 功能首页](docs/screenshots/home.png)
 
-### Fluent Solution 求解教学工作台（90° 弯管模型 + TUI + 右侧结构化解析）
+### Fluent Solution 求解教学工作台（90° 弯管模型 + 嵌套子窗 + SVG 机理图解 + TUI）
 
 ![Fluent Solution 教学工作台](docs/screenshots/fluent-solution.png)
 
-### Fluent Meshing 网格工作台（水密/容错工作流引导）
+### Fluent Meshing 网格工作台（水密/容错工作流 + 诊断弹窗 + SVG 机理图解）
 
 ![Fluent Meshing 网格工作台](docs/screenshots/fluent-meshing.png)
 
@@ -102,7 +102,7 @@ npm.cmd run dev
 | :--- | :--- |
 | `npm.cmd run dev` | 启动 Vite 本地开发服务器 |
 | `npm.cmd run lint` | 运行 ESLint 代码静态检查 |
-| `npm.cmd run test` | 运行 Vitest 自动化测试套件（当前 14 个测试文件、352 项用例） |
+| `npm.cmd run test` | 运行 Vitest 自动化测试套件（当前 14 个测试文件、410 项用例） |
 | `npm.cmd run typecheck` | 运行 TypeScript 类型检查（`tsc -b`） |
 | `npm.cmd run build` | 执行类型检查并构建生产静态包至 `dist/` |
 | `npm.cmd run screenshots` | 启动本地预览并通过无头浏览器自动刷新 `docs/screenshots/` 截图 |
@@ -154,9 +154,9 @@ cfd-assistant/
   - 每次版本更新可通过 `npm.cmd run deploy:pages` 直接推送 `gh-pages` 分支刷新线上页面；若在仓库 `.github/workflows/deploy-pages.yml` 启用 [GitHub Actions 工作流模板](docs/github-actions-pages.yml.example)，后续每次向 `main` 分支 `git push` 都会自动执行 `lint`、`test`、`build` 并更新 GitHub Pages。
   - 站点集成 PWA `autoUpdate` 与 `controllerchange` 自动刷新逻辑，访客再次打开站点时会自动获取新版本静态资源。
 - **后续持续更新方向**：
+  - 在已初步覆盖多相流、辐射、燃烧、动网格、UDS 子窗口与 Meshing 诊断弹窗的基础上，继续深化自定义函数（UDF）概念与经典算例（弯管混合、平板边界层、换热器）的参数联动教学；
   - 扩充传热、可压缩流、旋流与多相流相关经过权威验证的计算器条目；
-  - 深化 Fluent Solution 多相流（VOF / Eulerian）、传热辐射、动网格与自定义函数（UDF）概念教学路径；
-  - 持续完善移动端工作台分栏体验、经典算例（如弯管混合、平板边界层、换热器）的案例参数联动教学。
+  - 持续完善移动端工作台分栏与触控交互体验。
 
 ---
 

@@ -76,13 +76,19 @@ docs/              项目文档
 
 ```text
 src/fluentMock/
-  FluentSolverMock.tsx      只负责渲染、点击状态、弹窗开关和解释面板切换
+  FluentSolverMock.tsx      Fluent Solution 主工作台与事件调度
   fluentTypes.ts            控件、任务页、弹窗、解释和来源索引类型
   fluentControls.ts         Ribbon、功能树、任务页、图形窗口、控制台控件数据
-  fluentDialogs.ts          模拟弹窗及弹窗内部控件数据
-  fluentExplanations.ts     控件解释数据和自然占位解释生成
+  fluentDialogs.ts          模拟弹窗汇总入口与分支装配
+  fluentExplanations.ts     控件解释数据汇总与占位解释生成
   fluentLayoutData.ts       汇总页面布局数据
+  fluentLanguage.ts         EN / 中文 / 双语显示标签映射
+  fluentTeachingExtras.ts   弹窗选项卡、下拉选项与关联计算器配置
   fluentResearchIndex.ts    Fluent 模拟器公开来源索引
+  components/               UI 子组件（DialogStack、ExplanationPane、OutlinePane、FluentTeachingDiagram 等）
+  data/                     分层教学数据（nestedSubDialogs、fluentTeachingDiagrams、dialogTeachingProfiles、boundaryBranches、dynamicMeshWorkflow 等）
+  state/                    状态机与 TUI/桥接逻辑（fluentSimState、fluentMultiphaseState、fluentTuiCommands、fluentWorkbenchBridge 等）
+  meshing/                  Fluent Meshing 工作台（FluentMeshingWorkbench、MeshingDialogs、meshingData、meshingOperationGuides 等）
 ```
 
 数据流：
